@@ -1,70 +1,69 @@
 # 💘 연애 케미 & 속마음 리포트 (Love Chemistry & Mind Report)
 
-Mobile-first viral MVP: free compatibility teaser → 990원 paywall → AI-generated full report → share card.
+Mobile-first viral web app with solo & couple modes: 사주 원국 + MBTI + love-style test → free reading → 990원 paywall → full report → share card.
 
-**Stack:** Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · Zustand · Supabase (Postgres, Seoul) · Anthropic SDK (Claude, structured JSON output) · Toss Payments v2 (hook) · Kakao JS SDK (hook) · html-to-image
+**No AI, no database.** Results come from a deterministic rule engine (same answers → same result), so serving costs stay near zero no matter how viral it gets.
+
+**Stack:** Next.js 16 (App Router) · React 19 · Tailwind CSS v4 · Zustand · Toss Payments v2 (hook) · Kakao JS SDK (hook) · html-to-image · deployed on Vercel
 
 ## Quick start
 
 ```bash
-cd love-chemistry
 npm install
-cp .env.example .env.local   # then fill SUPABASE_SECRET_KEY (required); ANTHROPIC_API_KEY is optional
-npm run dev                  # http://localhost:3000
+npm run dev        # http://localhost:3000
 ```
+Works with zero configuration (test-mode payment unlocks instantly). See `.env.example` for Toss/Kakao keys.
 
-`SUPABASE_SECRET_KEY` is required (Supabase dashboard → Chemickok-Seoul → Project Settings → API Keys → Secret key). Without `ANTHROPIC_API_KEY` a **sample (mock) report** is used instead of Claude, and **test-mode payment** unlocks instantly.
+## User flow
+1. Landing → **무료로 내 연애 유형 테스트하기**
+2. Choose a mode: **🙋 나 혼자 보기 (솔로)** or **💞 그 사람과 궁합 보기** (연애 중·썸·짝사랑·권태기·이별 후)
+3. **Solo** (16 steps): 내 정보 (+ MBTI, optional) → 솔로 고민 → PART 1 성향 12문항
+   - Free: my type (16 types), 4 axes, 사주 원국 & 띠, 일간 해석, answer quote-back, scenes, **찰떡 궁합** (best type · MBTI · 띠), **이번 달 연애운 %**
+   - Paid: 나와 맞는 사람 vs 피해야 할 사람 (share-to-unlock), 연애 패턴 & 실수, 이번 달 연애운 & 인연 길일
+4. **Couple** (28 steps): 내 정보 → 상대 정보 (+ both MBTIs) → 관계 상태 → 고민 → PART 1 (12) → PART 2 그 사람 관찰 (8)
+   - Free: everything above + couple score/title/summary, partner type, **MBTI 궁합** (e.g. INFP × ENFJ = 천생연분)
+   - Paid: 종합 궁합, 속마음 (share-to-unlock), 스킨십/멘탈 케미, 위기 & 이별 예방책, 개운 & 길일
+5. Pay 990원 (test mode by default) or share to unlock one section; the share card adapts to the mode.
 
-### Manual test flow
-1. Landing → **무료로 기본 케미 테스트 시작하기**
-2. Fill in 6 steps (me, partner, relationship status, 3 questions; choice steps auto-advance)
-3. Loading screen (≥3.5s, rotating messages) → teaser: score, couple title, 2-line summary, bomb types, blurred locked sections
-4. **990원으로 전체 리포트 보기** → tick the refund-policy checkbox → pay. In test mode this unlocks immediately (a dashed 🧪 TEST MODE banner shows).
-5. Share: **카카오톡**, **인스타그램 스토리** (renders the type card to a PNG, then share sheet / clipboard / download)
-6. Referral: **친구에게 990원 테스트 추천하고 무료로 보기** copies `/?ref=<reportId>`. Open it in another browser/incognito window and finish the test there; the original report then shows **무료로 전체 리포트 열기**.
+## How the "소름 돋게 맞는" effect is built
+| Technique | Where |
+|---|---|
+| Real saju math: 년·월·일·시주 (입춘/절입일 기준, 자시 23:30), 오행 분포, 일간 해석, 띠 | `src/engine/saju.ts`, `content/free.ts` |
+| Compatibility rules: 천간합, 상생/상극, 일지 육합·충, 띠 삼합·육합·충 | `saju.ts`, `analyze.ts` |
+| Lucky dates and this month's flow (월운 vs 일지) computed for the current month | `saju.ts#luckyDays`, `#monthRelation` |
+| 4 axes × 3 items with reverse-keyed questions; wording changes with intensity | `profile.ts`, `content/free.ts#TRAITS` |
+| Quote-back of the most decisive answer + specific everyday scenes | `QUOTE_READING`, `SCENES` |
+| Best / worst match type derived from my axes; popular MBTI 궁합표 | `analyze.ts#bestTypeCode`, `mbti.ts` |
+| Advice tailored to the chosen 고민 | `content/solo.ts`, `content/paid.ts` |
+
+To tune copy, edit `src/engine/content/free.ts` (free reading), `content/solo.ts` (solo report), `content/paid.ts` (couple report) and `src/engine/mbti.ts`.
 
 ## Architecture
 
 ```
 src/
 ├─ app/
-│  ├─ page.tsx                    # screen switcher (landing → form → loading → result)
-│  ├─ api/report/route.ts         # POST: generateReport() → stores full report, returns teaser only
-│  ├─ api/payment/confirm/route.ts# POST: verify test / Toss / referral → returns full report
-│  ├─ api/referral/route.ts       # GET: referral count for a report
-│  └─ payment/{success,fail}/     # Toss redirect targets
-├─ components/                    # Landing, Questionnaire, LoadingScreen, ResultView, PaymentModal,
-│                                 # ReportCards, ShareCard, ShareButtons, ReferralPanel, Footer, LegalModal
-├─ services/
-│  ├─ PaymentService.ts           # isTestMode flag, mock purchase, window.TossPayments hook
-│  ├─ shareService.ts             # Kakao share, Web Share, PNG capture
-│  ├─ apiClient.ts
-│  └─ server/                     # server-only
-│     ├─ prompt.ts                # system prompt (counselor persona) + user prompt builder
-│     ├─ reportGenerator.ts       # Claude call with structured output, mock fallback
-│     ├─ mockReport.ts            # deterministic offline report
-│     ├─ reportStore.ts           # Supabase-backed report/referral store (public.love_reports)
-│     ├─ supabase.ts              # server-only client (secret key)
-│     └─ tossConfirm.ts           # Toss 결제 승인 API
-├─ store/useAppStore.ts           # Zustand (persisted to sessionStorage to survive PG redirect)
-├─ models/types.ts                # input types + Zod ReportSchema (= the JSON the AI must return)
-└─ lib/                           # questions, zodiac flavor, config, script loader
+│  ├─ page.tsx                     # landing → form → loading → result
+│  ├─ api/analyze/route.ts         # POST: free teaser + inputHash
+│  ├─ api/payment/confirm/route.ts # POST: test / toss / share → rebuilds the report from the answers
+│  └─ payment/{success,fail}/      # Toss redirect targets
+├─ engine/ (server-only)
+│  ├─ saju.ts  profile.ts  mbti.ts  analyze.ts
+│  └─ content/free.ts  content/solo.ts  content/paid.ts
+├─ components/                     # Questionnaire, ResultView, ReportCards, PaymentModal, ShareUnlockPanel, Footer, ...
+├─ services/                       # PaymentService (isTestMode, Toss hook), shareService, apiClient
+├─ store/useAppStore.ts            # Zustand, persisted to sessionStorage (survives the PG redirect)
+└─ lib/                            # questions, config (business info), josa (Korean particles)
 ```
 
-**Paywall integrity:** the full report is generated once and kept on the server. The browser only gets the teaser until `/api/payment/confirm` succeeds; the blurred cards show placeholder text, so locked content can't be read from DevTools.
+**Paywall without a database:** paid copy lives only on the server (`engine/` is `server-only`). The free API returns the teaser plus `inputHash`; the Toss `orderId` starts with that hash. On confirm, the server re-validates the answers, checks the hash prefix, confirms with Toss (which refuses a second confirm of the same payment), and rebuilds the report. Payment records live in the Toss dashboard.
 
-### AI generation
-`services/server/reportGenerator.ts` calls `client.beta.messages.parse()` with `ReportSchema` as the output format, so the response is validated JSON that maps straight onto the UI cards. Defaults: `claude-opus-5-5`, effort `low` (keeps wait times short; set `ANTHROPIC_EFFORT=medium` for richer text). The system prompt is cached. Server-side refusal fallback (`fallbacks: "default"`) is enabled. If Claude refuses or the call fails, the user gets the mock report, so the funnel never dead-ends.
-
-The prompt lives in `services/server/prompt.ts`: a witty, slightly sarcastic but empathetic Korean counselor ("케미 박사"), with guardrails against sexual content in the 속궁합 section, no pushing reunions after a breakup, and flagging safety red flags.
-
-## Going live: checklist
-
-1. **Payments**: set `NEXT_PUBLIC_PAYMENT_TEST_MODE=false` **and** `PAYMENT_TEST_MODE=false`, plus `NEXT_PUBLIC_TOSS_CLIENT_KEY` / `TOSS_SECRET_KEY`. Flow: `PaymentService.requestTossPayment()` → Toss checkout → `/payment/success` → server confirm → unlock. Kakao Pay is routed through Toss easy-pay (`easyPay: "KAKAOPAY"`). Register `/payment/success` and `/payment/fail` URLs in the Toss console. Verify the exact v2 parameters against the Toss docs before launch.
-2. **Database**: set `SUPABASE_URL` / `SUPABASE_SECRET_KEY` in your hosting env. The privacy policy promises deletion of report data within 30 days, so schedule a cleanup, e.g. pg_cron: `delete from love_reports where created_at < now() - interval '30 days'` (keep payment records you need for 5-year e-commerce retention in a separate table). Referrals are counted per completed test, so add abuse checks (IP/device) before relying on them at scale.
-3. **Kakao**: set `NEXT_PUBLIC_KAKAO_JS_KEY` and register your domain in Kakao Developers. Set `NEXT_PUBLIC_SITE_URL` so OG and share images resolve.
-4. **Abuse limits**: add rate limiting to `/api/report` (every call costs an LLM request).
-5. Review the 이용약관 / 개인정보처리방침 text in `components/LegalModal.tsx` with counsel. It is a reasonable draft, not legal advice.
+## Going live
+1. Set `NEXT_PUBLIC_PAYMENT_TEST_MODE=false` **and** `PAYMENT_TEST_MODE=false`, plus `NEXT_PUBLIC_TOSS_CLIENT_KEY` / `TOSS_SECRET_KEY`. Register `/payment/success` and `/payment/fail` in the Toss console and verify the v2 parameters in `PaymentService.requestTossPayment` against current Toss docs.
+2. Set `NEXT_PUBLIC_KAKAO_JS_KEY` (register the domain in Kakao Developers) and `NEXT_PUBLIC_SITE_URL`.
+3. Vercel's Hobby plan is non-commercial; move to Pro (or another host) before charging.
+4. "Share to unlock" is honor-based (one section only).
+5. Have the 이용약관 / 개인정보처리방침 (`components/LegalModal.tsx`) reviewed. Business info lives in `src/lib/config.ts`.
 
 ## Scripts
 `npm run dev` · `npm run build` · `npm start`
