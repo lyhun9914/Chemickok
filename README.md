@@ -17,10 +17,10 @@ Works with zero configuration (test-mode payment unlocks instantly). See `.env.e
 ## User flow
 1. Landing → **무료로 내 연애 유형 테스트하기**
 2. Choose a mode: **🙋 나 혼자 보기 (솔로)** or **💞 그 사람과 궁합 보기** (연애 중·썸·짝사랑·권태기·이별 후)
-3. **Solo** (16 steps): 내 정보 (+ MBTI, optional) → 솔로 고민 → PART 1 성향 12문항
+3. **Solo** (15 steps): 내 정보 (+ MBTI, optional) → PART 1 성향 12문항
    - Free: my type (16 types), 4 axes, 사주 원국 & 띠, 일간 해석, answer quote-back, scenes, **찰떡 궁합** (best type · MBTI · 띠), **이번 달 연애운 %**
    - Paid: 나와 맞는 사람 vs 피해야 할 사람 (share-to-unlock), 연애 패턴 & 실수, 이번 달 연애운 & 인연 길일
-4. **Couple** (28 steps): 내 정보 → 상대 정보 (+ both MBTIs) → 관계 상태 → 고민 → PART 1 (12) → PART 2 그 사람 관찰 (8)
+4. **Couple** (27 steps): 내 정보 → 상대 정보 (+ both MBTIs) → 관계 상태 → PART 1 (12) → PART 2 그 사람 관찰 (8)
    - Free: everything above + couple score/title/summary, partner type, **MBTI 궁합** (e.g. INFP × ENFJ = 천생연분)
    - Paid: 종합 궁합, 속마음 (share-to-unlock), 스킨십/멘탈 케미, 위기 & 이별 예방책, 개운 & 길일
 5. Pay 990원 (test mode by default) or share to unlock one section; the share card adapts to the mode.

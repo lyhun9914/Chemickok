@@ -2,14 +2,12 @@
 
 import { useRef } from "react";
 import {
-  COUPLE_CONCERNS,
   GENDER_LABEL,
   LIKERT_LABELS,
   MBTI_TYPES,
   MODE_OPTIONS,
   PARTNER_QUESTIONS,
   SELF_QUESTIONS,
-  SOLO_CONCERNS,
   STATUS_OPTIONS,
   fillPartner,
   type LikertQuestion,
@@ -18,13 +16,13 @@ import type { Gender, Mode, PersonInput } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 
 type Step =
-  | { kind: "mode" | "me" | "partner" | "status" | "concern" | "intro1" | "intro2" }
+  | { kind: "mode" | "me" | "partner" | "status" | "intro1" | "intro2" }
   | { kind: "self" | "obs"; q: LikertQuestion; num: number };
 
 function stepsFor(mode: Mode): Step[] {
   const self: Step[] = SELF_QUESTIONS.map((q, i) => ({ kind: "self", q, num: i + 1 }));
   if (mode === "solo") {
-    return [{ kind: "mode" }, { kind: "me" }, { kind: "concern" }, { kind: "intro1" }, ...self];
+    return [{ kind: "mode" }, { kind: "me" }, { kind: "intro1" }, ...self];
   }
   const obs: Step[] = PARTNER_QUESTIONS.map((q, i) => ({ kind: "obs", q, num: i + 1 }));
   return [
@@ -32,7 +30,6 @@ function stepsFor(mode: Mode): Step[] {
     { kind: "me" },
     { kind: "partner" },
     { kind: "status" },
-    { kind: "concern" },
     { kind: "intro1" },
     ...self,
     { kind: "intro2" },
@@ -194,36 +191,6 @@ function PartIntro({ part, title, desc, tip }: { part: string; title: string; de
   );
 }
 
-function ChoiceList<T extends string>({
-  options,
-  value,
-  onPick,
-}: {
-  options: { id: T; emoji: string; label: string; desc?: string }[];
-  value: string;
-  onPick: (id: T) => void;
-}) {
-  return (
-    <div className="space-y-2.5">
-      {options.map((o) => (
-        <button
-          key={o.id}
-          onClick={() => onPick(o.id)}
-          className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left text-[15px] transition active:scale-[0.98] ${
-            value === o.id ? "border-pink bg-pink/15" : "border-line bg-surface"
-          }`}
-        >
-          <span className="text-xl">{o.emoji}</span>
-          <span>
-            <span className="block">{o.label}</span>
-            {o.desc && <span className="block text-xs text-muted">{o.desc}</span>}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export function Questionnaire() {
   const s = useAppStore();
   const { step, setStep, setScreen, input } = s;
@@ -329,22 +296,6 @@ export function Questionnaire() {
               </button>
             ))}
           </div>
-        </div>
-      );
-      break;
-    case "concern":
-      showNext = false;
-      body = (
-        <div className="space-y-5">
-          <h2 className="text-2xl font-bold leading-snug">
-            요즘 가장 <span className="text-gradient">마음에 걸리는 것</span>은?
-          </h2>
-          <p className="-mt-2 text-sm text-muted">이 고민을 중심으로 맞춤 솔루션을 드려요</p>
-          {solo ? (
-            <ChoiceList options={SOLO_CONCERNS} value={input.concern} onPick={(id) => choose(() => s.setConcern(id))} />
-          ) : (
-            <ChoiceList options={COUPLE_CONCERNS} value={input.concern} onPick={(id) => choose(() => s.setConcern(id))} />
-          )}
         </div>
       );
       break;

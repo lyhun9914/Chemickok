@@ -26,7 +26,6 @@ export interface QuestionnaireInput {
   partner: PersonInput;
   /** couple mode only */
   status: RelationshipStatus;
-  concern: ConcernId;
   /** self-question id → Likert 1..5 */
   self: Record<string, number>;
   /** partner-observation question id → Likert 1..5 (couple mode only) */
@@ -75,8 +74,13 @@ export interface SajuSummary {
 
 export interface PersonalReading {
   dayMasterReading: string | null;
+  /** 오행 기질: dominant / lacking element in love */
+  elementReading: string | null;
+  /** 남들은 모르는 두 얼굴: outer vs inner */
+  twoFaces: { outer: string; inner: string };
   signature: string;
-  traits: string[];
+  /** all 4 axes, most decisive first */
+  traits: { title: string; label: string; pct: number; text: string }[];
   quote: { question: string; answer: string; reading: string } | null;
   scenes: string[];
 }

@@ -140,6 +140,11 @@ export function ResultView() {
           </>
         ) : (
           <>
+            <div className="mb-4 text-center">
+              <p className="text-xs font-semibold tracking-widest text-pink">PREMIUM</p>
+              <h2 className="mt-1 text-xl font-extrabold">🔐 {me}님의 핵심 분석</h2>
+              <p className="mt-1 text-sm text-muted">지금까지는 맛보기예요. 가장 중요한 이야기는 여기부터예요.</p>
+            </div>
             {couple && (
               <div className="mb-3 rounded-3xl border border-line bg-surface p-5">
                 <p className="text-2xl">💖</p>

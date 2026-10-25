@@ -19,7 +19,17 @@ import type {
   TeaserReport,
   TypeInfo,
 } from "@/models/types";
-import { DAY_MASTER_READING, QUOTE_READING, SCENES, TYPES, traitText } from "./content/free";
+import {
+  DAY_MASTER_READING,
+  ELEMENT_STRONG,
+  ELEMENT_WEAK,
+  INNER,
+  OUTER,
+  QUOTE_READING,
+  SCENES,
+  TYPES,
+  traitText,
+} from "./content/free";
 import * as P from "./content/paid";
 import * as SOLO from "./content/solo";
 import { MBTI_LOVE, bestMbti, hardMbti, mbtiPair, mbtiShort, normalizeMbti } from "./mbti";
@@ -49,12 +59,9 @@ export function validateInput(raw: unknown): QuestionnaireInput | null {
   if (i?.mode !== "solo" && i?.mode !== "couple") return null;
   if (!i.me?.name?.trim() || !i.me.birthdate) return null;
   if (!SELF_QUESTIONS.every((q) => likert(i.self?.[q.id]))) return null;
-  if (i.mode === "solo") {
-    if (!SOLO_CONCERNS.some((c) => c.id === i.concern)) return null;
-  } else {
+  if (i.mode === "couple") {
     if (!i.partner?.name?.trim()) return null;
     if (!["crush", "dating", "slump", "breakup"].includes(i.status)) return null;
-    if (!COUPLE_CONCERNS.some((c) => c.id === i.concern)) return null;
     if (!PARTNER_QUESTIONS.every((q) => likert(i.partnerObs?.[q.id]))) return null;
   }
   return normalize(i);
@@ -74,7 +81,6 @@ function normalize(i: QuestionnaireInput): QuestionnaireInput {
     me: person(i.me),
     partner: couple ? person(i.partner) : person(),
     status: couple ? i.status : "dating",
-    concern: i.concern,
     self: Object.fromEntries(SELF_QUESTIONS.map((q) => [q.id, i.self[q.id]])),
     partnerObs: couple ? Object.fromEntries(PARTNER_QUESTIONS.map((q) => [q.id, i.partnerObs[q.id]])) : {},
   };
@@ -130,19 +136,42 @@ function worstTypeCode(me: Profile): string {
 
 function personalReading(c: Core): TeaserReport["personal"] {
   const { me, input, mySaju } = c;
-  const traits = c.ranked.slice(0, 2).map((key) => {
+  const traits = c.ranked.map((key) => {
     const r = me.axes.find((a) => a.key === key)!;
-    return traitText(r.pole, r.intensity);
+    const first = r.leftPct >= 50;
+    return {
+      title: r.title,
+      label: first ? r.leftLabel : r.rightLabel,
+      pct: first ? r.leftPct : 100 - r.leftPct,
+      text: traitText(r.pole, r.intensity),
+    };
   });
-  const scenes = c.ranked.slice(0, 3).map((key, i) => {
+  const scenes = c.ranked.map((key, i) => {
     const list = SCENES[me.poles[key]];
     return list[(c.seed >> (i * 2)) % list.length];
   });
   const decisive = mostDecisive(SELF_QUESTIONS, input.self);
+
+  // Two faces: outer = expression (drive when expression is mild), inner = attachment (conflict when mild).
+  const ax = (k: AxisKey) => me.axes.find((a) => a.key === k)!;
+  const outerKey: AxisKey = ax("express").intensity === "mild" ? "drive" : "express";
+  const innerKey: AxisKey = ax("attach").intensity === "mild" ? "conflict" : "attach";
+
+  let elementReading: string | null = null;
+  if (mySaju) {
+    const els = mySaju.summary.elements;
+    const keys = Object.keys(els) as (keyof typeof els)[];
+    const strong = keys.reduce((b, k) => (els[k] > els[b] ? k : b), mySaju.dm.element);
+    const weak = mySaju.summary.lacking;
+    elementReading = [ELEMENT_STRONG[strong], strong !== weak ? ELEMENT_WEAK[weak] : ""].filter(Boolean).join(" ");
+  }
+
   return {
     dayMasterReading: mySaju
       ? `${input.me.name}님의 일간은 ${dayMasterLabel(mySaju.dm)}, '${mySaju.summary.dayMaster.image}'의 기운이에요. ${DAY_MASTER_READING[mySaju.dm.stem]}`
       : null,
+    elementReading,
+    twoFaces: { outer: OUTER[me.poles[outerKey]], inner: INNER[me.poles[innerKey]] },
     signature: TYPES[me.code].signature,
     traits,
     quote: decisive
@@ -176,6 +205,7 @@ function lackingLuck(c: Core) {
 const SOLO_LOCKED: LockedPreview[] = [
   { id: "match", icon: "🎯", title: "나와 맞는 사람 vs 피해야 할 사람 (유형·MBTI·띠 상세)" },
   { id: "pattern", icon: "💔", title: "내가 연애에서 반복하는 패턴 & 자주 하는 실수" },
+  { id: "prescriptions", icon: "🩺", title: "솔로 고민 6가지 맞춤 처방 (연애 시기 · 썸 · 지난 사랑 …)" },
   { id: "luck", icon: "🔮", title: "이번 달 연애운 & 인연이 들어오는 날 (길일)" },
 ];
 
@@ -260,8 +290,15 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
   };
 
   const loveLuck = soloLoveLuck(c);
-  const concern = input.concern as SoloConcernId;
-  const advice = SOLO.SOLO_ADVICE[concern];
+  const prescriptions: ReportSection = {
+    title: "솔로 고민 6가지 맞춤 처방",
+    headline: `${name}님 성향에 맞춘 처방전 6장 🩺`,
+    body: `솔로들이 가장 많이 하는 고민 6가지를 ${name}님의 연애 성향과 사주에 맞춰 풀었어요. 지금 마음에 걸리는 것부터 읽어 보세요.`,
+    bullets: SOLO_CONCERNS.map((q) => {
+      const a = SOLO.SOLO_ADVICE[q.id];
+      return `${q.emoji} ${q.label}\n→ ${a.byPole[me.poles[a.axis]] ?? ""}`;
+    }),
+  };
   const myLuck = lackingLuck(c);
   const lackingLabel = mySaju ? ELEMENT_LABEL[mySaju.summary.lacking] : null;
   const luck: LuckSection = {
@@ -269,7 +306,6 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
     headline: loveLuck.loveLuckHeadline,
     body: [
       SOLO.MONTH_FLOW[soloMonthFlow(c)],
-      advice.byPole[me.poles[advice.axis]] ?? "",
       lackingLabel ? `${name}님의 사주에서 가장 약한 기운은 ${copula(lackingLabel)}. 이 기운을 채우는 색과 장소가 인연을 불러와요.` : "",
     ]
       .filter(Boolean)
@@ -278,7 +314,7 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
     luckyPlace: myLuck.place,
     luckyItem: myLuck.item,
     luckyDays: mySaju ? luckyDays(mySaju.dm) : [],
-    actionItems: [myLuck.action, P.SELF_ACTION[me.poles[top1]], SOLO.SOLO_CONCERN_ACTION[concern]],
+    actionItems: [myLuck.action, P.SELF_ACTION[me.poles[top1]], SOLO.SOLO_CONCERN_ACTION[autoSoloConcern(me.poles[top1])]],
   };
 
   const pct = (k: AxisKey) => me.axes.find((a) => a.key === k)!.leftPct;
@@ -295,6 +331,7 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
     sections: [
       { id: "match", icon: "🎯", section: match },
       { id: "pattern", icon: "💔", section: pattern },
+      { id: "prescriptions", icon: "🩺", section: prescriptions },
     ],
     luck,
   };
@@ -306,6 +343,7 @@ const COUPLE_LOCKED: LockedPreview[] = [
   { id: "hiddenMind", icon: "🔒", title: "상대방이 말하지 않는 진짜 속마음 & 섭섭한 점" },
   { id: "chemistry", icon: "🔥", title: "두 사람의 스킨십 / 속궁합 & 멘탈 케미 폭발 지점" },
   { id: "crisis", icon: "⚡", title: "위기 순간 & 결정적 이별 예방책" },
+  { id: "prescriptions", icon: "🩺", title: "커플 고민 6가지 맞춤 처방 (연락 · 속마음 · 권태기 · 미래 …)" },
   { id: "luck", icon: "🔮", title: "이번 달 연애 개운(開運) 솔루션 & 길일" },
 ];
 
@@ -519,8 +557,6 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     bullets: [`🕯️ 최고의 무드: ${myLuck.place}`, P.INTIMACY_SWITCH[partner.poles.express as "E" | "H"], P.MENTAL_SPARK[conflictKey]],
   };
 
-  const concern = P.CONCERN_ADVICE[input.concern as CoupleConcernId];
-  const concernText = concern.byPole[partner.poles[concern.axis]]?.(n) ?? "";
   const crisis: ReportSection = {
     title: "위기 순간 & 트러블 회피법",
     headline:
@@ -529,7 +565,7 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
         : conflictKey === "FF"
           ? "둘 다 물러서지 않을 때가 가장 위험해요 ⚔️"
           : "조용한 거리감이 가장 큰 적이에요 🧊",
-    body: [P.PAIR[f](n), P.PAIR[a](n), concernText].filter(Boolean).join(" "),
+    body: `${P.PAIR[f](n)} ${P.PAIR[a](n)}`,
     bullets: [P.DANGER_SIGN[conflictKey], P.EXTINGUISHER[conflictKey], P.BREAKUP_GUARD[attachKey]],
   };
 
@@ -546,7 +582,17 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     luckyPlace: myLuck.place,
     luckyItem: myLuck.item,
     luckyDays: x.mySaju ? luckyDays(x.mySaju.dm) : [],
-    actionItems: [myLuck.action, P.SELF_ACTION[me.poles[x.ranked[0]]], concernAction(input.concern as CoupleConcernId)],
+    actionItems: [myLuck.action, P.SELF_ACTION[me.poles[x.ranked[0]]], concernAction(autoCoupleConcern(x))],
+  };
+
+  const prescriptions: ReportSection = {
+    title: "커플 고민 6가지 맞춤 처방",
+    headline: `${n.p}님 성향에 맞춘 처방전 6장 🩺`,
+    body: `커플들이 가장 많이 하는 고민 6가지를 ${n.p}님의 유형에 맞춰 풀었어요. 지금 두 사람에게 해당하는 것부터 읽어 보세요.`,
+    bullets: COUPLE_CONCERNS.map((q) => {
+      const a = P.CONCERN_ADVICE[q.id];
+      return `${q.emoji} ${q.label}\n→ ${a.byPole[partner.poles[a.axis]]?.(n) ?? ""}`;
+    }),
   };
 
   return {
@@ -556,6 +602,7 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
       { id: "hiddenMind", icon: "🔒", section: hiddenMind },
       { id: "chemistry", icon: "🔥", section: chemistry },
       { id: "crisis", icon: "⚡", section: crisis },
+      { id: "prescriptions", icon: "🩺", section: prescriptions },
     ],
     luck,
   };
@@ -574,6 +621,23 @@ function shortHurt(axis?: AxisKey): string {
     default:
       return "서로 알겠지 하고 넘어간 순간들";
   }
+}
+
+/** The concern this pair most likely has, for the luck section's action item. */
+function autoCoupleConcern(x: Couple): CoupleConcernId {
+  const f = pair(x.me, x.partner, "conflict");
+  const e = pair(x.me, x.partner, "express");
+  const a = pair(x.me, x.partner, "attach");
+  if (x.input.status === "breakup") return "reunion";
+  if (x.input.status === "slump") return "boredom";
+  if (f[0] !== f[1]) return "conflict";
+  if (a[0] !== a[1]) return "contact";
+  if (e[0] !== e[1]) return "uncertainty";
+  return "future";
+}
+
+function autoSoloConcern(top: Pole): SoloConcernId {
+  return ({ G: "who", W: "when", E: "fizzle", H: "fizzle", F: "who", R: "ex", A: "pattern", S: "lazy" } as const)[top];
 }
 
 function concernAction(c: CoupleConcernId): string {

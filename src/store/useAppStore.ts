@@ -3,7 +3,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type {
-  ConcernId,
   FullReport,
   Mode,
   PersonInput,
@@ -33,7 +32,6 @@ interface AppState {
   updateMe: (p: Partial<PersonInput>) => void;
   updatePartner: (p: Partial<PersonInput>) => void;
   setStatus: (s: RelationshipStatus) => void;
-  setConcern: (c: ConcernId) => void;
   setSelf: (id: string, v: number) => void;
   setPartnerObs: (id: string, v: number) => void;
   setTeaser: (teaser: TeaserReport, inputHash: string) => void;
@@ -47,7 +45,6 @@ const initialInput = (): QuestionnaireInput => ({
   me: { ...emptyPerson },
   partner: { ...emptyPerson, gender: "male" },
   status: "dating",
-  concern: "when",
   self: {},
   partnerObs: {},
 });
@@ -69,13 +66,10 @@ export const useAppStore = create<AppState>()(
       input: initialInput(),
       setScreen: (screen) => set({ screen, error: null }),
       setStep: (step) => set({ step }),
-      // Switching mode resets the concern to that mode's first option.
-      setMode: (mode) =>
-        set((s) => ({ input: { ...s.input, mode, concern: mode === "solo" ? "when" : "contact" } })),
+      setMode: (mode) => set((s) => ({ input: { ...s.input, mode } })),
       updateMe: (p) => set((s) => ({ input: { ...s.input, me: { ...s.input.me, ...p } } })),
       updatePartner: (p) => set((s) => ({ input: { ...s.input, partner: { ...s.input.partner, ...p } } })),
       setStatus: (status) => set((s) => ({ input: { ...s.input, status } })),
-      setConcern: (concern) => set((s) => ({ input: { ...s.input, concern } })),
       setSelf: (id, v) => set((s) => ({ input: { ...s.input, self: { ...s.input.self, [id]: v } } })),
       setPartnerObs: (id, v) =>
         set((s) => ({ input: { ...s.input, partnerObs: { ...s.input.partnerObs, [id]: v } } })),
@@ -87,7 +81,7 @@ export const useAppStore = create<AppState>()(
       reset: () => set({ ...initial, input: initialInput() }),
     }),
     {
-      name: "love-chemistry-v3",
+      name: "love-chemistry-v4",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
       partialize: ({ screen, step, input, inputHash, teaser, report, level }) => ({
