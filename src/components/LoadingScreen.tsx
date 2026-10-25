@@ -12,13 +12,14 @@ export function LoadingScreen() {
   const [progress, setProgress] = useState(0);
   const started = useRef(false);
 
+  const solo = input.mode === "solo";
   const messages = [
     `${input.me.name}님의 생년월일로 사주 원국(原局)을 세우는 중...`,
     "일주(日柱)와 오행 분포를 계산하는 중...",
-    "20개 문항의 응답 일관성을 검증하는 중...",
+    "응답 일관성을 검증하는 중...",
     `${input.me.name}님의 연애 성향 4가지 축을 분석하는 중...`,
-    `${input.partner.name}님이 말하지 않은 속마음을 읽는 중... 👀`,
-    "두 사람의 궁합 리포트를 정리하는 중...",
+    solo ? `${input.me.name}님과 찰떡인 유형·MBTI·띠를 찾는 중... 💘` : `${input.partner.name}님이 말하지 않은 속마음을 읽는 중... 👀`,
+    solo ? "이번 달 연애운과 인연 길일을 계산하는 중... 🔮" : "두 사람의 궁합 리포트를 정리하는 중...",
   ];
 
   useEffect(() => {

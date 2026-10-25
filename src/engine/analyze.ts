@@ -1,25 +1,40 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { copula, josa } from "@/lib/josa";
-import { PARTNER_QUESTIONS, SELF_QUESTIONS } from "@/lib/questions";
+import { COUPLE_CONCERNS, PARTNER_QUESTIONS, SELF_QUESTIONS, SOLO_CONCERNS } from "@/lib/questions";
 import type {
   AxisKey,
+  CoupleConcernId,
+  CoupleTeaser,
   FullReport,
+  LockedPreview,
+  LuckSection,
+  MatchTeaser,
+  PersonInput,
   Pole,
   QuestionnaireInput,
   ReportSection,
+  SoloConcernId,
+  SoloTeaser,
   TeaserReport,
   TypeInfo,
 } from "@/models/types";
 import { DAY_MASTER_READING, QUOTE_READING, SCENES, TYPES, traitText } from "./content/free";
 import * as P from "./content/paid";
+import * as SOLO from "./content/solo";
+import { MBTI_LOVE, bestMbti, hardMbti, mbtiPair, mbtiShort, normalizeMbti } from "./mbti";
 import { AXES, mostDecisive, reliability, scoreProfile, seedOf, type Profile } from "./profile";
 import {
   ELEMENT_LABEL,
   branchRelation,
+  clashAnimal,
+  combineStemLabel,
   computeSaju,
+  currentMonthBranch,
   dayMasterLabel,
+  goodAnimals,
   luckyDays,
+  monthRelation,
   stemRelation,
   type SajuResult,
   type StemRelation,
@@ -27,31 +42,41 @@ import {
 
 // ───────────── Input hygiene ─────────────
 
+const likert = (v: unknown) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 5;
+
 export function validateInput(raw: unknown): QuestionnaireInput | null {
   const i = raw as QuestionnaireInput;
-  if (!i?.me?.name?.trim() || !i?.partner?.name?.trim() || !i.me.birthdate) return null;
-  if (!["crush", "dating", "slump", "breakup"].includes(i.status)) return null;
-  if (!["contact", "uncertainty", "conflict", "boredom", "future", "reunion"].includes(i.concern)) return null;
-  const likert = (v: unknown) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 5;
+  if (i?.mode !== "solo" && i?.mode !== "couple") return null;
+  if (!i.me?.name?.trim() || !i.me.birthdate) return null;
   if (!SELF_QUESTIONS.every((q) => likert(i.self?.[q.id]))) return null;
-  if (!PARTNER_QUESTIONS.every((q) => likert(i.partnerObs?.[q.id]))) return null;
+  if (i.mode === "solo") {
+    if (!SOLO_CONCERNS.some((c) => c.id === i.concern)) return null;
+  } else {
+    if (!i.partner?.name?.trim()) return null;
+    if (!["crush", "dating", "slump", "breakup"].includes(i.status)) return null;
+    if (!COUPLE_CONCERNS.some((c) => c.id === i.concern)) return null;
+    if (!PARTNER_QUESTIONS.every((q) => likert(i.partnerObs?.[q.id]))) return null;
+  }
   return normalize(i);
 }
 
 function normalize(i: QuestionnaireInput): QuestionnaireInput {
-  const person = (p: QuestionnaireInput["me"]) => ({
-    name: p.name.trim().slice(0, 12),
-    gender: p.gender,
-    birthdate: p.birthdate ?? "",
-    birthtime: p.birthtime ?? "",
+  const person = (p?: PersonInput): PersonInput => ({
+    name: (p?.name ?? "").trim().slice(0, 12),
+    gender: p?.gender ?? "other",
+    birthdate: p?.birthdate ?? "",
+    birthtime: p?.birthtime ?? "",
+    mbti: normalizeMbti(p?.mbti),
   });
+  const couple = i.mode === "couple";
   return {
+    mode: i.mode,
     me: person(i.me),
-    partner: person(i.partner),
-    status: i.status,
+    partner: couple ? person(i.partner) : person(),
+    status: couple ? i.status : "dating",
     concern: i.concern,
     self: Object.fromEntries(SELF_QUESTIONS.map((q) => [q.id, i.self[q.id]])),
-    partnerObs: Object.fromEntries(PARTNER_QUESTIONS.map((q) => [q.id, i.partnerObs[q.id]])),
+    partnerObs: couple ? Object.fromEntries(PARTNER_QUESTIONS.map((q) => [q.id, i.partnerObs[q.id]])) : {},
   };
 }
 
@@ -60,34 +85,249 @@ export function inputHash(i: QuestionnaireInput): string {
   return createHash("sha256").update(JSON.stringify(normalize(i))).digest("hex").slice(0, 16);
 }
 
-// ───────────── Shared analysis ─────────────
+// ───────────── Shared (both modes) ─────────────
 
-interface Analysis {
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(n)));
+const opposite: Record<Pole, Pole> = { G: "W", W: "G", E: "H", H: "E", F: "R", R: "F", A: "S", S: "A" };
+
+interface Core {
   input: QuestionnaireInput;
-  names: P.Names;
   me: Profile;
-  partner: Profile;
   mySaju: SajuResult | null;
+  seed: number;
+  /** my axes, most decisive first */
+  ranked: AxisKey[];
+}
+
+function core(input: QuestionnaireInput): Core {
+  const me = scoreProfile(SELF_QUESTIONS, input.self);
+  return {
+    input,
+    me,
+    mySaju: computeSaju(input.me.birthdate, input.me.birthtime),
+    seed: seedOf(JSON.stringify(input)),
+    ranked: [...AXES].sort((a, b) => Math.abs(me.raw[b.key]) - Math.abs(me.raw[a.key])).map((a) => a.key),
+  };
+}
+
+function typeInfo(code: string): TypeInfo {
+  const t = TYPES[code];
+  return { code, name: t.name, emoji: t.emoji, tagline: t.tagline };
+}
+
+/**
+ * Best partner: opposite drive (no chase or standoff), same expression & conflict style
+ * (same "language"), secure attachment. Worst: the reverse, with an anxious partner.
+ */
+function bestTypeCode(me: Profile): string {
+  const p = me.poles;
+  return `${opposite[p.drive]}${p.express}${p.conflict}S`;
+}
+function worstTypeCode(me: Profile): string {
+  const p = me.poles;
+  return `${p.drive}${opposite[p.express]}${opposite[p.conflict]}A`;
+}
+
+function personalReading(c: Core): TeaserReport["personal"] {
+  const { me, input, mySaju } = c;
+  const traits = c.ranked.slice(0, 2).map((key) => {
+    const r = me.axes.find((a) => a.key === key)!;
+    return traitText(r.pole, r.intensity);
+  });
+  const scenes = c.ranked.slice(0, 3).map((key, i) => {
+    const list = SCENES[me.poles[key]];
+    return list[(c.seed >> (i * 2)) % list.length];
+  });
+  const decisive = mostDecisive(SELF_QUESTIONS, input.self);
+  return {
+    dayMasterReading: mySaju
+      ? `${input.me.name}님의 일간은 ${dayMasterLabel(mySaju.dm)}, '${mySaju.summary.dayMaster.image}'의 기운이에요. ${DAY_MASTER_READING[mySaju.dm.stem]}`
+      : null,
+    signature: TYPES[me.code].signature,
+    traits,
+    quote: decisive
+      ? {
+          question: decisive.q.text,
+          answer: decisive.answer,
+          reading: QUOTE_READING[decisive.q.id][decisive.value > 3 ? "agree" : "disagree"],
+        }
+      : null,
+    scenes,
+  };
+}
+
+function matchTeaser(c: Core): MatchTeaser {
+  const mbti = c.input.me.mbti ?? "";
+  return {
+    bestType: typeInfo(bestTypeCode(c.me)),
+    myMbti: mbti || null,
+    myMbtiLine: mbti ? MBTI_LOVE[mbti] : null,
+    bestMbti: bestMbti(mbti),
+    goodAnimals: c.mySaju ? goodAnimals(c.mySaju.dm.yearBranch) : [],
+  };
+}
+
+function lackingLuck(c: Core) {
+  return P.ELEMENT_LUCK[c.mySaju?.summary.lacking ?? "water"];
+}
+
+// ───────────── Solo mode ─────────────
+
+const SOLO_LOCKED: LockedPreview[] = [
+  { id: "match", icon: "🎯", title: "나와 맞는 사람 vs 피해야 할 사람 (유형·MBTI·띠 상세)" },
+  { id: "pattern", icon: "💔", title: "내가 연애에서 반복하는 패턴 & 자주 하는 실수" },
+  { id: "luck", icon: "🔮", title: "이번 달 연애운 & 인연이 들어오는 날 (길일)" },
+];
+
+function soloMonthFlow(c: Core): "harmony" | "samhap" | "clash" | "none" {
+  return (c.mySaju && monthRelation(c.mySaju.dm.branch, currentMonthBranch())) || "none";
+}
+
+function soloLoveLuck(c: Core): SoloTeaser {
+  const flow = soloMonthFlow(c);
+  const month = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 7);
+  const jitter = (seedOf(JSON.stringify(c.input) + month) % 11) - 5; // stable within a month
+  const score = clamp(
+    72 + { harmony: 12, samhap: 9, clash: 6, none: 0 }[flow] + (c.me.poles.drive === "G" ? 4 : 0) + jitter,
+    61,
+    96,
+  );
+  const headline =
+    score >= 88
+      ? `이번 달 연애운 ${score}%, 인연의 문이 활짝 열린 달이에요 🔥`
+      : score >= 78
+        ? `이번 달 연애운 ${score}%, 먼저 움직이면 잡히는 달이에요 💘`
+        : score >= 68
+          ? `이번 달 연애운 ${score}%, 작은 기회를 살리면 좋은 달이에요 🍀`
+          : `이번 달 연애운 ${score}%, 나를 먼저 채우면 좋은 달이에요 🌙`;
+  return { loveLuck: score, loveLuckHeadline: headline };
+}
+
+function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
+  const { me, input, mySaju } = c;
+  const name = input.me.name;
+  const mbti = input.me.mbti ?? "";
+  const best = typeInfo(bestTypeCode(me));
+  const worst = typeInfo(worstTypeCode(me));
+  const [top1, top2] = c.ranked;
+
+  const reasons = [top1, top2].map((k) => (k === "attach" ? SOLO.MATCH_REASON.attach[me.poles.attach] : SOLO.MATCH_REASON[k][me.poles[k]]));
+  const bestM = bestMbti(mbti);
+  const hardM = hardMbti(mbti);
+  const animals = mySaju ? goodAnimals(mySaju.dm.yearBranch) : [];
+  const matchBody = [
+    `${name}님에게 가장 잘 맞는 건 '${best.name}' 유형이에요.`,
+    ...reasons,
+    bestM.length
+      ? `MBTI로 보면 ${mbti}인 ${name}님은 ${bestM.join(", ")}와 천생연분 조합이에요. 특히 ${bestM[0]}는 '${mbtiShort(bestM[0])}' 타입이라 ${name}님의 빈칸을 채워 줘요.`
+      : "",
+    animals.length ? `띠로는 ${animals.map((a) => `${a}띠`).join(", ")}와 기운이 잘 맞아요(삼합·육합).` : "",
+    mySaju ? `사주로는 일간이 ${combineStemLabel(mySaju.dm.stem)}인 사람과 천간합(天干合), 즉 '끌림의 합'이에요.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const match: ReportSection = {
+    title: "나와 맞는 사람 vs 피해야 할 사람",
+    headline: `${best.emoji} '${best.name}' 유형을 만나면 놓치지 마세요`,
+    body: matchBody,
+    bullets: [
+      `✅ 찰떡 유형: ${best.emoji} ${best.name} (${best.tagline})`,
+      bestM.length ? `💯 찰떡 MBTI: ${bestM.join(" · ")}` : "",
+      animals.length ? `🐾 찰떡 띠: ${animals.map((a) => `${a}띠`).join(" · ")}` : "",
+      `🚫 피해야 할 유형: ${worst.emoji} ${worst.name}. ${SOLO.AVOID_REASON[top1][me.poles[top1]]}`,
+      hardM.length ? `⚠️ 노력이 필요한 MBTI: ${hardM.join(" · ")}` : "",
+      mySaju ? `💥 부딪히는 띠: ${clashAnimal(mySaju.dm.yearBranch)}띠` : "",
+    ].filter(Boolean),
+  };
+  if (level === "share") return { subScores: [], sections: [{ id: "match", icon: "🎯", section: match }], luck: null };
+
+  const pattern: ReportSection = {
+    title: "내가 연애에서 반복하는 패턴 & 실수",
+    headline: `${TYPES[me.code].emoji} '${TYPES[me.code].name}'의 연애 공식`,
+    body: [
+      SOLO.PATTERN[me.poles[top1]],
+      SOLO.PATTERN[me.poles[top2]],
+      mbti ? `MBTI로 봐도 ${mbti}는 '${mbtiShort(mbti)}' 타입이라 이 패턴이 더 선명하게 나타나요.` : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    bullets: [
+      `⚠️ 자주 하는 실수: ${SOLO.MISTAKE[me.poles[top1]]}`,
+      `⚠️ 이것도 조심: ${SOLO.MISTAKE[me.poles[top2]]}`,
+      `💡 바꾸면 달라지는 한 가지: ${P.SELF_ACTION[me.poles[top1]].replace(/^📝 /, "")}`,
+    ],
+  };
+
+  const loveLuck = soloLoveLuck(c);
+  const concern = input.concern as SoloConcernId;
+  const advice = SOLO.SOLO_ADVICE[concern];
+  const myLuck = lackingLuck(c);
+  const lackingLabel = mySaju ? ELEMENT_LABEL[mySaju.summary.lacking] : null;
+  const luck: LuckSection = {
+    title: "이번 달 연애운 & 인연이 들어오는 날",
+    headline: loveLuck.loveLuckHeadline,
+    body: [
+      SOLO.MONTH_FLOW[soloMonthFlow(c)],
+      advice.byPole[me.poles[advice.axis]] ?? "",
+      lackingLabel ? `${name}님의 사주에서 가장 약한 기운은 ${copula(lackingLabel)}. 이 기운을 채우는 색과 장소가 인연을 불러와요.` : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    luckyColor: myLuck.color,
+    luckyPlace: myLuck.place,
+    luckyItem: myLuck.item,
+    luckyDays: mySaju ? luckyDays(mySaju.dm) : [],
+    actionItems: [myLuck.action, P.SELF_ACTION[me.poles[top1]], SOLO.SOLO_CONCERN_ACTION[concern]],
+  };
+
+  const pct = (k: AxisKey) => me.axes.find((a) => a.key === k)!.leftPct;
+  const j = (k: number) => ((c.seed >> k) % 7) - 3;
+  const subScores = [
+    { label: "이번 달 연애운", score: loveLuck.loveLuck },
+    { label: "끌림 매력", score: clamp(62 + (pct("drive") + pct("express")) / 6 + j(3), 55, 97) },
+    { label: "연애 안정감", score: clamp(60 + (100 - pct("attach")) / 3 + j(5), 55, 97) },
+    { label: "소통력", score: clamp(62 + pct("conflict") / 4 + (pct("express") > 50 ? 6 : 0) + j(7), 55, 97) },
+  ];
+
+  return {
+    subScores,
+    sections: [
+      { id: "match", icon: "🎯", section: match },
+      { id: "pattern", icon: "💔", section: pattern },
+    ],
+    luck,
+  };
+}
+
+// ───────────── Couple mode ─────────────
+
+const COUPLE_LOCKED: LockedPreview[] = [
+  { id: "hiddenMind", icon: "🔒", title: "상대방이 말하지 않는 진짜 속마음 & 섭섭한 점" },
+  { id: "chemistry", icon: "🔥", title: "두 사람의 스킨십 / 속궁합 & 멘탈 케미 폭발 지점" },
+  { id: "crisis", icon: "⚡", title: "위기 순간 & 결정적 이별 예방책" },
+  { id: "luck", icon: "🔮", title: "이번 달 연애 개운(開運) 솔루션 & 길일" },
+];
+
+interface Couple extends Core {
+  names: P.Names;
+  partner: Profile;
   partnerSaju: SajuResult | null;
   stemRel: StemRelation | null;
   branchRel: "harmony" | "clash" | null;
-  seed: number;
   sub: { attraction: number; talk: number; stability: number; future: number };
   score: number;
 }
 
 const pair = (a: Profile, b: Profile, axis: AxisKey) => a.poles[axis] + b.poles[axis];
-const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(n)));
 
-function analyze(input: QuestionnaireInput): Analysis {
+function couple(c: Core): Couple {
+  const { input, me, mySaju, seed } = c;
   const names = { me: input.me.name, p: input.partner.name };
-  const me = scoreProfile(SELF_QUESTIONS, input.self);
   const partner = scoreProfile(PARTNER_QUESTIONS, input.partnerObs);
-  const mySaju = computeSaju(input.me.birthdate, input.me.birthtime);
   const partnerSaju = computeSaju(input.partner.birthdate, input.partner.birthtime);
   const stemRel = mySaju && partnerSaju ? stemRelation(mySaju.dm, partnerSaju.dm) : null;
   const branchRel = mySaju && partnerSaju ? branchRelation(mySaju.dm.branch, partnerSaju.dm.branch) : null;
-  const seed = seedOf(JSON.stringify(input));
   const jitter = (k: number) => ((seed >> k) % 7) - 3; // -3..+3, stable per input
 
   const g = pair(me, partner, "drive");
@@ -96,12 +336,14 @@ function analyze(input: QuestionnaireInput): Analysis {
   const a = pair(me, partner, "attach");
   const sajuSpark = { combine: 12, iControl: 6, theyControl: 6, iGenerate: 4, theyGenerate: 4, same: 2 }[stemRel ?? "same"] * (stemRel ? 1 : 0.5);
   const sajuCalm = { combine: 6, iGenerate: 6, theyGenerate: 6, same: 4, iControl: -3, theyControl: -3 }[stemRel ?? "same"] * (stemRel ? 1 : 0.5);
+  const mbti = mbtiPair(input.me.mbti ?? "", input.partner.mbti ?? "");
+  const mbtiAdj = mbti ? { 천생연분: 5, 좋음: 3, 무난: 0, "노력 필요": -3 }[mbti.level] : 0;
 
   const attraction =
     72 + (g[0] !== g[1] ? 7 : 0) + (e[0] !== e[1] ? 5 : 0) + (a === "AS" || a === "SA" ? 7 : a === "AA" ? 5 : 0) +
     sajuSpark + (branchRel === "clash" ? 5 : 0) + jitter(3);
   const talk =
-    70 + (f === "FF" ? 8 : f === "RR" ? -3 : -7) + (e === "EE" ? 6 : e === "HH" ? -4 : 0) + (g === "WW" ? -4 : 0) + jitter(5);
+    70 + (f === "FF" ? 8 : f === "RR" ? -3 : -7) + (e === "EE" ? 6 : e === "HH" ? -4 : 0) + (g === "WW" ? -4 : 0) + mbtiAdj + jitter(5);
   const stability =
     70 + (a === "SS" ? 12 : a === "AA" ? -6 : 0) + (f === "FR" || f === "RF" ? -6 : 0) + sajuCalm +
     (branchRel === "harmony" ? 5 : 0) + jitter(7);
@@ -115,15 +357,10 @@ function analyze(input: QuestionnaireInput): Analysis {
     future: clamp(future, 45, 96),
   };
   const score = clamp(0.32 * sub.attraction + 0.24 * sub.talk + 0.24 * sub.stability + 0.2 * sub.future + 4, 58, 97);
-  return { input, names, me, partner, mySaju, partnerSaju, stemRel, branchRel, seed, sub, score };
+  return { ...c, names, partner, partnerSaju, stemRel, branchRel, sub, score };
 }
 
-function typeInfo(code: string): TypeInfo {
-  const t = TYPES[code];
-  return { code, name: t.name, emoji: t.emoji, tagline: t.tagline };
-}
-
-function coupleTitle(x: Analysis): string {
+function coupleTitle(x: Couple): string {
   const a = pair(x.me, x.partner, "attach");
   const f = pair(x.me, x.partner, "conflict");
   const anxiousAvoidant =
@@ -148,61 +385,21 @@ function overallHeadline(score: number): string {
   return `${score}점, 서로 다른 언어로 사랑하는 중이에요 🌗`;
 }
 
-// ───────────── Free teaser ─────────────
-
-export function buildTeaser(input: QuestionnaireInput): TeaserReport {
-  const x = analyze(input);
-  const { me, names } = x;
-
-  // Top axes by decisiveness → the traits & scenes that will feel the most "me".
-  const ranked = [...AXES].sort((a, b) => Math.abs(me.raw[b.key]) - Math.abs(me.raw[a.key]));
-  const traits = ranked.slice(0, 2).map((ax) => {
-    const r = me.axes.find((a) => a.key === ax.key)!;
-    return traitText(r.pole, r.intensity);
-  });
-  const scenes = ranked.slice(0, 3).map((ax, i) => {
-    const list = SCENES[me.poles[ax.key]];
-    return list[(x.seed >> (i * 2)) % list.length];
-  });
-
-  const decisive = mostDecisive(SELF_QUESTIONS, input.self);
-  const quote = decisive
-    ? {
-        question: decisive.q.text,
-        answer: decisive.answer,
-        reading: QUOTE_READING[decisive.q.id][decisive.value > 3 ? "agree" : "disagree"],
-      }
-    : null;
-
+function coupleTeaser(x: Couple): CoupleTeaser {
   const a = pair(x.me, x.partner, "attach");
   const f = pair(x.me, x.partner, "conflict");
-
   return {
-    myType: typeInfo(me.code),
     partnerType: typeInfo(x.partner.code),
-    axes: me.axes,
-    reliability: reliability(SELF_QUESTIONS, input.self),
-    saju: x.mySaju?.summary ?? null,
     partnerDayMaster: x.partnerSaju ? dayMasterLabel(x.partnerSaju.dm) : null,
-    personal: {
-      dayMasterReading: x.mySaju
-        ? `${names.me}님의 일간은 ${dayMasterLabel(x.mySaju.dm)}, '${x.mySaju.summary.dayMaster.image}'의 기운이에요. ${DAY_MASTER_READING[x.mySaju.dm.stem]}`
-        : null,
-      signature: TYPES[me.code].signature,
-      traits,
-      quote,
-      scenes,
-    },
     matchScore: x.score,
     coupleTitle: coupleTitle(x),
-    teaserSummary: `${P.PAIR_SHORT[a](names)} ${P.PAIR_SHORT[f](names)}`,
+    teaserSummary: `${P.PAIR_SHORT[a](x.names)} ${P.PAIR_SHORT[f](x.names)}`,
     overallHeadline: overallHeadline(x.score),
+    mbti: mbtiPair(x.input.me.mbti ?? "", x.input.partner.mbti ?? ""),
   };
 }
 
-// ───────────── Paid report ─────────────
-
-function sajuParagraph(x: Analysis): string {
+function sajuParagraph(x: Couple): string {
   const { me, p } = x.names;
   if (!x.mySaju) return "";
   if (!x.partnerSaju || !x.stemRel) {
@@ -246,11 +443,8 @@ const WEAKNESS = {
 const mixKey = <K extends string>(pairCode: string, same1: K, same2: K, mix: K): K =>
   pairCode[0] === pairCode[1] ? (pairCode[0] === same1[0] ? same1 : same2) : mix;
 
-/** level "share" → only the hidden-mind section; "full" → everything. */
-export function buildReport(input: QuestionnaireInput, level: "share" | "full"): Partial<FullReport> {
-  const x = analyze(input);
-  const { names, me, partner } = x;
-  const n = names;
+function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
+  const { names: n, me, partner, input } = x;
   const g = pair(me, partner, "drive");
   const e = pair(me, partner, "express");
   const f = pair(me, partner, "conflict");
@@ -265,6 +459,7 @@ export function buildReport(input: QuestionnaireInput, level: "share" | "full"):
   const hurt = mismatch
     ? P.PARTNER_HURT[me.poles[mismatch.key] + partner.poles[mismatch.key]](n)
     : P.PARTNER_HURT_SAME[partner.poles.attach as "A" | "S"](n);
+  const partnerMbti = input.partner.mbti ?? "";
 
   const hiddenMind: ReportSection = {
     title: "상대방이 말하지 않는 진짜 속마음 & 섭섭한 점",
@@ -272,23 +467,36 @@ export function buildReport(input: QuestionnaireInput, level: "share" | "full"):
     body: [
       P.PARTNER_HIDDEN[partner.poles[partnerRanked[0].key]](n),
       P.PARTNER_HIDDEN[partner.poles[partnerRanked[1].key]](n),
+      partnerMbti ? `MBTI로 봐도 ${partnerMbti}는 '${mbtiShort(partnerMbti)}' 타입이라 이런 면이 더 강하게 나타나요.` : "",
       hurt,
-    ].join(" "),
+    ]
+      .filter(Boolean)
+      .join(" "),
     bullets: [
       `🙊 속으로 하고 싶은 말: ${P.WANT_TO_SAY[topPole]}`,
       `😢 섭섭 포인트: ${shortHurt(mismatch?.key)}`,
       `💌 듣고 싶은 말: ${P.WANT_TO_HEAR[topPole]}`,
     ],
   };
-  if (level === "share") return { hiddenMind };
+  if (level === "share") return { subScores: [], sections: [{ id: "hiddenMind", icon: "🔒", section: hiddenMind }], luck: null };
 
-  const subScores = (Object.keys(x.sub) as (keyof typeof x.sub)[]).map((k) => ({ label: SUB_LABEL[k], score: x.sub[k] }));
-  const sortedSub = (Object.keys(x.sub) as (keyof typeof x.sub)[]).sort((p, q) => x.sub[q] - x.sub[p]);
+  const subKeys = Object.keys(x.sub) as (keyof typeof x.sub)[];
+  const subScores = subKeys.map((k) => ({ label: SUB_LABEL[k], score: x.sub[k] }));
+  const sortedSub = [...subKeys].sort((p, q) => x.sub[q] - x.sub[p]);
+  const mbti = mbtiPair(input.me.mbti ?? "", partnerMbti);
 
   const overall: ReportSection = {
     title: "종합 궁합 & 연애 스타일",
     headline: overallHeadline(x.score),
-    body: [P.STATUS_OPENER[input.status], sajuParagraph(x), P.PAIR[g](n), P.PAIR[e](n)].filter(Boolean).join(" "),
+    body: [
+      P.STATUS_OPENER[input.status],
+      sajuParagraph(x),
+      mbti ? `MBTI로는 ${mbti.pair}, '${mbti.level}' 조합이에요. ${mbti.line}` : "",
+      P.PAIR[g](n),
+      P.PAIR[e](n),
+    ]
+      .filter(Boolean)
+      .join(" "),
     bullets: [
       WEAPON[sortedSub[0]],
       WEAKNESS[sortedSub[sortedSub.length - 1]],
@@ -299,7 +507,7 @@ export function buildReport(input: QuestionnaireInput, level: "share" | "full"):
   const expressKey = mixKey(e, "EE", "HH", "MIX");
   const attachKey = mixKey(a, "AA", "SS", "MIX");
   const conflictKey = mixKey(f, "FF", "RR", "MIX");
-  const myLuck = x.mySaju ? P.ELEMENT_LUCK[x.mySaju.summary.lacking] : P.ELEMENT_LUCK.water;
+  const myLuck = lackingLuck(x);
 
   const chemistry: ReportSection = {
     title: "스킨십 / 속궁합 & 멘탈 케미 폭발 지점",
@@ -311,7 +519,7 @@ export function buildReport(input: QuestionnaireInput, level: "share" | "full"):
     bullets: [`🕯️ 최고의 무드: ${myLuck.place}`, P.INTIMACY_SWITCH[partner.poles.express as "E" | "H"], P.MENTAL_SPARK[conflictKey]],
   };
 
-  const concern = P.CONCERN_ADVICE[input.concern];
+  const concern = P.CONCERN_ADVICE[input.concern as CoupleConcernId];
   const concernText = concern.byPole[partner.poles[concern.axis]]?.(n) ?? "";
   const crisis: ReportSection = {
     title: "위기 순간 & 트러블 회피법",
@@ -326,7 +534,7 @@ export function buildReport(input: QuestionnaireInput, level: "share" | "full"):
   };
 
   const lackingLabel = x.mySaju ? ELEMENT_LABEL[x.mySaju.summary.lacking] : null;
-  const luck: FullReport["luck"] = {
+  const luck: LuckSection = {
     title: "이번 달 연애 개운(開運) 솔루션",
     headline: lackingLabel
       ? `이번 달 ${n.me}님에게 필요한 기운은 ${copula(lackingLabel)} 🍀`
@@ -338,10 +546,19 @@ export function buildReport(input: QuestionnaireInput, level: "share" | "full"):
     luckyPlace: myLuck.place,
     luckyItem: myLuck.item,
     luckyDays: x.mySaju ? luckyDays(x.mySaju.dm) : [],
-    actionItems: [myLuck.action, P.SELF_ACTION[me.poles[[...AXES].sort((p, q) => Math.abs(me.raw[q.key]) - Math.abs(me.raw[p.key]))[0].key]], concernAction(input.concern)],
+    actionItems: [myLuck.action, P.SELF_ACTION[me.poles[x.ranked[0]]], concernAction(input.concern as CoupleConcernId)],
   };
 
-  return { subScores, overall, hiddenMind, chemistry, crisis, luck };
+  return {
+    subScores,
+    sections: [
+      { id: "overall", icon: "💖", section: overall },
+      { id: "hiddenMind", icon: "🔒", section: hiddenMind },
+      { id: "chemistry", icon: "🔥", section: chemistry },
+      { id: "crisis", icon: "⚡", section: crisis },
+    ],
+    luck,
+  };
 }
 
 function shortHurt(axis?: AxisKey): string {
@@ -359,7 +576,7 @@ function shortHurt(axis?: AxisKey): string {
   }
 }
 
-function concernAction(c: QuestionnaireInput["concern"]): string {
+function concernAction(c: CoupleConcernId): string {
   return {
     contact: "📱 연락 규칙 딱 하나만 같이 정하기",
     uncertainty: "❓ 추측 대신 가볍게 한 번 물어보기",
@@ -370,3 +587,27 @@ function concernAction(c: QuestionnaireInput["concern"]): string {
   }[c];
 }
 
+// ───────────── Public API ─────────────
+
+export function buildTeaser(input: QuestionnaireInput): TeaserReport {
+  const c = core(input);
+  const base = {
+    mode: input.mode,
+    myType: typeInfo(c.me.code),
+    axes: c.me.axes,
+    reliability: reliability(SELF_QUESTIONS, input.self),
+    saju: c.mySaju?.summary ?? null,
+    personal: personalReading(c),
+    match: matchTeaser(c),
+  };
+  if (input.mode === "solo") {
+    return { ...base, couple: null, solo: soloLoveLuck(c), locked: SOLO_LOCKED };
+  }
+  return { ...base, couple: coupleTeaser(couple(c)), solo: null, locked: COUPLE_LOCKED };
+}
+
+/** level "share" → only the first locked section; "full" → everything. */
+export function buildReport(input: QuestionnaireInput, level: "share" | "full"): FullReport {
+  const c = core(input);
+  return input.mode === "solo" ? buildSoloReport(c, level) : buildCoupleReport(couple(c), level);
+}

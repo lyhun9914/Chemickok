@@ -2,32 +2,54 @@
 
 import { useRef } from "react";
 import {
-  CONCERNS,
+  COUPLE_CONCERNS,
   GENDER_LABEL,
   LIKERT_LABELS,
+  MBTI_TYPES,
+  MODE_OPTIONS,
   PARTNER_QUESTIONS,
   SELF_QUESTIONS,
+  SOLO_CONCERNS,
   STATUS_OPTIONS,
   fillPartner,
+  type LikertQuestion,
 } from "@/lib/questions";
-import type { Gender, PersonInput } from "@/models/types";
+import type { Gender, Mode, PersonInput } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 
-// Step layout: 0 me · 1 partner · 2 status · 3 concern · 4 PART1 intro · self ×12 · PART2 intro · partner ×8
-const SELF_START = 5;
-const PART2_INTRO = SELF_START + SELF_QUESTIONS.length;
-const PARTNER_START = PART2_INTRO + 1;
-const TOTAL_STEPS = PARTNER_START + PARTNER_QUESTIONS.length;
+type Step =
+  | { kind: "mode" | "me" | "partner" | "status" | "concern" | "intro1" | "intro2" }
+  | { kind: "self" | "obs"; q: LikertQuestion; num: number };
 
-function ProgressBar({ step }: { step: number }) {
-  const pct = ((step + 1) / TOTAL_STEPS) * 100;
-  const part = step < 4 ? "기본 정보" : step < PART2_INTRO ? "PART 1 · 나의 연애 성향" : "PART 2 · 그 사람 관찰";
+function stepsFor(mode: Mode): Step[] {
+  const self: Step[] = SELF_QUESTIONS.map((q, i) => ({ kind: "self", q, num: i + 1 }));
+  if (mode === "solo") {
+    return [{ kind: "mode" }, { kind: "me" }, { kind: "concern" }, { kind: "intro1" }, ...self];
+  }
+  const obs: Step[] = PARTNER_QUESTIONS.map((q, i) => ({ kind: "obs", q, num: i + 1 }));
+  return [
+    { kind: "mode" },
+    { kind: "me" },
+    { kind: "partner" },
+    { kind: "status" },
+    { kind: "concern" },
+    { kind: "intro1" },
+    ...self,
+    { kind: "intro2" },
+    ...obs,
+  ];
+}
+
+function ProgressBar({ step, total, kind }: { step: number; total: number; kind: Step["kind"] }) {
+  const pct = ((step + 1) / total) * 100;
+  const part =
+    kind === "self" || kind === "intro1" ? "PART 1 · 나의 연애 성향" : kind === "obs" || kind === "intro2" ? "PART 2 · 그 사람 관찰" : "기본 정보";
   return (
     <div className="px-5 pt-5">
       <div className="mb-2 flex justify-between text-xs text-muted">
         <span>{part}</span>
         <span>
-          {step + 1} / {TOTAL_STEPS}
+          {step + 1} / {total}
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-white/10">
@@ -108,6 +130,23 @@ function PersonStep({
           onChange={(e) => onChange({ birthtime: e.target.value })}
         />
       </label>
+      <label className="block">
+        <span className="mb-2 block text-sm text-muted">
+          MBTI <span className="text-xs">(선택 · MBTI 궁합까지 알려드려요)</span>
+        </span>
+        <select
+          className={`${inputCls} appearance-none`}
+          value={person.mbti ?? ""}
+          onChange={(e) => onChange({ mbti: e.target.value })}
+        >
+          <option value="">모르겠어요 / 건너뛰기</option>
+          {MBTI_TYPES.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }
@@ -155,25 +194,57 @@ function PartIntro({ part, title, desc, tip }: { part: string; title: string; de
   );
 }
 
+function ChoiceList<T extends string>({
+  options,
+  value,
+  onPick,
+}: {
+  options: { id: T; emoji: string; label: string; desc?: string }[];
+  value: string;
+  onPick: (id: T) => void;
+}) {
+  return (
+    <div className="space-y-2.5">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          onClick={() => onPick(o.id)}
+          className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left text-[15px] transition active:scale-[0.98] ${
+            value === o.id ? "border-pink bg-pink/15" : "border-line bg-surface"
+          }`}
+        >
+          <span className="text-xl">{o.emoji}</span>
+          <span>
+            <span className="block">{o.label}</span>
+            {o.desc && <span className="block text-xs text-muted">{o.desc}</span>}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Questionnaire() {
   const s = useAppStore();
   const { step, setStep, setScreen, input } = s;
   const advancing = useRef(false);
 
-  const selfQ = step >= SELF_START && step < PART2_INTRO ? SELF_QUESTIONS[step - SELF_START] : null;
-  const partnerQ = step >= PARTNER_START ? PARTNER_QUESTIONS[step - PARTNER_START] : null;
+  const steps = stepsFor(input.mode);
+  const cur = steps[Math.min(step, steps.length - 1)];
+  const solo = input.mode === "solo";
+  const pName = input.partner.name || "그 사람";
 
   const canNext = (() => {
-    if (step === 0) return input.me.name.trim() !== "" && input.me.birthdate !== "";
-    if (step === 1) return input.partner.name.trim() !== "";
-    if (selfQ) return Boolean(input.self[selfQ.id]);
-    if (partnerQ) return Boolean(input.partnerObs[partnerQ.id]);
+    if (cur.kind === "me") return input.me.name.trim() !== "" && input.me.birthdate !== "";
+    if (cur.kind === "partner") return input.partner.name.trim() !== "";
+    if (cur.kind === "self") return Boolean(input.self[cur.q.id]);
+    if (cur.kind === "obs") return Boolean(input.partnerObs[cur.q.id]);
     return true;
   })();
 
   const next = () => {
     advancing.current = false;
-    if (step < TOTAL_STEPS - 1) setStep(step + 1);
+    if (step < steps.length - 1) setStep(step + 1);
     else setScreen("loading");
   };
   const back = () => (step === 0 ? setScreen("landing") : setStep(step - 1));
@@ -186,113 +257,141 @@ export function Questionnaire() {
     setTimeout(next, 230);
   };
 
-  const pName = input.partner.name || "그 사람";
   let body: React.ReactNode;
   let showNext = true;
 
-  if (step === 0) {
-    body = (
-      <PersonStep
-        title={<>먼저 <span className="text-gradient">나</span>에 대해 알려주세요</>}
-        person={input.me}
-        onChange={s.updateMe}
-      />
-    );
-  } else if (step === 1) {
-    body = (
-      <PersonStep
-        title={<>궁금한 <span className="text-gradient">그 사람</span>은요?</>}
-        person={input.partner}
-        optionalBirth
-        onChange={s.updatePartner}
-      />
-    );
-  } else if (step === 2) {
-    showNext = false;
-    body = (
-      <div className="space-y-5">
-        <h2 className="text-2xl font-bold leading-snug">
-          {pName}님과 지금 <span className="text-gradient">어떤 사이</span>예요?
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {STATUS_OPTIONS.map((o) => (
-            <button
-              key={o.id}
-              onClick={() => choose(() => s.setStatus(o.id))}
-              className={`rounded-2xl border p-4 text-left transition active:scale-[0.97] ${
-                input.status === o.id ? "border-pink bg-pink/15" : "border-line bg-surface"
-              }`}
-            >
-              <div className="text-3xl">{o.emoji}</div>
-              <div className="mt-2 font-bold">{o.label}</div>
-              <div className="text-xs text-muted">{o.desc}</div>
-            </button>
-          ))}
+  switch (cur.kind) {
+    case "mode":
+      showNext = false;
+      body = (
+        <div className="space-y-5">
+          <h2 className="text-2xl font-bold leading-snug">
+            어떤 결과가 <span className="text-gradient">궁금하세요?</span>
+          </h2>
+          <div className="space-y-3">
+            {MODE_OPTIONS.map((o) => (
+              <button
+                key={o.id}
+                onClick={() => choose(() => s.setMode(o.id))}
+                className={`flex w-full items-center gap-4 rounded-3xl border p-5 text-left transition active:scale-[0.98] ${
+                  input.mode === o.id ? "border-pink bg-pink/15" : "border-line bg-surface"
+                }`}
+              >
+                <span className="text-4xl">{o.emoji}</span>
+                <span>
+                  <span className="block text-lg font-bold">{o.label}</span>
+                  <span className="block text-sm text-muted">{o.desc}</span>
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-    );
-  } else if (step === 3) {
-    showNext = false;
-    body = (
-      <div className="space-y-5">
-        <h2 className="text-2xl font-bold leading-snug">
-          요즘 가장 <span className="text-gradient">마음에 걸리는 것</span>은?
-        </h2>
-        <p className="-mt-2 text-sm text-muted">이 고민을 중심으로 맞춤 솔루션을 드려요</p>
-        <div className="space-y-2.5">
-          {CONCERNS.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => choose(() => s.setConcern(c.id))}
-              className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left text-[15px] transition active:scale-[0.98] ${
-                input.concern === c.id ? "border-pink bg-pink/15" : "border-line bg-surface"
-              }`}
-            >
-              <span className="text-xl">{c.emoji}</span>
-              <span>{c.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  } else if (step === 4) {
-    body = (
-      <PartIntro
-        part="PART 1 · 12문항"
-        title="나의 연애 성향 진단"
-        desc="애착 이론과 갈등 대처 유형을 참고한 문항으로 관계 주도성·감정 표현·갈등 대처·애착 스타일 4가지 축을 측정해요."
-        tip="'이래야 한다'가 아니라 실제로 내가 하는 행동을 떠올리세요. 오래 고민하지 말고 첫 느낌대로 고르는 게 가장 정확해요."
-      />
-    );
-  } else if (step === PART2_INTRO) {
-    body = (
-      <PartIntro
-        part="PART 2 · 8문항"
-        title={`${pName}님 관찰 진단`}
-        desc={`지금까지 본 ${pName}님의 행동을 떠올리며 답해 주세요. 이 응답으로 ${pName}님의 유형과 숨은 속마음을 분석해요.`}
-        tip="잘 모르겠는 문항은 '보통이다'를 골라도 괜찮아요. 최근 한두 달의 모습을 기준으로 떠올려 보세요."
-      />
-    );
-  } else {
-    showNext = false;
-    const q = (selfQ ?? partnerQ)!;
-    const value = selfQ ? input.self[q.id] : input.partnerObs[q.id];
-    const num = selfQ ? step - SELF_START + 1 : step - PARTNER_START + 1;
-    body = (
-      <div className="pt-6">
-        <p className="text-sm font-semibold text-pink">Q{num}.</p>
-        <h2 className="mt-2 min-h-[5.5rem] text-[22px] font-bold leading-snug">{fillPartner(q.text, pName)}</h2>
-        <Likert
-          value={value}
-          onPick={(v) => choose(() => (selfQ ? s.setSelf(q.id, v) : s.setPartnerObs(q.id, v)))}
+      );
+      break;
+    case "me":
+      body = (
+        <PersonStep
+          title={<>먼저 <span className="text-gradient">나</span>에 대해 알려주세요</>}
+          person={input.me}
+          onChange={s.updateMe}
         />
-      </div>
-    );
+      );
+      break;
+    case "partner":
+      body = (
+        <PersonStep
+          title={<>궁금한 <span className="text-gradient">그 사람</span>은요?</>}
+          person={input.partner}
+          optionalBirth
+          onChange={s.updatePartner}
+        />
+      );
+      break;
+    case "status":
+      showNext = false;
+      body = (
+        <div className="space-y-5">
+          <h2 className="text-2xl font-bold leading-snug">
+            {pName}님과 지금 <span className="text-gradient">어떤 사이</span>예요?
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {STATUS_OPTIONS.map((o) => (
+              <button
+                key={o.id}
+                onClick={() => choose(() => s.setStatus(o.id))}
+                className={`rounded-2xl border p-4 text-left transition active:scale-[0.97] ${
+                  input.status === o.id ? "border-pink bg-pink/15" : "border-line bg-surface"
+                }`}
+              >
+                <div className="text-3xl">{o.emoji}</div>
+                <div className="mt-2 font-bold">{o.label}</div>
+                <div className="text-xs text-muted">{o.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+      break;
+    case "concern":
+      showNext = false;
+      body = (
+        <div className="space-y-5">
+          <h2 className="text-2xl font-bold leading-snug">
+            요즘 가장 <span className="text-gradient">마음에 걸리는 것</span>은?
+          </h2>
+          <p className="-mt-2 text-sm text-muted">이 고민을 중심으로 맞춤 솔루션을 드려요</p>
+          {solo ? (
+            <ChoiceList options={SOLO_CONCERNS} value={input.concern} onPick={(id) => choose(() => s.setConcern(id))} />
+          ) : (
+            <ChoiceList options={COUPLE_CONCERNS} value={input.concern} onPick={(id) => choose(() => s.setConcern(id))} />
+          )}
+        </div>
+      );
+      break;
+    case "intro1":
+      body = (
+        <PartIntro
+          part={`PART 1 · ${SELF_QUESTIONS.length}문항`}
+          title="나의 연애 성향 진단"
+          desc="애착 이론과 갈등 대처 유형을 참고한 문항으로 관계 주도성·감정 표현·갈등 대처·애착 스타일 4가지 축을 측정해요."
+          tip={
+            solo
+              ? "지금 연애 중이 아니라면 지난 연애나 썸을 떠올려 답해 주세요. 오래 고민하지 말고 첫 느낌대로 고르는 게 가장 정확해요."
+              : "'이래야 한다'가 아니라 실제로 내가 하는 행동을 떠올리세요. 오래 고민하지 말고 첫 느낌대로 고르는 게 가장 정확해요."
+          }
+        />
+      );
+      break;
+    case "intro2":
+      body = (
+        <PartIntro
+          part={`PART 2 · ${PARTNER_QUESTIONS.length}문항`}
+          title={`${pName}님 관찰 진단`}
+          desc={`지금까지 본 ${pName}님의 행동을 떠올리며 답해 주세요. 이 응답으로 ${pName}님의 유형과 숨은 속마음을 분석해요.`}
+          tip="잘 모르겠는 문항은 '보통이다'를 골라도 괜찮아요. 최근 한두 달의 모습을 기준으로 떠올려 보세요."
+        />
+      );
+      break;
+    case "self":
+    case "obs": {
+      showNext = false;
+      const q = cur.q;
+      const isSelf = cur.kind === "self";
+      const value = isSelf ? input.self[q.id] : input.partnerObs[q.id];
+      body = (
+        <div className="pt-6">
+          <p className="text-sm font-semibold text-pink">Q{cur.num}.</p>
+          <h2 className="mt-2 min-h-[5.5rem] text-[22px] font-bold leading-snug">{fillPartner(q.text, pName)}</h2>
+          <Likert value={value} onPick={(v) => choose(() => (isSelf ? s.setSelf(q.id, v) : s.setPartnerObs(q.id, v)))} />
+        </div>
+      );
+      break;
+    }
   }
 
   return (
     <main className="flex flex-1 flex-col">
-      <ProgressBar step={step} />
+      <ProgressBar step={step} total={steps.length} kind={cur.kind} />
       <div className="px-5 pt-2">
         <button onClick={back} className="py-2 text-sm text-muted" aria-label="이전">
           ← 이전
@@ -304,7 +403,7 @@ export function Questionnaire() {
       {showNext && (
         <div className="sticky bottom-0 bg-gradient-to-t from-bg via-bg to-transparent px-5 pb-6 pt-4">
           <button onClick={next} disabled={!canNext} className="btn-primary w-full py-4 text-base">
-            {step === 4 || step === PART2_INTRO ? "시작하기" : "다음"}
+            {cur.kind === "intro1" || cur.kind === "intro2" ? "시작하기" : "다음"}
           </button>
         </div>
       )}

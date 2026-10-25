@@ -1,5 +1,5 @@
 import "server-only";
-import type { ConcernId, ElementKey, Pole, RelationshipStatus } from "@/models/types";
+import type { CoupleConcernId, ElementKey, Pole, RelationshipStatus } from "@/models/types";
 
 export interface Names {
   me: string;
@@ -140,7 +140,7 @@ export const BREAKUP_GUARD: Record<"AA" | "MIX" | "SS", string> = {
 };
 
 /** Concern-specific advice; keyed by the partner's pole on the axis that matters for that concern. */
-export const CONCERN_ADVICE: Record<ConcernId, { axis: "drive" | "express" | "conflict" | "attach"; byPole: Partial<Record<Pole, T>> }> = {
+export const CONCERN_ADVICE: Record<CoupleConcernId, { axis: "drive" | "express" | "conflict" | "attach"; byPole: Partial<Record<Pole, T>> }> = {
   contact: {
     axis: "attach",
     byPole: {

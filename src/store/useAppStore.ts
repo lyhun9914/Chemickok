@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type {
   ConcernId,
   FullReport,
+  Mode,
   PersonInput,
   QuestionnaireInput,
   RelationshipStatus,
@@ -14,7 +15,7 @@ import type {
 
 export type Screen = "landing" | "form" | "loading" | "result";
 
-const emptyPerson: PersonInput = { name: "", gender: "female", birthdate: "", birthtime: "" };
+const emptyPerson: PersonInput = { name: "", gender: "female", birthdate: "", birthtime: "", mbti: "" };
 
 interface AppState {
   screen: Screen;
@@ -22,12 +23,13 @@ interface AppState {
   input: QuestionnaireInput;
   inputHash: string | null;
   teaser: TeaserReport | null;
-  report: Partial<FullReport> | null;
+  report: FullReport | null;
   level: "none" | "share" | "full";
   error: string | null;
 
   setScreen: (s: Screen) => void;
   setStep: (n: number) => void;
+  setMode: (m: Mode) => void;
   updateMe: (p: Partial<PersonInput>) => void;
   updatePartner: (p: Partial<PersonInput>) => void;
   setStatus: (s: RelationshipStatus) => void;
@@ -41,10 +43,11 @@ interface AppState {
 }
 
 const initialInput = (): QuestionnaireInput => ({
+  mode: "solo",
   me: { ...emptyPerson },
   partner: { ...emptyPerson, gender: "male" },
   status: "dating",
-  concern: "contact",
+  concern: "when",
   self: {},
   partnerObs: {},
 });
@@ -66,6 +69,9 @@ export const useAppStore = create<AppState>()(
       input: initialInput(),
       setScreen: (screen) => set({ screen, error: null }),
       setStep: (step) => set({ step }),
+      // Switching mode resets the concern to that mode's first option.
+      setMode: (mode) =>
+        set((s) => ({ input: { ...s.input, mode, concern: mode === "solo" ? "when" : "contact" } })),
       updateMe: (p) => set((s) => ({ input: { ...s.input, me: { ...s.input.me, ...p } } })),
       updatePartner: (p) => set((s) => ({ input: { ...s.input, partner: { ...s.input.partner, ...p } } })),
       setStatus: (status) => set((s) => ({ input: { ...s.input, status } })),
@@ -76,15 +82,12 @@ export const useAppStore = create<AppState>()(
       setTeaser: (teaser, inputHash) =>
         set({ teaser, inputHash, report: null, level: "none", screen: "result" }),
       // Never downgrade: a later "share" unlock must not hide an already-paid full report.
-      applyUnlock: ({ level, report }) =>
-        set((s) =>
-          s.level === "full" ? {} : { level, report: { ...(s.report ?? {}), ...report } },
-        ),
+      applyUnlock: ({ level, report }) => set((s) => (s.level === "full" ? {} : { level, report })),
       setError: (error) => set({ error }),
       reset: () => set({ ...initial, input: initialInput() }),
     }),
     {
-      name: "love-chemistry-v2",
+      name: "love-chemistry-v3",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
       partialize: ({ screen, step, input, inputHash, teaser, report, level }) => ({

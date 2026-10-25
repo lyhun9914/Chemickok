@@ -1,6 +1,17 @@
-import type { AxisResult, ElementKey, FullReport, ReportSection, SajuSummary, TeaserReport } from "@/models/types";
+import type {
+  AxisResult,
+  ElementKey,
+  FullReport,
+  LockedPreview,
+  LuckSection,
+  MatchTeaser,
+  MbtiPair,
+  ReportSection,
+  SajuSummary,
+  TeaserReport,
+} from "@/models/types";
 
-export function ScoreRing({ score }: { score: number }) {
+export function ScoreRing({ score, label = "궁합 지수" }: { score: number; label?: string }) {
   const r = 52;
   const c = 2 * Math.PI * r;
   return (
@@ -28,7 +39,7 @@ export function ScoreRing({ score }: { score: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-4xl font-black">{score}%</span>
-        <span className="text-xs text-muted">궁합 지수</span>
+        <span className="text-xs text-muted">{label}</span>
       </div>
     </div>
   );
@@ -163,7 +174,7 @@ export function PersonalReading({ teaser, myName }: { teaser: TeaserReport; myNa
   );
 }
 
-function SectionCard({ icon, section, delay }: { icon: string; section: ReportSection; delay: number }) {
+export function SectionCard({ icon, section, delay = 0 }: { icon: string; section: ReportSection; delay?: number }) {
   return (
     <Card delay={delay}>
       <div className="mb-2 text-2xl">{icon}</div>
@@ -181,90 +192,129 @@ function SectionCard({ icon, section, delay }: { icon: string; section: ReportSe
   );
 }
 
-export function HiddenMindCard({ section }: { section: ReportSection }) {
-  return <SectionCard icon="🔒" section={section} delay={0} />;
+function LuckCard({ luck }: { luck: LuckSection }) {
+  return (
+    <Card delay={0.25}>
+      <div className="mb-2 text-2xl">🔮</div>
+      <h3 className="text-xs font-semibold tracking-wide text-muted">{luck.title}</h3>
+      <p className="mt-1 text-[17px] font-bold leading-snug">{luck.headline}</p>
+      <p className="mt-3 text-[15px] leading-relaxed text-ink/90">{luck.body}</p>
+      {luck.luckyDays.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-peach/30 bg-peach/5 p-3">
+          <p className="text-xs font-semibold text-peach">📅 이번 달 연애 길일</p>
+          <ul className="mt-2 space-y-1 text-sm">
+            {luck.luckyDays.map((d) => (
+              <li key={d}>· {d}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+        {[
+          ["행운의 컬러", luck.luckyColor],
+          ["행운의 장소", luck.luckyPlace],
+          ["행운의 아이템", luck.luckyItem],
+        ].map(([k, v]) => (
+          <div key={k} className="rounded-xl bg-violet/10 p-2.5">
+            <div className="text-muted">{k}</div>
+            <div className="mt-1 font-semibold leading-snug">{v}</div>
+          </div>
+        ))}
+      </div>
+      <ol className="mt-4 space-y-2">
+        {luck.actionItems.map((a) => (
+          <li key={a} className="text-sm leading-relaxed">
+            {a}
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
 }
 
 export function FullReportView({ report }: { report: FullReport }) {
-  const { luck } = report;
   return (
     <div className="space-y-4">
-      <Card>
-        <p className="mb-3 text-xs font-semibold text-muted">📊 세부 궁합 지표</p>
-        <div className="space-y-3">
-          {report.subScores.map((s) => (
-            <div key={s.label}>
-              <div className="mb-1 flex justify-between text-sm">
-                <span>{s.label}</span>
-                <span className="font-bold">{s.score}</span>
+      {report.subScores.length > 0 && (
+        <Card>
+          <p className="mb-3 text-xs font-semibold text-muted">📊 세부 지표</p>
+          <div className="space-y-3">
+            {report.subScores.map((s) => (
+              <div key={s.label}>
+                <div className="mb-1 flex justify-between text-sm">
+                  <span>{s.label}</span>
+                  <span className="font-bold">{s.score}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-gradient-to-r from-pink to-violet" style={{ width: `${s.score}%` }} />
+                </div>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-pink to-violet" style={{ width: `${s.score}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-      <SectionCard icon="💖" section={report.overall} delay={0.05} />
-      <SectionCard icon="🔒" section={report.hiddenMind} delay={0.1} />
-      <SectionCard icon="🔥" section={report.chemistry} delay={0.15} />
-      <SectionCard icon="⚡" section={report.crisis} delay={0.2} />
-      <Card delay={0.25}>
-        <div className="mb-2 text-2xl">🔮</div>
-        <h3 className="text-xs font-semibold tracking-wide text-muted">{luck.title}</h3>
-        <p className="mt-1 text-[17px] font-bold leading-snug">{luck.headline}</p>
-        <p className="mt-3 text-[15px] leading-relaxed text-ink/90">{luck.body}</p>
-        {luck.luckyDays.length > 0 && (
-          <div className="mt-4 rounded-2xl border border-peach/30 bg-peach/5 p-3">
-            <p className="text-xs font-semibold text-peach">📅 이번 달 연애 길일</p>
-            <ul className="mt-2 space-y-1 text-sm">
-              {luck.luckyDays.map((d) => (
-                <li key={d}>· {d}</li>
-              ))}
-            </ul>
+            ))}
           </div>
-        )}
-        <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-          {[
-            ["행운의 컬러", luck.luckyColor],
-            ["행운의 장소", luck.luckyPlace],
-            ["행운의 아이템", luck.luckyItem],
-          ].map(([k, v]) => (
-            <div key={k} className="rounded-xl bg-violet/10 p-2.5">
-              <div className="text-muted">{k}</div>
-              <div className="mt-1 font-semibold leading-snug">{v}</div>
-            </div>
-          ))}
-        </div>
-        <ol className="mt-4 space-y-2">
-          {luck.actionItems.map((a) => (
-            <li key={a} className="text-sm leading-relaxed">
-              {a}
-            </li>
-          ))}
-        </ol>
-      </Card>
+        </Card>
+      )}
+      {report.sections.map((s, i) => (
+        <SectionCard key={s.id} icon={s.icon} section={s.section} delay={0.05 * (i + 1)} />
+      ))}
+      {report.luck && <LuckCard luck={report.luck} />}
     </div>
   );
 }
 
-const LOCKED = {
-  hiddenMind: { icon: "🔒", title: "상대방이 말하지 않는 진짜 속마음 & 섭섭한 점" },
-  chemistry: { icon: "🔥", title: "두 사람의 스킨십 / 속궁합 & 멘탈 케미 폭발 지점" },
-  crisis: { icon: "🔮", title: "결정적 이별 예방책 & 개운(開運) 공략 가이드 (이번 달 길일 포함)" },
-};
+/** Free "who suits me" card. */
+export function MatchCard({ match, myName }: { match: MatchTeaser; myName: string }) {
+  return (
+    <Card className="border-pink/30">
+      <p className="text-xs font-semibold text-pink">💘 {myName}님과 찰떡인 사람</p>
+      <div className="mt-3 flex items-center gap-3">
+        <span className="text-4xl">{match.bestType.emoji}</span>
+        <div>
+          <p className="text-[17px] font-bold leading-snug">{match.bestType.name}</p>
+          <p className="text-sm text-muted">{match.bestType.tagline}</p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <div className="rounded-xl bg-white/[0.04] p-3">
+          <p className="text-xs text-muted">찰떡 MBTI</p>
+          <p className="mt-1 font-bold">{match.bestMbti.length ? match.bestMbti.join(" · ") : "MBTI 입력 시 공개"}</p>
+        </div>
+        <div className="rounded-xl bg-white/[0.04] p-3">
+          <p className="text-xs text-muted">찰떡 띠</p>
+          <p className="mt-1 font-bold">{match.goodAnimals.length ? match.goodAnimals.map((a) => `${a}띠`).join(" · ") : "-"}</p>
+        </div>
+      </div>
+      {match.myMbti && match.myMbtiLine && (
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          <b className="text-ink">{match.myMbti}</b>의 연애: {match.myMbtiLine}
+        </p>
+      )}
+    </Card>
+  );
+}
+
+export function MbtiPairLine({ pair }: { pair: MbtiPair }) {
+  return (
+    <div className="mt-3 rounded-2xl border border-violet/30 bg-violet/10 p-4 text-left">
+      <p className="text-xs font-semibold text-violet">🧬 MBTI 궁합</p>
+      <p className="mt-1 font-bold">
+        {pair.pair} = {pair.level}
+        {pair.level === "천생연분" ? " 💯" : ""}
+      </p>
+      <p className="mt-1 text-sm leading-relaxed text-muted">{pair.line}</p>
+    </div>
+  );
+}
 
 // Placeholder text only — the real paid content never reaches the browser before unlock.
 const DUMMY =
   "이 사람은 겉으로는 무심해 보여도 속으로는 생각보다 훨씬 많이 신경 쓰고 있어요. 특히 최근에 섭섭했던 순간은 바로 그때인데요, 사실 진짜 이유는";
 
-export function LockedCard({ kind, onClick }: { kind: keyof typeof LOCKED; onClick: () => void }) {
-  const s = LOCKED[kind];
+export function LockedCard({ preview, onClick }: { preview: LockedPreview; onClick: () => void }) {
   return (
     <button onClick={onClick} className="relative block w-full overflow-hidden rounded-3xl border border-line bg-surface p-5 text-left">
       <div className="flex items-center gap-2">
-        <span className="text-xl">{s.icon}</span>
-        <h3 className="text-[15px] font-bold">{s.title}</h3>
+        <span className="text-xl">{preview.icon}</span>
+        <h3 className="text-[15px] font-bold">{preview.title}</h3>
       </div>
       <p className="locked-text mt-3 text-sm leading-relaxed text-muted" aria-hidden>
         {DUMMY}

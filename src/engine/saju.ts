@@ -88,7 +88,18 @@ export interface DayMasterInfo {
   stem: number; // 0..9
   branch: number; // day branch 0..11
   element: ElementKey;
+  yearBranch: number; // 띠 0..11
 }
+
+export const ANIMALS = ["쥐", "소", "호랑이", "토끼", "용", "뱀", "말", "양", "원숭이", "닭", "개", "돼지"];
+
+/** 삼합(三合) groups */
+const SAMHAP = [
+  [8, 0, 4],
+  [2, 6, 10],
+  [5, 9, 1],
+  [11, 3, 7],
+];
 
 export interface SajuResult {
   summary: SajuSummary;
@@ -154,7 +165,7 @@ export function computeSaju(birthdate: string, birthtime?: string): SajuResult |
   const lacking = order.reduce((best, el) => (elements[el] < elements[best] ? el : best), order[0]);
 
   return {
-    dm: { stem: dayStem, branch: dayBranch, element: dmElement },
+    dm: { stem: dayStem, branch: dayBranch, element: dmElement, yearBranch: yIdx % 12 },
     summary: {
       pillars,
       dayMaster: {
@@ -165,6 +176,7 @@ export function computeSaju(birthdate: string, birthtime?: string): SajuResult |
       },
       elements,
       lacking,
+      animal: ANIMALS[yIdx % 12],
     },
   };
 }
@@ -231,4 +243,41 @@ export function luckyDays(dm: DayMasterInfo, now = new Date()): string[] {
       const wd = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
       return `${m}월 ${d}일(${wd}) ${STEMS_HANGUL[idx % 10]}${BRANCHES_HANGUL[idx % 12]}일`;
     });
+}
+
+/** 찰떡 띠: the other two of my 삼합 group plus my 육합 partner. */
+export function goodAnimals(yearBranch: number): string[] {
+  const group = SAMHAP.find((g) => g.includes(yearBranch))!.filter((b) => b !== yearBranch);
+  const harmony = [...Array(12).keys()].find((b) => b !== yearBranch && branchRelation(yearBranch, b) === "harmony")!;
+  return [...group, harmony].map((b) => ANIMALS[b]);
+}
+
+export function clashAnimal(yearBranch: number): string {
+  return ANIMALS[mod(yearBranch + 6, 12)];
+}
+
+/** Earthly branch of the current solar month (KST), for 이번 달 연애운. */
+export function currentMonthBranch(now = new Date()): number {
+  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
+  const m = kst.getUTCMonth() + 1;
+  const d = kst.getUTCDate();
+  let branch = 0;
+  for (const [tm, td, br] of SOLAR_TERMS) {
+    if (m > tm || (m === tm && d >= td)) branch = br;
+  }
+  return branch;
+}
+
+export function monthRelation(dayBranch: number, monthBranch: number): "harmony" | "clash" | "samhap" | null {
+  const rel = branchRelation(dayBranch, monthBranch);
+  if (rel) return rel;
+  if (dayBranch !== monthBranch && SAMHAP.some((g) => g.includes(dayBranch) && g.includes(monthBranch))) return "samhap";
+  return null;
+}
+
+/** "계수(癸水)" — the day master that forms 천간합 with mine. */
+export function combineStemLabel(stem: number): string {
+  const partner = mod(stem + 5, 10);
+  const el = ELEMENT_LABEL[STEM_ELEMENT[partner]];
+  return `${STEMS_HANGUL[partner]}${el[0]}(${STEMS_HANJA[partner]}${el[2]})`;
 }

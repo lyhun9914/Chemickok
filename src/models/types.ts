@@ -2,25 +2,34 @@
 
 export type Gender = "female" | "male" | "other";
 
+/** solo = 나 혼자 보기, couple = 마음에 둔 사람과 궁합 보기 */
+export type Mode = "solo" | "couple";
+
 export type RelationshipStatus = "crush" | "dating" | "slump" | "breakup";
 
-export type ConcernId = "contact" | "uncertainty" | "conflict" | "boredom" | "future" | "reunion";
+export type CoupleConcernId = "contact" | "uncertainty" | "conflict" | "boredom" | "future" | "reunion";
+export type SoloConcernId = "when" | "who" | "fizzle" | "pattern" | "ex" | "lazy";
+export type ConcernId = CoupleConcernId | SoloConcernId;
 
 export interface PersonInput {
   name: string;
   gender: Gender;
   birthdate: string; // YYYY-MM-DD ("" = unknown, allowed for partner)
   birthtime?: string; // HH:mm (optional)
+  mbti?: string; // e.g. "INFP" ("" = unknown)
 }
 
 export interface QuestionnaireInput {
+  mode: Mode;
   me: PersonInput;
+  /** couple mode only */
   partner: PersonInput;
+  /** couple mode only */
   status: RelationshipStatus;
   concern: ConcernId;
   /** self-question id → Likert 1..5 */
   self: Record<string, number>;
-  /** partner-observation question id → Likert 1..5 */
+  /** partner-observation question id → Likert 1..5 (couple mode only) */
   partnerObs: Record<string, number>;
 }
 
@@ -61,6 +70,7 @@ export interface SajuSummary {
   dayMaster: { hanja: string; hangul: string; image: string; element: ElementKey };
   elements: Record<ElementKey, number>;
   lacking: ElementKey;
+  animal: string; // 띠, e.g. "토끼"
 }
 
 export interface PersonalReading {
@@ -71,18 +81,56 @@ export interface PersonalReading {
   scenes: string[];
 }
 
-export interface TeaserReport {
-  myType: TypeInfo;
+export type MbtiLevel = "천생연분" | "좋음" | "무난" | "노력 필요";
+
+export interface MbtiPair {
+  pair: string; // "INFP × ENFJ"
+  level: MbtiLevel;
+  line: string;
+}
+
+/** Free "who suits me" card (both modes). */
+export interface MatchTeaser {
+  bestType: TypeInfo;
+  myMbti: string | null;
+  myMbtiLine: string | null;
+  bestMbti: string[];
+  goodAnimals: string[]; // 찰떡 띠
+}
+
+export interface LockedPreview {
+  id: string;
+  icon: string;
+  title: string;
+}
+
+export interface CoupleTeaser {
   partnerType: TypeInfo;
-  axes: AxisResult[];
-  reliability: number; // 0..100
-  saju: SajuSummary | null;
-  partnerDayMaster: string | null; // e.g. "임수(壬水)"
-  personal: PersonalReading;
+  partnerDayMaster: string | null;
   matchScore: number;
   coupleTitle: string;
   teaserSummary: string;
   overallHeadline: string;
+  mbti: MbtiPair | null;
+}
+
+export interface SoloTeaser {
+  loveLuck: number; // 이번 달 연애운 %
+  loveLuckHeadline: string;
+}
+
+export interface TeaserReport {
+  mode: Mode;
+  myType: TypeInfo;
+  axes: AxisResult[];
+  reliability: number; // 0..100
+  saju: SajuSummary | null;
+  personal: PersonalReading;
+  match: MatchTeaser;
+  couple: CoupleTeaser | null;
+  solo: SoloTeaser | null;
+  /** Paid sections, in display order; the first one is the share-to-unlock section. */
+  locked: LockedPreview[];
 }
 
 export interface ReportSection {
@@ -105,14 +153,11 @@ export interface LuckSection {
 
 export interface FullReport {
   subScores: { label: string; score: number }[];
-  overall: ReportSection;
-  hiddenMind: ReportSection;
-  chemistry: ReportSection;
-  crisis: ReportSection;
-  luck: LuckSection;
+  sections: { id: string; icon: string; section: ReportSection }[];
+  luck: LuckSection | null;
 }
 
-/** "share" unlocks only the hidden-mind section; "full" unlocks everything. */
+/** "share" unlocks only the first locked section; "full" unlocks everything. */
 export type UnlockLevel = "share" | "full";
 
 export interface AnalyzeResponse {
@@ -122,7 +167,7 @@ export interface AnalyzeResponse {
 
 export interface UnlockResponse {
   level: UnlockLevel;
-  report: Partial<FullReport>;
+  report: FullReport;
 }
 
 export type PaymentMethod = "toss" | "kakaopay";
