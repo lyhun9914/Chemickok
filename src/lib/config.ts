@@ -15,4 +15,7 @@ export const BUSINESS = {
   bizId: "110-40-19781",
   ecommerceNo: "제 2025-경북구미-0987 호",
   address: "경상북도 구미시 송원서로6길 (원평동)",
+  phone: "010-2375-9914",
+  email: "chemickok@gmail.com",
+  hosting: "Vercel Inc.",
 } as const;
