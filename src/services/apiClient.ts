@@ -22,3 +22,16 @@ export const api = {
     amount?: number;
   }) => post<UnlockResponse>("/api/payment/confirm", body),
 };
+
+export interface DailyFortuneResponse {
+  date: string;
+  score: number;
+  title: string;
+  line: string;
+  color: string;
+  time: string;
+}
+
+export const dailyApi = {
+  get: (birthdate: string) => post<DailyFortuneResponse>("/api/daily", { birthdate }),
+};

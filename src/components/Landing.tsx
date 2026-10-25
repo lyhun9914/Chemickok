@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
+import { MiniGameSheet, type MiniGame } from "./MiniGames";
+import { Nyang } from "./Nyang";
 
 const PREVIEW_TYPES = [
   { emoji: "🚂", name: "풀악셀 폭주기관차" },
@@ -11,35 +14,56 @@ const PREVIEW_TYPES = [
 
 export function Landing() {
   const { setScreen, setStep } = useAppStore();
+  const [game, setGame] = useState<MiniGame | null>(null);
 
   const start = () => {
+    setGame(null);
     setStep(0);
     setScreen("form");
   };
 
   return (
-    <main className="flex flex-1 flex-col px-5 pt-10">
+    <main className="flex flex-1 flex-col px-5 pt-8">
       <div className="fade-up text-center">
         <span className="inline-block rounded-full border border-pink/30 bg-pink/10 px-3 py-1 text-xs font-semibold text-pink">
-          🔮 사주 × MBTI × 연애 심리
+          🐾 고양이 도사의 연애 점집
         </span>
-        <div className="float my-8 text-7xl" aria-hidden>
-          💘
+        <div className="float mx-auto mt-6 w-fit">
+          <Nyang mood="smug" size={150} />
         </div>
-        <h1 className="text-[28px] font-extrabold leading-tight tracking-tight">
-          나의 <span className="text-gradient">연애 폭탄 유형</span>과
+        <div className="relative mx-auto mt-2 w-fit max-w-[300px] rounded-2xl bg-[#fff6ec] px-4 py-3 text-[15px] font-medium text-[#2b1d16]">
+          흥, 또 연애 고민이냥? 됐고 생년월일이나 내놔라냥. …뭐, 들어는 줄게.
+        </div>
+        <h1 className="mt-6 text-[28px] font-extrabold leading-tight tracking-tight">
+          <span className="text-gradient">냥신</span>이 봐주는
           <br />
-          <span className="text-gradient">찰떡 궁합</span> 진단
+          나의 연애 유형 & 찰떡 궁합
         </h1>
-        <p className="mt-4 text-[15px] text-muted">솔로는 나와 맞는 사람을, 커플은 그 사람의 속마음까지</p>
+        <p className="mt-3 text-[15px] text-muted">사주 × MBTI × 연애 성향 · 솔로도 커플도</p>
       </div>
 
-      <button onClick={start} className="btn-primary glow shine mt-10 w-full py-4 text-[17px]">
-        무료로 내 연애 유형 테스트하기
+      <button onClick={start} className="btn-primary glow shine mt-8 w-full py-4 text-[17px]">
+        냥신에게 연애 점 보러 가기 🐾
       </button>
-      <p className="mt-3 text-center text-xs text-muted">⏱ 2~3분 · 회원가입 없음 · 기본 결과 무료</p>
+      <p className="mt-3 text-center text-xs text-muted">⏱ 2~3분 · 회원가입 없음 · 기본 점괘 무료</p>
 
-      <section className="fade-up mt-12" style={{ animationDelay: "0.2s" }}>
+      <section className="fade-up mt-10" style={{ animationDelay: "0.15s" }}>
+        <h2 className="mb-3 text-sm font-semibold text-muted">심심할 땐 10초 컷 🎲</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => setGame("daily")} className="rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]">
+            <div className="text-3xl">🔮</div>
+            <div className="mt-2 text-sm font-bold">오늘의 연애운</div>
+            <div className="text-xs text-muted">생일만 넣으면 끝</div>
+          </button>
+          <button onClick={() => setGame("name")} className="rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]">
+            <div className="text-3xl">✍️</div>
+            <div className="mt-2 text-sm font-bold">이름 궁합</div>
+            <div className="text-xs text-muted">그 시절 획수 궁합</div>
+          </button>
+        </div>
+      </section>
+
+      <section className="fade-up mt-8" style={{ animationDelay: "0.25s" }}>
         <h2 className="mb-3 text-sm font-semibold text-muted">16가지 연애 유형 중 나는?</h2>
         <div className="grid grid-cols-2 gap-3">
           {PREVIEW_TYPES.map((t) => (
@@ -54,10 +78,9 @@ export function Landing() {
       <section className="fade-up mb-10 mt-8 space-y-3" style={{ animationDelay: "0.35s" }}>
         {[
           ["🀄", "생년월일시로 세우는 사주 원국 & 일간 해석"],
-          ["📐", "4가지 축으로 보는 나의 연애 성향"],
+          ["🃏", "카드를 뒤집으면 나오는 나의 연애 유형"],
           ["💘", "나와 찰떡인 유형 · MBTI · 띠"],
           ["🔒", "커플이라면 그 사람이 말 안 한 속마음까지"],
-          ["🔮", "이번 달 연애운 & 인연 길일"],
         ].map(([icon, text]) => (
           <div key={text} className="flex items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3 text-sm">
             <span className="text-xl">{icon}</span>
@@ -65,6 +88,8 @@ export function Landing() {
           </div>
         ))}
       </section>
+
+      <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={start} />
     </main>
   );
 }

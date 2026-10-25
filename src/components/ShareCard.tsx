@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import type { TeaserReport } from "@/models/types";
+import { Nyang } from "./Nyang";
 
 /** The shareable "Type Card" — rendered to PNG by html-to-image (9:16-ish for IG stories). */
 export const ShareCard = forwardRef<HTMLDivElement, { teaser: TeaserReport; myName: string; partnerName: string }>(
@@ -17,7 +18,10 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: TeaserReport; myNa
         }}
       >
         <div className="flex h-full flex-col">
-          <p className="text-xs font-semibold tracking-wide text-white/80">💘 연애 케미 &amp; 속마음 리포트</p>
+          <div className="flex items-center gap-2">
+            <Nyang mood="smug" size={30} />
+            <p className="text-xs font-semibold tracking-wide text-white/80">냥신이 본 연애 점괘</p>
+          </div>
           <p className="mt-6 text-sm text-white/80">{myName}의 연애 유형</p>
           <div className="mt-3 text-[72px] leading-none">{teaser.myType.emoji}</div>
           <p className="mt-3 text-[26px] font-extrabold leading-tight">{teaser.myType.name}</p>
@@ -53,7 +57,7 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: TeaserReport; myNa
               </>
             )}
           </div>
-          <p className="mt-3 text-center text-[10px] text-white/60">나도 테스트하기 → 연애 케미 리포트</p>
+          <p className="mt-3 text-center text-[10px] text-white/60">🐾 냥신한테 나도 점 보기</p>
         </div>
       </div>
     );

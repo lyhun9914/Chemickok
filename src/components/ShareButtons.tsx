@@ -24,7 +24,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
   const [busy, setBusy] = useState(false);
 
   const shareText = {
-    title: `나의 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
+    title: `냥신이 본 내 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
     description: teaser.couple
       ? `우리 궁합 ${teaser.couple.matchScore}% - ${teaser.couple.coupleTitle} 😳 소름 돋게 잘 맞음. 너도 해 봐!`
       : `나랑 찰떡인 사람은 '${teaser.match.bestType.name}' 유형이래 😳 소름 돋게 잘 맞음. 너도 해 봐!`,

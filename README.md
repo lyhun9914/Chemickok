@@ -1,6 +1,6 @@
-# 💘 연애 케미 & 속마음 리포트 (Love Chemistry & Mind Report)
+# 🐾 냥신 연애 점집 (Love Chemistry & Mind Report)
 
-Mobile-first viral web app with solo & couple modes: 사주 원국 + MBTI + love-style test → free reading → 990원 paywall → full report → share card.
+Mobile-first viral web app hosted by **냥신**, a cat fortune-teller in a 갓 who reads your love life in a sulky "~냥" voice. Solo & couple modes: 사주 원국 + MBTI + love-style test → a chat-style reading revealed one line at a time (tap "그래서? 👉", flip a card) → 복채 990원 paywall → full report → share card. Free 10-second mini games on the landing page: 오늘의 연애운 and 이름 궁합 (획수).
 
 **No AI, no database.** Results come from a deterministic rule engine (same answers → same result), so serving costs stay near zero no matter how viral it gets.
 
@@ -25,6 +25,12 @@ Works with zero configuration (test-mode payment unlocks instantly). See `.env.e
    - Paid: 종합 궁합, 속마음 (share-to-unlock), 스킨십/멘탈 케미, 위기 & 이별 예방책, 개운 & 길일
 5. Pay 990원 (test mode by default) or share to unlock one section; the share card adapts to the mode.
 
+## 냥신 & mini games
+- Mascot: `src/components/Nyang.tsx` (SVG, 4 moods) with `Say` (speech bubble with typing dots) and `FlipCard`.
+- Result reading: `src/components/ResultView.tsx` builds a list of beats; each tap reveals the next line + card, ending in the 복채 paywall. Paid sections get a 냥신 intro line.
+- 오늘의 연애운: `src/engine/daily.ts` + `POST /api/daily` (today's day stem vs. the user's day master).
+- 이름 궁합: `src/lib/nameCompat.ts` (client-side stroke-count pyramid).
+
 ## How the "소름 돋게 맞는" effect is built
 | Technique | Where |
 |---|---|
@@ -45,10 +51,11 @@ src/
 ├─ app/
 │  ├─ page.tsx                     # landing → form → loading → result
 │  ├─ api/analyze/route.ts         # POST: free teaser + inputHash
+│  ├─ api/daily/route.ts           # POST: 오늘의 연애운
 │  ├─ api/payment/confirm/route.ts # POST: test / toss / share → rebuilds the report from the answers
 │  └─ payment/{success,fail}/      # Toss redirect targets
 ├─ engine/ (server-only)
-│  ├─ saju.ts  profile.ts  mbti.ts  analyze.ts
+│  ├─ saju.ts  profile.ts  mbti.ts  analyze.ts  daily.ts
 │  └─ content/free.ts  content/solo.ts  content/paid.ts
 ├─ components/                     # Questionnaire, ResultView, ReportCards, PaymentModal, ShareUnlockPanel, Footer, ...
 ├─ services/                       # PaymentService (isTestMode, Toss hook), shareService, apiClient

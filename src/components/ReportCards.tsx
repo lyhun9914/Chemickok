@@ -1,3 +1,4 @@
+import { Say } from "./Nyang";
 import type {
   AxisResult,
   ElementKey,
@@ -6,6 +7,7 @@ import type {
   LuckSection,
   MatchTeaser,
   MbtiPair,
+  PersonalReading as PersonalReadingT,
   ReportSection,
   SajuSummary,
   TeaserReport,
@@ -128,62 +130,71 @@ export function SajuChart({ saju }: { saju: SajuSummary }) {
   );
 }
 
-export function PersonalReading({ teaser, myName }: { teaser: TeaserReport; myName: string }) {
+export function DayMasterCard({ personal }: { personal: PersonalReadingT }) {
+  if (!personal.dayMasterReading) return null;
+  return (
+    <Card>
+      <p className="text-xs font-semibold text-muted">🀄 일간(日干) 해석</p>
+      <p className="mt-2 text-[15px] leading-relaxed">{personal.dayMasterReading}</p>
+      {personal.elementReading && (
+        <>
+          <p className="mt-4 text-xs font-semibold text-muted">☯️ 오행으로 본 연애 기질</p>
+          <p className="mt-2 text-[15px] leading-relaxed">{personal.elementReading}</p>
+        </>
+      )}
+    </Card>
+  );
+}
+
+export function TwoFacesCard({ personal, myName }: { personal: PersonalReadingT; myName: string }) {
+  return (
+    <Card className="border-violet/30">
+      <p className="text-xs font-semibold text-violet">🌗 남들은 모르는 {myName}님의 두 얼굴</p>
+      <p className="mt-3 text-[16px] font-bold leading-relaxed">{personal.twoFaces.outer},</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-ink/90">{personal.twoFaces.inner}</p>
+    </Card>
+  );
+}
+
+export function TraitsCard({ teaser, myName }: { teaser: TeaserReport; myName: string }) {
   const { personal } = teaser;
   return (
-    <div className="space-y-4">
-      {personal.dayMasterReading && (
-        <Card>
-          <p className="text-xs font-semibold text-muted">🀄 일간(日干) 해석</p>
-          <p className="mt-2 text-[15px] leading-relaxed">{personal.dayMasterReading}</p>
-          {personal.elementReading && (
-            <>
-              <p className="mt-4 text-xs font-semibold text-muted">☯️ 오행으로 본 연애 기질</p>
-              <p className="mt-2 text-[15px] leading-relaxed">{personal.elementReading}</p>
-            </>
-          )}
-        </Card>
-      )}
+    <Card>
+      <p className="text-xs font-semibold text-muted">
+        {teaser.myType.emoji} {myName}님의 연애 성향 상세 분석
+      </p>
+      <p className="mt-2 text-[16px] font-bold leading-snug">{personal.signature}</p>
+      <div className="mt-4">
+        <AxisBars axes={teaser.axes} />
+      </div>
+      <div className="mt-6 space-y-5">
+        {personal.traits.map((t, i) => (
+          <div key={t.title}>
+            <p className="text-sm font-semibold">
+              <span className="text-pink">0{i + 1}</span> {t.title} · <span className="text-pink">{t.label} {t.pct}%</span>
+            </p>
+            <p className="mt-1.5 text-[15px] leading-relaxed text-ink/90">{t.text}</p>
+            {personal.scenes[i] && (
+              <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-sm leading-relaxed text-muted">😳 {personal.scenes[i]}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
 
-      <Card delay={0.05} className="border-violet/30">
-        <p className="text-xs font-semibold text-violet">🌗 남들은 모르는 {myName}님의 두 얼굴</p>
-        <p className="mt-3 text-[16px] font-bold leading-relaxed">{personal.twoFaces.outer},</p>
-        <p className="mt-2 text-[15px] leading-relaxed text-ink/90">{personal.twoFaces.inner}</p>
-      </Card>
-
-      <Card delay={0.1}>
-        <p className="text-xs font-semibold text-muted">
-          {teaser.myType.emoji} {myName}님의 연애 성향 상세 분석
-        </p>
-        <p className="mt-2 text-[16px] font-bold leading-snug">{personal.signature}</p>
-        <div className="mt-4 space-y-5">
-          {personal.traits.map((t, i) => (
-            <div key={t.title}>
-              <p className="text-sm font-semibold">
-                <span className="text-pink">0{i + 1}</span> {t.title} · <span className="text-pink">{t.label} {t.pct}%</span>
-              </p>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-ink/90">{t.text}</p>
-              {personal.scenes[i] && (
-                <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-sm leading-relaxed text-muted">
-                  😳 {personal.scenes[i]}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {personal.quote && (
-        <Card delay={0.15} className="border-pink/30">
-          <p className="text-xs font-semibold text-pink">📌 {myName}님의 답변에서 읽힌 것</p>
-          <p className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm leading-relaxed text-muted">
-            「{personal.quote.question}」
-            <br />→ <b className="text-ink">{personal.quote.answer}</b>
-          </p>
-          <p className="mt-3 text-[15px] leading-relaxed">{personal.quote.reading}</p>
-        </Card>
-      )}
-    </div>
+export function QuoteCard({ personal, myName }: { personal: PersonalReadingT; myName: string }) {
+  if (!personal.quote) return null;
+  return (
+    <Card className="border-pink/30">
+      <p className="text-xs font-semibold text-pink">📌 {myName}님의 답변에서 읽힌 것</p>
+      <p className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm leading-relaxed text-muted">
+        「{personal.quote.question}」
+        <br />→ <b className="text-ink">{personal.quote.answer}</b>
+      </p>
+      <p className="mt-3 text-[15px] leading-relaxed">{personal.quote.reading}</p>
+    </Card>
   );
 }
 
@@ -245,7 +256,8 @@ function LuckCard({ luck }: { luck: LuckSection }) {
   );
 }
 
-export function FullReportView({ report }: { report: FullReport }) {
+/** intros: 냥신's line shown before each section (keyed by section id, "luck" for the luck card). */
+export function FullReportView({ report, intros = {} }: { report: FullReport; intros?: Record<string, string> }) {
   return (
     <div className="space-y-4">
       {report.subScores.length > 0 && (
@@ -267,9 +279,17 @@ export function FullReportView({ report }: { report: FullReport }) {
         </Card>
       )}
       {report.sections.map((s, i) => (
-        <SectionCard key={s.id} icon={s.icon} section={s.section} delay={0.05 * (i + 1)} />
+        <div key={s.id} className="space-y-3">
+          {intros[s.id] && <Say mood={i % 2 ? "smug" : "talk"}>{intros[s.id]}</Say>}
+          <SectionCard icon={s.icon} section={s.section} delay={0.05 * (i + 1)} />
+        </div>
       ))}
-      {report.luck && <LuckCard luck={report.luck} />}
+      {report.luck && (
+        <div className="space-y-3">
+          {intros.luck && <Say mood="happy">{intros.luck}</Say>}
+          <LuckCard luck={report.luck} />
+        </div>
+      )}
     </div>
   );
 }

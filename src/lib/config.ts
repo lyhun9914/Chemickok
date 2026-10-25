@@ -1,6 +1,6 @@
 export const PRODUCT = {
   price: 990,
-  orderName: "연애 케미 & 속마음 리포트 (전체)",
+  orderName: "냥신 연애 점괘 (전체)",
 } as const;
 
 /** Client-side flag. When true, the payment modal bypasses the PG and unlocks instantly. */

@@ -41,11 +41,11 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
-        <h2 className="text-lg font-bold">전체 리포트 잠금 해제</h2>
+        <h2 className="text-lg font-bold">🐾 냥신에게 복채 내기</h2>
         <div className="mt-4 flex items-end justify-between rounded-2xl bg-white/[0.04] p-4">
           <div>
             <p className="text-sm text-muted">{PRODUCT.orderName}</p>
-            <p className="mt-1 text-xs text-peach">☕ 카페 아메리카노보다 싸다!</p>
+            <p className="mt-1 text-xs text-peach">☕ 아메리카노보다 싸다냥</p>
           </div>
           <p className="text-2xl font-extrabold">
             {PRODUCT.price.toLocaleString()}
@@ -84,7 +84,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
         {error && <p className="mt-3 text-sm text-pink">{error}</p>}
 
         <button onClick={pay} disabled={!agree || busy} className="btn-primary mt-5 w-full py-4 text-base">
-          {busy ? "결제 처리 중..." : `${PRODUCT.price.toLocaleString()}원 결제하고 전체 보기`}
+          {busy ? "냥신이 복채 세는 중..." : `복채 ${PRODUCT.price.toLocaleString()}원 내고 전부 듣기`}
         </button>
 
         {paymentService.isTestMode && (

@@ -3,11 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: "연애 케미 & 속마음 리포트 | 사주 × MBTI 연애 유형 테스트",
+  title: "냥신 연애 점집 | 고양이 도사가 봐주는 사주 × MBTI 연애 점괘",
   description: "나의 연애 폭탄 유형과 찰떡 궁합 진단. 솔로는 나와 맞는 사람을, 커플은 그 사람의 속마음까지. 사주 × MBTI × 연애 심리",
   openGraph: {
-    title: "연애 케미 & 속마음 리포트 💘",
-    description: "나의 연애 폭탄 유형과 찰떡 궁합 진단 · 사주 × MBTI × 연애 심리",
+    title: "냥신 연애 점집 🐾",
+    description: "흥, 또 연애 고민이냥? 고양이 도사 냥신이 봐주는 연애 유형 & 찰떡 궁합",
     images: ["/og.png"],
     locale: "ko_KR",
     type: "website",

@@ -14,6 +14,7 @@ import {
 } from "@/lib/questions";
 import type { Gender, Mode, PersonInput } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
+import { Say, type Mood } from "./Nyang";
 
 type Step =
   | { kind: "mode" | "me" | "partner" | "status" | "intro1" | "intro2" }
@@ -191,6 +192,46 @@ function PartIntro({ part, title, desc, tip }: { part: string; title: string; de
   );
 }
 
+const SELF_LINES: [string, Mood][] = [
+  ["솔직하게 답해라냥. 냥신은 거짓말 다 안다냥 😼", "smug"],
+  ["흠… 이건 중요하다냥.", "talk"],
+  ["오호, 벌써 좀 보인다냥.", "wow"],
+  ["이거 은근 뜨끔하지냥?", "smug"],
+  ["첫 느낌대로 고르라냥. 고민하면 거짓말이 섞인다냥.", "talk"],
+  ["반 넘게 왔다냥. 착하다냥.", "happy"],
+  ["…계속하라냥.", "smug"],
+  ["이 질문에서 많이들 멈칫한다냥.", "talk"],
+  ["거의 다 보인다냥. 조금만 더.", "wow"],
+  ["흐음… 그렇구냥.", "smug"],
+  ["두 개 남았다냥!", "happy"],
+  ["마지막이다냥. 신중하게.", "talk"],
+];
+
+function lineFor(cur: Step, pName: string, solo: boolean): [string, Mood] {
+  switch (cur.kind) {
+    case "mode":
+      return ["누구 연애가 궁금하냥? 골라라냥.", "smug"];
+    case "me":
+      return ["네 생년월일부터 내놔라냥. 태어난 시간까지 알면 더 잘 보인다냥.", "talk"];
+    case "partner":
+      return [`${pName === "그 사람" ? "그 사람" : pName} 정보도 내놔라냥. 생일 모르면… 뭐, 대충 보겠다냥.`, "smug"];
+    case "status":
+      return ["둘이 지금 무슨 사이냥? 솔직하게 말해라냥.", "talk"];
+    case "intro1":
+      return [solo ? "이제 너를 들여다보겠다냥. 지난 연애나 썸을 떠올리며 답해라냥." : "이제 너부터 들여다보겠다냥. 각오해라냥.", "smug"];
+    case "intro2":
+      return [`이제 ${pName} 얘기다냥. 네가 본 그대로 답해라냥.`, "talk"];
+    case "self":
+      return SELF_LINES[(cur.num - 1) % SELF_LINES.length];
+    case "obs":
+      return cur.num === 8
+        ? ["마지막이다냥! 점괘 볼 준비 됐냥?", "happy"]
+        : cur.num % 3 === 0
+          ? ["기억 안 나면 '보통'도 괜찮다냥.", "talk"]
+          : [`${pName}는 어떻냥?`, "smug"];
+  }
+}
+
 export function Questionnaire() {
   const s = useAppStore();
   const { step, setStep, setScreen, input } = s;
@@ -349,6 +390,9 @@ export function Questionnaire() {
         </button>
       </div>
       <div key={step} className="step-enter flex-1 px-5 pb-6 pt-2">
+        <div className="mb-5">
+          <Say mood={lineFor(cur, pName, solo)[1]}>{lineFor(cur, pName, solo)[0]}</Say>
+        </div>
         {body}
       </div>
       {showNext && (

@@ -16,8 +16,8 @@ interface Props {
 export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Props) {
   const share = async () => {
     const outcome = await shareService.shareLink({
-      title: "연애 케미 & 속마음 리포트 💘",
-      description: "사주 × MBTI × 연애 성향으로 보는 연애 유형 테스트, 소름 돋게 잘 맞아 😳 너도 해 봐!",
+      title: "냥신 연애 점집 🐾",
+      description: "고양이 도사 냥신이 사주로 연애 봐주는데 소름 돋게 잘 맞아 😳 너도 해 봐!",
       url: siteUrl(),
     });
     if (outcome === "cancelled") return;
@@ -31,7 +31,7 @@ export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Prop
 
   return (
     <div className="mt-4 rounded-2xl border border-dashed border-peach/40 bg-peach/5 p-4">
-      <p className="text-sm font-bold text-peach">🎁 친구에게 추천하면 1개 섹션 무료 공개</p>
+      <p className="text-sm font-bold text-peach">🎁 친구 데려오면 하나는 공짜로 알려주겠다냥</p>
       <p className="mt-1 text-xs leading-relaxed text-muted">
         테스트를 친구에게 공유하면 &lsquo;{unlockTitle}&rsquo;을 바로 열어 드려요.
       </p>
