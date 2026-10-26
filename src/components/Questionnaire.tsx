@@ -67,23 +67,33 @@ function PersonStep({
   title,
   person,
   optionalBirth,
+  realNameHint,
   onChange,
 }: {
   title: React.ReactNode;
   person: PersonInput;
   optionalBirth?: boolean;
+  /** show the "real name gives a deeper reading" hint (the name's strokes are analyzed) */
+  realNameHint?: boolean;
   onChange: (p: Partial<PersonInput>) => void;
 }) {
   return (
     <div className="space-y-5">
       <h2 className="text-2xl font-bold leading-snug">{title}</h2>
       <label className="block">
-        <span className="mb-2 block text-sm text-muted">이름 (닉네임 OK)</span>
+        <span className="mb-2 block text-sm text-muted">
+          이름{" "}
+          {realNameHint ? (
+            <span className="text-xs text-peach">· 실제 성함을 넣으면 이름 획수 기운까지 분석해서 더 디테일해져요</span>
+          ) : (
+            <span className="text-xs">(닉네임 OK)</span>
+          )}
+        </span>
         <input
           className={inputCls}
           value={person.name}
           maxLength={12}
-          placeholder="예: 지민"
+          placeholder={realNameHint ? "예: 김지민" : "예: 지민"}
           onChange={(e) => onChange({ name: e.target.value })}
         />
       </label>
@@ -212,7 +222,7 @@ function lineFor(cur: Step, pName: string, solo: boolean): [string, Mood] {
     case "mode":
       return ["누구 연애가 궁금하냥? 골라라냥.", "smug"];
     case "me":
-      return ["네 생년월일부터 내놔라냥. 태어난 시간까지 알면 더 잘 보인다냥.", "talk"];
+      return ["진짜 이름이랑 생년월일을 내놔라냥. 실명이면 이름 기운까지, 태어난 시간까지 알면 시주까지 봐 주겠다냥.", "talk"];
     case "partner":
       return [`${pName === "그 사람" ? "그 사람" : pName} 정보도 내놔라냥. 생일 모르면… 뭐, 대충 보겠다냥.`, "smug"];
     case "status":
@@ -301,6 +311,7 @@ export function Questionnaire() {
         <PersonStep
           title={<>먼저 <span className="text-gradient">나</span>에 대해 알려주세요</>}
           person={input.me}
+          realNameHint
           onChange={s.updateMe}
         />
       );

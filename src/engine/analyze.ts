@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { copula, josa } from "@/lib/josa";
+import { syllableStrokes } from "@/lib/nameCompat";
 import { COUPLE_CONCERNS, PARTNER_QUESTIONS, SELF_QUESTIONS, SOLO_CONCERNS } from "@/lib/questions";
 import type {
   AxisKey,
@@ -24,6 +25,7 @@ import {
   ELEMENT_STRONG,
   ELEMENT_WEAK,
   INNER,
+  NAME_RELATION,
   OUTER,
   QUOTE_READING,
   SCENES,
@@ -167,6 +169,7 @@ function personalReading(c: Core): TeaserReport["personal"] {
   }
 
   return {
+    nameReading: mySaju ? nameReading(input.me.name, mySaju.dm.element) : null,
     dayMasterReading: mySaju
       ? `${input.me.name}님의 일간은 ${dayMasterLabel(mySaju.dm)}, '${mySaju.summary.dayMaster.image}'의 기운이에요. ${DAY_MASTER_READING[mySaju.dm.stem]}`
       : null,
@@ -183,6 +186,27 @@ function personalReading(c: Core): TeaserReport["personal"] {
       : null,
     scenes,
   };
+}
+
+const ELEMENT_ORDER = ["wood", "fire", "earth", "metal", "water"] as const;
+
+/**
+ * 이름 기운 (한글 수리오행): total strokes of a real Hangul name (2–4 syllables) → element by last digit,
+ * then read against the day master. Nicknames and non-Hangul names return null.
+ */
+function nameReading(name: string, dm: (typeof ELEMENT_ORDER)[number]): string | null {
+  const chars = [...name];
+  if (chars.length < 2 || chars.length > 4) return null;
+  const strokes = chars.map(syllableStrokes);
+  if (strokes.some((n) => n === null)) return null;
+  const total = (strokes as number[]).reduce((a, b) => a + b, 0);
+  const el = ELEMENT_ORDER[Math.floor(((total % 10) + 9) % 10 / 2)];
+  const i = ELEMENT_ORDER.indexOf(el);
+  const d = ELEMENT_ORDER.indexOf(dm);
+  // 생: index+1 generates the next; 극: index+2 controls
+  const rel =
+    el === dm ? "same" : (i + 1) % 5 === d ? "nourish" : (d + 1) % 5 === i ? "express" : (d + 2) % 5 === i ? "wealth" : "pressure";
+  return `'${name}' 이름의 총 획수는 ${total}획, 수리오행으로 ${ELEMENT_LABEL[el]}의 기운이에요. ${NAME_RELATION[rel]}`;
 }
 
 function matchTeaser(c: Core): MatchTeaser {

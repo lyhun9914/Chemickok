@@ -76,6 +76,8 @@ export interface PersonalReading {
   dayMasterReading: string | null;
   /** 오행 기질: dominant / lacking element in love */
   elementReading: string | null;
+  /** 이름 기운 (한글 수리오행) — null for nicknames / non-Hangul names */
+  nameReading: string | null;
   /** 남들은 모르는 두 얼굴: outer vs inner */
   twoFaces: { outer: string; inner: string };
   signature: string;

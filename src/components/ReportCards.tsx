@@ -136,6 +136,12 @@ export function DayMasterCard({ personal }: { personal: PersonalReadingT }) {
     <Card>
       <p className="text-xs font-semibold text-muted">🀄 일간(日干) 해석</p>
       <p className="mt-2 text-[15px] leading-relaxed">{personal.dayMasterReading}</p>
+      {personal.nameReading && (
+        <>
+          <p className="mt-4 text-xs font-semibold text-muted">📛 이름에 담긴 기운</p>
+          <p className="mt-2 text-[15px] leading-relaxed">{personal.nameReading}</p>
+        </>
+      )}
       {personal.elementReading && (
         <>
           <p className="mt-4 text-xs font-semibold text-muted">☯️ 오행으로 본 연애 기질</p>
