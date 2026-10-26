@@ -226,12 +226,6 @@ function lackingLuck(c: Core) {
 
 // ───────────── Solo mode ─────────────
 
-const SOLO_LOCKED: LockedPreview[] = [
-  { id: "match", icon: "🎯", title: "나와 맞는 사람 vs 피해야 할 사람 (유형·MBTI·띠 상세)" },
-  { id: "pattern", icon: "💔", title: "내가 연애에서 반복하는 패턴 & 자주 하는 실수" },
-  { id: "prescriptions", icon: "🩺", title: "솔로 고민 6가지 맞춤 처방 (연애 시기 · 썸 · 지난 사랑 …)" },
-  { id: "luck", icon: "🔮", title: "이번 달 연애운 & 인연이 들어오는 날 (길일)" },
-];
 
 function soloMonthFlow(c: Core): "harmony" | "samhap" | "clash" | "none" {
   return (c.mySaju && monthRelation(c.mySaju.dm.branch, currentMonthBranch())) || "none";
@@ -363,13 +357,6 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
 
 // ───────────── Couple mode ─────────────
 
-const COUPLE_LOCKED: LockedPreview[] = [
-  { id: "hiddenMind", icon: "🔒", title: "상대방이 말하지 않는 진짜 속마음 & 섭섭한 점" },
-  { id: "chemistry", icon: "🔥", title: "두 사람의 스킨십 / 속궁합 & 멘탈 케미 폭발 지점" },
-  { id: "crisis", icon: "⚡", title: "위기 순간 & 결정적 이별 예방책" },
-  { id: "prescriptions", icon: "🩺", title: "커플 고민 6가지 맞춤 처방 (연락 · 속마음 · 권태기 · 미래 …)" },
-  { id: "luck", icon: "🔮", title: "이번 달 연애 개운(開運) 솔루션 & 길일" },
-];
 
 interface Couple extends Core {
   names: P.Names;
@@ -677,6 +664,45 @@ function concernAction(c: CoupleConcernId): string {
 
 // ───────────── Public API ─────────────
 
+/** Cut real text mid-sentence so the reader sees where it's going but not where it lands. */
+function cut(text: string, len = 34): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  return t.length <= len ? t : `${t.slice(0, len).trimEnd()}…`;
+}
+
+const sentenceCount = (s: ReportSection) => s.body.split(/(?<=[.?!요])\s+/).length + s.bullets.length;
+
+/**
+ * Paid-section previews for the paywall: personalised titles, the real first words of each
+ * section (truncated), and true line counts. The full text still only ships after unlock.
+ */
+function lockedPreviews(input: QuestionnaireInput, report: FullReport): LockedPreview[] {
+  const me = input.me.name;
+  const p = input.partner.name;
+  const sec = (id: string) => report.sections.find((x) => x.id === id)!.section;
+  const days = report.luck?.luckyDays ?? [];
+  const luckTease = days.length
+    ? `이번 달 길일 ${days.length}개 · 첫 번째는 ${days[0].split(" ")[0]} ??일, 이날 하면 좋은 건…`
+    : cut(report.luck?.body ?? "");
+  const luckCount = (report.luck?.actionItems.length ?? 0) + days.length + 3;
+
+  if (input.mode === "solo") {
+    return [
+      { id: "match", icon: "🎯", title: `${me}님이 절대 만나면 안 되는 유형 & 찰떡 상대 상세`, tease: cut(sec("match").bullets.find((b) => b.startsWith("🚫")) ?? sec("match").body, 15), count: sentenceCount(sec("match")) },
+      { id: "pattern", icon: "💔", title: `${me}님이 연애할 때마다 반복하는 치명적 실수`, tease: cut(sec("pattern").body), count: sentenceCount(sec("pattern")) },
+      { id: "prescriptions", icon: "🩺", title: "솔로 탈출 처방전 6장 (언제 · 누구랑 · 어떻게)", tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
+      { id: "luck", icon: "🔮", title: `이번 달 인연이 들어오는 날짜 ${days.length || ""}개 공개`.replace("  ", " "), tease: luckTease, count: luckCount },
+    ];
+  }
+  return [
+    { id: "hiddenMind", icon: "🔒", title: `${p}님이 ${me}님에게 끝내 말 못 한 속마음`, tease: cut(sec("hiddenMind").body.split(/(?<=요\.)\s+/).slice(-1)[0], 22), count: sentenceCount(sec("hiddenMind")) },
+    { id: "chemistry", icon: "🔥", title: "두 사람 스킨십 · 속궁합, 불붙는 순간", tease: cut(sec("chemistry").body), count: sentenceCount(sec("chemistry")) },
+    { id: "crisis", icon: "⚡", title: "이 커플이 헤어진다면, 바로 이 순간 (이별 예방책)", tease: cut(sec("crisis").body), count: sentenceCount(sec("crisis")) },
+    { id: "prescriptions", icon: "🩺", title: `${p}님 맞춤 연애 처방전 6장`, tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
+    { id: "luck", icon: "🔮", title: `이번 달 두 사람의 연애 길일 ${days.length || ""}개 공개`.replace("  ", " "), tease: luckTease, count: luckCount },
+  ];
+}
+
 export function buildTeaser(input: QuestionnaireInput): TeaserReport {
   const c = core(input);
   const base = {
@@ -689,9 +715,10 @@ export function buildTeaser(input: QuestionnaireInput): TeaserReport {
     match: matchTeaser(c),
   };
   if (input.mode === "solo") {
-    return { ...base, couple: null, solo: soloLoveLuck(c), locked: SOLO_LOCKED };
+    return { ...base, couple: null, solo: soloLoveLuck(c), locked: lockedPreviews(input, buildSoloReport(c, "full")) };
   }
-  return { ...base, couple: coupleTeaser(couple(c)), solo: null, locked: COUPLE_LOCKED };
+  const x = couple(c);
+  return { ...base, couple: coupleTeaser(x), solo: null, locked: lockedPreviews(input, buildCoupleReport(x, "full")) };
 }
 
 /** level "share" → only the first locked section; "full" → everything. */

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PRODUCT } from "@/lib/config";
 import type { PaymentMethod, QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
+import { useAppStore } from "@/store/useAppStore";
 
 interface Props {
   open: boolean;
@@ -18,6 +19,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const locked = useAppStore((s) => s.teaser?.locked ?? []);
 
   if (!open) return null;
 
@@ -52,6 +54,16 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
             <span className="text-base">원</span>
           </p>
         </div>
+        {locked.length > 0 && (
+          <ul className="mt-3 space-y-1.5 rounded-2xl border border-line p-4 text-sm">
+            {locked.map((l) => (
+              <li key={l.id} className="flex gap-2">
+                <span>{l.icon}</span>
+                <span className="leading-snug">{l.title}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <p className="mb-2 mt-5 text-sm text-muted">결제 수단</p>
         <div className="grid grid-cols-2 gap-3">

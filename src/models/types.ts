@@ -108,6 +108,10 @@ export interface LockedPreview {
   id: string;
   icon: string;
   title: string;
+  /** the real opening of the paid section, cut off mid-sentence (the curiosity hook) */
+  tease: string;
+  /** how many analysis lines the section holds (true count) */
+  count: number;
 }
 
 export interface CoupleTeaser {

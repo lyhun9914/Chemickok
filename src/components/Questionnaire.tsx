@@ -13,6 +13,7 @@ import {
   type LikertQuestion,
 } from "@/lib/questions";
 import type { Gender, Mode, PersonInput } from "@/models/types";
+import { josa } from "@/lib/josa";
 import { useAppStore } from "@/store/useAppStore";
 import { Say, type Mood } from "./Nyang";
 
@@ -238,7 +239,7 @@ function lineFor(cur: Step, pName: string, solo: boolean): [string, Mood] {
         ? ["마지막이다냥! 점괘 볼 준비 됐냥?", "happy"]
         : cur.num % 3 === 0
           ? ["기억 안 나면 '보통'도 괜찮다냥.", "talk"]
-          : [`${pName}는 어떻냥?`, "smug"];
+          : [`${josa(pName, "은/는")} 어떻냥?`, "smug"];
   }
 }
 

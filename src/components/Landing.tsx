@@ -34,16 +34,20 @@ export function Landing() {
         <div className="relative mx-auto mt-2 w-fit max-w-[300px] rounded-2xl bg-[#fff6ec] px-4 py-3 text-[15px] font-medium text-[#2b1d16]">
           흥, 또 연애 고민이냥? 됐고 생년월일이나 내놔라냥. …뭐, 들어는 줄게.
         </div>
-        <h1 className="mt-6 text-[28px] font-extrabold leading-tight tracking-tight">
-          <span className="text-gradient">냥신</span>이 봐주는
+        <h1 className="mt-6 text-[27px] font-extrabold leading-tight tracking-tight">
+          네 연애가 매번 꼬이는 이유,
           <br />
-          나의 연애 유형 & 찰떡 궁합
+          <span className="text-gradient">냥신은 3분이면 안다냥</span>
         </h1>
-        <p className="mt-3 text-[15px] text-muted">사주 × MBTI × 연애 성향 · 솔로도 커플도</p>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted">
+          그 사람 속마음부터 이번 달 인연 오는 날짜까지
+          <br />
+          사주 × MBTI × 연애 성향 · 솔로도 커플도
+        </p>
       </div>
 
       <button onClick={start} className="btn-primary glow shine mt-8 w-full py-4 text-[17px]">
-        냥신에게 연애 점 보러 가기 🐾
+        무료로 내 연애 팔자 보기 🐾
       </button>
       <p className="mt-3 text-center text-xs text-muted">⏱ 2~3분 · 회원가입 없음 · 기본 점괘 무료</p>
 
@@ -77,10 +81,10 @@ export function Landing() {
 
       <section className="fade-up mb-10 mt-8 space-y-3" style={{ animationDelay: "0.35s" }}>
         {[
-          ["🀄", "생년월일시로 세우는 사주 원국 & 일간 해석"],
+          ["😳", "\"이거 나 몰래 본 거 아니냥?\" 소름 돋는 일간 해석"],
           ["🃏", "카드를 뒤집으면 나오는 나의 연애 유형"],
-          ["💘", "나와 찰떡인 유형 · MBTI · 띠"],
-          ["🔒", "커플이라면 그 사람이 말 안 한 속마음까지"],
+          ["💘", "너랑 찰떡인 사람 vs 절대 만나면 안 되는 사람"],
+          ["🔒", "그 사람이 끝내 말 못 한 속마음까지"],
         ].map(([icon, text]) => (
           <div key={text} className="flex items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3 text-sm">
             <span className="text-xl">{icon}</span>

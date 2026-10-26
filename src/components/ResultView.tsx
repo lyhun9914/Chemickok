@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PRODUCT } from "@/lib/config";
+import { josa } from "@/lib/josa";
 import type { UnlockResponse } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { FlipCard, Nyang, Say, type Mood } from "./Nyang";
@@ -43,6 +44,7 @@ export function ResultView() {
   // Paid / returning users see everything at once.
   const [shown, setShown] = useState(() => (level !== "none" ? Number.MAX_SAFE_INTEGER : 1));
   const [typing, setTyping] = useState(level === "none");
+  const [leaveAsked, setLeaveAsked] = useState(false);
   const toast = useToast();
 
   const me = input.me.name;
@@ -100,6 +102,17 @@ export function ResultView() {
       node: <TwoFacesCard personal={personal} myName={me} />,
       next: "어떻게 알았지…",
     });
+    const hook = teaser.locked[solo ? 1 : 2];
+    if (hook) {
+      list.push({
+        say: solo
+          ? "…근데 너, 연애할 때마다 똑같은 실수 하나 하고 있다냥. 이건 좀 이따 말해 주겠다냥 🤐"
+          : `…근데 너희 둘, 이대로 가면 크게 터질 순간이 하나 보인다냥. 이건 좀 이따 말해 주겠다냥 🤐`,
+        mood: "wow",
+        node: <LockedCard preview={hook} compact onClick={() => setPayOpen(true)} />,
+        next: "뭔데 궁금하게… 계속",
+      });
+    }
     list.push({
       say: `응답 신뢰도 ${teaser.reliability}%. 솔직하게 답했구냥. 네 연애 성향, 하나씩 짚어 주겠다냥.`,
       mood: "talk",
@@ -137,7 +150,7 @@ export function ResultView() {
     }
     if (couple) {
       list.push({
-        say: `자, 이제 ${p}랑 궁합이다냥. 두근두근하냥?`,
+        say: `자, 이제 ${josa(p, "이랑/랑")} 궁합이다냥. 두근두근하냥?`,
         mood: "smug",
         node: (
           <div className="text-center">
@@ -209,12 +222,13 @@ export function ResultView() {
   };
 
   const shared = level === "share" ? report?.sections[0] : undefined;
+  const payLabel = teaser.solo ? "🔓 내 연애 팔자 전부 열기" : `🔓 ${p}의 속마음 지금 열기`;
   const lastBeat = beats[Math.min(shown, beats.length) - 1];
   const nextDisabled = typing || (lastBeat?.needsFlip && !flipped);
 
   const intros: Record<string, string> = {
     overall: "종합부터 말해 주겠다냥.",
-    hiddenMind: `${p}가 말 안 한 속마음이다냥… 들을 준비 됐냥?`,
+    hiddenMind: `${josa(p, "이/가")} 말 안 한 속마음이다냥… 들을 준비 됐냥?`,
     chemistry: "이건 둘만 봐라냥 🙈",
     crisis: "여기 조심해야 할 순간들이다냥. 진지하게 읽어라냥.",
     prescriptions: "고민별 처방전이다냥. 쓴 약일수록 잘 듣는다냥.",
@@ -254,8 +268,8 @@ export function ResultView() {
               <>
                 <Say mood="smug" typing={typing}>
                   {teaser.solo
-                    ? "…여기서부터는 복채가 필요하다냥. 990원이면 네 인연이 언제, 어떤 얼굴로 오는지까지 다 말해 주겠다냥 😼"
-                    : `…여기서부터는 복채가 필요하다냥. 990원이면 ${p}가 말 안 한 속마음까지 다 말해 주겠다냥 😼`}
+                    ? `…여기서부터가 진짜다냥. ${josa(me, "이/가")} 연애를 매번 망치는 이유랑, 이번 달 인연이 들어오는 날짜까지 냥신 눈엔 다 보인다냥. 듣고 갈래, 모르고 갈래? 😼`
+                    : `…여기서부터가 진짜다냥. ${josa(p, "이/가")} ${me}한테 끝내 말 못 한 한마디, 냥신은 이미 봤다냥. 듣고 갈래, 모르고 갈래? 😼`}
                 </Say>
                 {!typing && (
                   <div id="paid-report" className="fade-up scroll-mt-4">
@@ -274,10 +288,26 @@ export function ResultView() {
                         ),
                       )}
                     </div>
-                    <div className="sticky bottom-4 z-10 mt-6">
+                    <div className="mt-5 rounded-3xl border border-peach/30 bg-peach/5 p-5">
+                      <p className="text-sm font-bold text-peach">🐾 복채 {PRODUCT.price.toLocaleString()}원이면 지금 바로 열리는 것</p>
+                      <ul className="mt-3 space-y-2 text-sm">
+                        {teaser.locked.map((lp) => (
+                          <li key={lp.id} className="flex gap-2">
+                            <span className="text-pink">✓</span>
+                            <span>
+                              {lp.title} <span className="text-muted">· {lp.count}개</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 text-xs text-muted">
+                        총 {teaser.locked.reduce((n, l) => n + l.count, 0)}개의 분석 · 결제 즉시 이 화면에서 바로 열려요
+                      </p>
+                    </div>
+                    <div className="sticky bottom-4 z-10 mt-5">
                       <button onClick={() => setPayOpen(true)} className="btn-primary glow shine w-full py-4">
-                        <span className="block text-[17px]">🐾 복채 {PRODUCT.price.toLocaleString()}원 내고 전부 듣기</span>
-                        <span className="block text-xs font-medium opacity-90">☕ 아메리카노보다 싸다냥</span>
+                        <span className="block text-[17px]">{payLabel} · {PRODUCT.price.toLocaleString()}원</span>
+                        <span className="block text-xs font-medium opacity-90">☕ 커피 한 잔보다 싼 복채다냥</span>
                       </button>
                     </div>
                     {level === "none" && (
@@ -297,18 +327,51 @@ export function ResultView() {
           <button onClick={advance} disabled={nextDisabled} className="btn-primary w-full py-4 text-[16px]">
             {lastBeat?.needsFlip && !flipped ? "👆 먼저 카드를 뒤집어라냥" : `${lastBeat?.next ?? "그래서?"} 👉`}
           </button>
-          <button onClick={showAll} className="mt-2 w-full text-center text-xs text-muted underline-offset-2 hover:underline">
-            한 번에 다 보기
-          </button>
+          <div className="mt-2 flex items-center justify-between px-1">
+            <button onClick={showAll} className="text-xs text-muted underline-offset-2 hover:underline">
+              한 번에 다 보기
+            </button>
+            {level !== "full" && (
+              <button onClick={() => setPayOpen(true)} className="text-xs font-bold text-peach">
+                기다리기 싫다냥? 바로 전부 열기 990원 →
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {allShown && !typing && (
         <>
           <ShareButtons teaser={teaser} myName={me} partnerName={p} toast={toast.show} />
-          <button onClick={reset} className="mt-8 w-full rounded-2xl border border-line py-3.5 text-sm text-muted">
+          <button
+            onClick={() => (level === "full" || leaveAsked ? reset() : setLeaveAsked(true))}
+            className="mt-8 w-full rounded-2xl border border-line py-3.5 text-sm text-muted"
+          >
             🔄 다른 사람 점괘도 보기
           </button>
+          {leaveAsked && level !== "full" && (
+            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setLeaveAsked(false)}>
+              <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
+                <Say mood="wow">
+                  {teaser.solo
+                    ? "잠깐냥! 제일 중요한 얘기는 아직 안 했다냥. 이번 달 인연 오는 날짜, 그냥 두고 갈 거냥?"
+                    : `잠깐냥! ${josa(p, "이/가")} 끝내 말 못 한 속마음, 아직 안 봤다냥. 그래도 갈 거냥?`}
+                </Say>
+                <button
+                  onClick={() => {
+                    setLeaveAsked(false);
+                    setPayOpen(true);
+                  }}
+                  className="btn-primary mt-5 w-full py-4"
+                >
+                  {payLabel} · 990원
+                </button>
+                <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
+                  다음에 볼게요
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

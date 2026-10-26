@@ -344,22 +344,34 @@ export function MbtiPairLine({ pair }: { pair: MbtiPair }) {
   );
 }
 
-// Placeholder text only — the real paid content never reaches the browser before unlock.
-const DUMMY =
-  "이 사람은 겉으로는 무심해 보여도 속으로는 생각보다 훨씬 많이 신경 쓰고 있어요. 특히 최근에 섭섭했던 순간은 바로 그때인데요, 사실 진짜 이유는";
+// Blurred filler only — the real paid text never reaches the browser before unlock; the visible
+// tease is the real opening line, truncated on the server.
+const DUMMY = "그런데 진짜 이유는 따로 있어요. 이건 지금까지 아무도 말해 주지 않았던 부분인데, 사실은";
 
-export function LockedCard({ preview, onClick }: { preview: LockedPreview; onClick: () => void }) {
+export function LockedCard({ preview, onClick, compact = false }: { preview: LockedPreview; onClick: () => void; compact?: boolean }) {
   return (
-    <button onClick={onClick} className="relative block w-full overflow-hidden rounded-3xl border border-line bg-surface p-5 text-left">
-      <div className="flex items-center gap-2">
+    <button
+      onClick={onClick}
+      className="relative block w-full overflow-hidden rounded-3xl border border-pink/25 bg-surface p-5 text-left transition active:scale-[0.99]"
+    >
+      <div className="flex items-start gap-2">
         <span className="text-xl">{preview.icon}</span>
-        <h3 className="text-[15px] font-bold">{preview.title}</h3>
+        <h3 className="text-[15px] font-bold leading-snug">{preview.title}</h3>
       </div>
-      <p className="locked-text mt-3 text-sm leading-relaxed text-muted" aria-hidden>
-        {DUMMY}
+      <p className="mt-3 text-[15px] leading-relaxed">
+        <span className="text-ink/90">{preview.tease}</span>{" "}
+        <span className="locked-text text-muted" aria-hidden>
+          {DUMMY}
+        </span>
       </p>
-      <div className="absolute inset-x-0 bottom-0 flex h-16 items-end justify-center bg-gradient-to-t from-surface to-transparent pb-3">
-        <span className="rounded-full bg-black/40 px-3 py-1 text-xs font-semibold">🔐 잠금 해제하고 보기</span>
+      {!compact && (
+        <p className="locked-text mt-1 text-sm leading-relaxed text-muted" aria-hidden>
+          {DUMMY}
+        </p>
+      )}
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-xs text-muted">🔒 {preview.count}개의 분석이 가려져 있어요</span>
+        <span className="rounded-full bg-pink/20 px-3 py-1 text-xs font-bold text-pink">열어 보기 →</span>
       </div>
     </button>
   );
