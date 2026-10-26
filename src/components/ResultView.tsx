@@ -9,15 +9,17 @@ import { FlipCard, Nyang, Say, type Mood } from "./Nyang";
 import { PaymentModal } from "./PaymentModal";
 import {
   Card,
+  ColorCard,
   DayMasterCard,
   FullReportView,
   LockedCard,
   MatchCard,
   MbtiPairLine,
-  QuoteCard,
+  HiddenCard,
   SajuChart,
   ScoreRing,
   SectionCard,
+  TellCard,
   TraitsCard,
   TwoFacesCard,
 } from "./ReportCards";
@@ -73,6 +75,14 @@ export function ResultView() {
         next: "헐 맞아… 계속",
       });
     }
+    if (personal.colorReading) {
+      list.push({
+        say: "아까 면담 때 고른 색… 기억나냥? 그거 그냥 물어본 거 아니다냥.",
+        mood: "wow",
+        node: <ColorCard reading={personal.colorReading} />,
+        next: "소름…",
+      });
+    }
     list.push({
       say: "이제 진짜 너를 보겠다냥. 카드 한 장 뒤집어 봐라냥.",
       mood: "smug",
@@ -102,12 +112,23 @@ export function ResultView() {
       node: <TwoFacesCard personal={personal} myName={me} />,
       next: "어떻게 알았지…",
     });
-    const hook = teaser.locked[solo ? 1 : 2];
+    const [tell1, tell2] = personal.tells;
+    // "🔒 숨김 폴더에 넣어 뒀다" → "숨김 폴더에 넣어 뒀다" for quoting inside a sentence
+    const said = (a: string) => a.replace(/^\S+\s/, "").replaceAll('"', "");
+    if (tell1) {
+      list.push({
+        say: `면담 때 '${said(tell1.answer)}' 골랐지? 냥신이 왜 그걸 물었는지 알려주겠다냥.`,
+        mood: "smug",
+        node: <TellCard tell={tell1} />,
+        next: "어떻게 알았어…",
+      });
+    }
+    const hook = teaser.locked.find((l) => l.id === (solo ? "pattern" : "letter"));
     if (hook) {
       list.push({
         say: solo
           ? "…근데 너, 연애할 때마다 똑같은 실수 하나 하고 있다냥. 이건 좀 이따 말해 주겠다냥 🤐"
-          : `…근데 너희 둘, 이대로 가면 크게 터질 순간이 하나 보인다냥. 이건 좀 이따 말해 주겠다냥 🤐`,
+          : `…근데 ${josa(p, "이/가")} 너한테 하고 싶은데 못 한 말이 있다냥. 냥신이 편지로 받아 적어 뒀다냥 🤐`,
         mood: "wow",
         node: <LockedCard preview={hook} compact onClick={() => setPayOpen(true)} />,
         next: "뭔데 궁금하게… 계속",
@@ -119,14 +140,20 @@ export function ResultView() {
       node: <TraitsCard teaser={teaser} myName={me} />,
       next: "더 말해 줘",
     });
-    if (personal.quote) {
+    if (tell2) {
       list.push({
-        say: `그리고 너… 이 질문에 '${personal.quote.answer}' 했지? 냥신은 이게 제일 마음에 걸린다냥.`,
+        say: `그리고 너… '${said(tell2.answer)}'라고 했지? 냥신은 이게 제일 마음에 걸린다냥.`,
         mood: "wow",
-        node: <QuoteCard personal={personal} myName={me} />,
+        node: <TellCard tell={tell2} />,
         next: "뜨끔…",
       });
     }
+    list.push({
+      say: `네 답 ${teaser.locked.find((l) => l.id === "decode")?.count ?? ""}개 속에 숨어 있던 걸 수치로 뽑아 봤다냥. 본인은 모르는 거다냥.`.replace("  ", " "),
+      mood: "smug",
+      node: <HiddenCard personal={personal} onLocked={() => setPayOpen(true)} />,
+      next: "이게 무슨 뜻인데?",
+    });
     if (solo) {
       list.push({
         say: "너랑 찰떡인 놈도 알려주겠다냥. 이런 사람 나타나면 놓치지 마라냥.",
@@ -233,7 +260,11 @@ export function ResultView() {
     crisis: "여기 조심해야 할 순간들이다냥. 진지하게 읽어라냥.",
     prescriptions: "고민별 처방전이다냥. 쓴 약일수록 잘 듣는다냥.",
     match: "너랑 맞는 사람, 피해야 할 사람 자세히 알려주겠다냥.",
-    pattern: "네가 매번 하는 실수다냥. 뜨끔하지?",
+    decode: "면담 기록이다냥. '왜 이런 걸 묻지?' 했던 거, 하나씩 풀어 주겠다냥.",
+    pattern: "네가 매번 하는 실수랑, 숫자로만 보여 줬던 그것들의 뜻이다냥. 뜨끔하지?",
+    future: "네 다음 연애, 냥신이 미리 한번 돌려 봤다냥 🎬",
+    letter: `${josa(p, "이/가")} 끝내 못 보낸 편지다냥. 천천히 읽어라냥.`,
+    partnerDecode: `네가 말한 ${p}의 사소한 행동들, 사실 다 신호였다냥.`,
     luck: "마지막으로 이번 달 개운법이다냥. 날짜 꼭 기억해라냥 📅",
   };
 
@@ -269,7 +300,7 @@ export function ResultView() {
                 <Say mood="smug" typing={typing}>
                   {teaser.solo
                     ? `…여기서부터가 진짜다냥. ${josa(me, "이/가")} 연애를 매번 망치는 이유랑, 이번 달 인연이 들어오는 날짜까지 냥신 눈엔 다 보인다냥. 듣고 갈래, 모르고 갈래? 😼`
-                    : `…여기서부터가 진짜다냥. ${josa(p, "이/가")} ${me}한테 끝내 말 못 한 한마디, 냥신은 이미 봤다냥. 듣고 갈래, 모르고 갈래? 😼`}
+                    : `…여기서부터가 진짜다냥. ${josa(p, "이/가")} ${me}한테 끝내 못 보낸 편지, 냥신이 이미 받아 적었다냥. 읽고 갈래, 모르고 갈래? 😼`}
                 </Say>
                 {!typing && (
                   <div id="paid-report" className="fade-up scroll-mt-4">

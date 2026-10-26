@@ -191,3 +191,73 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .bg-card-front {
   background: radial-gradient(circle at 50% 30%, #3b2466, #1b1234);
 }
+
+/* ── 1:1 면담 (chat) ── */
+.bubble-in { animation: bubbleIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: 0 100%; }
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.bubble-me { animation: bubbleMe 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes bubbleMe {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+.chip-pop { animation: chipPop 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes chipPop {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.flicker { display: inline-block; animation: flicker 2.6s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(255, 179, 138, 0.7)); }
+@keyframes flicker {
+  0%, 100% { opacity: 1; transform: scale(1) rotate(0); }
+  20% { opacity: 0.85; transform: scale(0.98) rotate(-1.5deg); }
+  40% { opacity: 1; transform: scale(1.03) rotate(1deg); }
+  60% { opacity: 0.9; transform: scale(0.99); }
+}
+
+.smoke {
+  position: absolute;
+  bottom: 52px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border-radius: 9999px;
+  background: rgba(230, 220, 255, 0.35);
+  filter: blur(6px);
+  animation: smoke 3.2s ease-out infinite;
+}
+.smoke-2 { animation-delay: 1.05s; }
+.smoke-3 { animation-delay: 2.1s; }
+@keyframes smoke {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  20% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(14px, -70px) scale(2.4); }
+}
+
+.orb {
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), transparent 30%),
+    radial-gradient(circle at 50% 55%, #b48bff, #5a2dbf 60%, #2a1060);
+  box-shadow: 0 0 30px 6px rgba(155, 107, 255, 0.55), inset 0 -10px 20px rgba(0, 0, 0, 0.35);
+  animation: orb 2.8s ease-in-out infinite;
+}
+.orb::after {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent, rgba(255, 95, 162, 0.45), transparent 40%);
+  animation: spin 4s linear infinite;
+  mix-blend-mode: screen;
+}
+@keyframes orb {
+  0%, 100% { box-shadow: 0 0 26px 4px rgba(155, 107, 255, 0.5), inset 0 -10px 20px rgba(0, 0, 0, 0.35); }
+  50% { box-shadow: 0 0 44px 12px rgba(255, 95, 162, 0.55), inset 0 -10px 20px rgba(0, 0, 0, 0.35); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.gauge-fill { animation: gaugeFill 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: 0 50%; }
+@keyframes gaugeFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }

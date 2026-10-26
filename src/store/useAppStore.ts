@@ -32,8 +32,8 @@ interface AppState {
   updateMe: (p: Partial<PersonInput>) => void;
   updatePartner: (p: Partial<PersonInput>) => void;
   setStatus: (s: RelationshipStatus) => void;
-  setSelf: (id: string, v: number) => void;
-  setPartnerObs: (id: string, v: number) => void;
+  setSelf: (id: string, v: string) => void;
+  setPartnerObs: (id: string, v: string) => void;
   setTeaser: (teaser: TeaserReport, inputHash: string) => void;
   applyUnlock: (u: UnlockResponse) => void;
   setError: (e: string | null) => void;
@@ -81,7 +81,7 @@ export const useAppStore = create<AppState>()(
       reset: () => set({ ...initial, input: initialInput() }),
     }),
     {
-      name: "love-chemistry-v4",
+      name: "love-chemistry-v5",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
       partialize: ({ screen, step, input, inputHash, teaser, report, level }) => ({

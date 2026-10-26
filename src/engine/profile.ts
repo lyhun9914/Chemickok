@@ -1,5 +1,5 @@
 import "server-only";
-import { LIKERT_LABELS, type LikertQuestion } from "@/lib/questions";
+import type { Decoded, HiddenKey, Weights } from "./content/decode";
 import type { AxisKey, AxisResult, Intensity, Pole } from "@/models/types";
 
 export const AXES: { key: AxisKey; title: string; poles: [Pole, Pole]; labels: [string, string] }[] = [
@@ -15,34 +15,35 @@ export interface Profile {
   raw: Record<AxisKey, number>;
   poles: Record<AxisKey, Pole>;
   code: string;
+  /** hidden trait → raw sum of weights */
+  hidden: Record<HiddenKey, number>;
 }
 
-/** Likert 1..5 → -2..+2 toward the axis's first pole. */
-function keyed(q: LikertQuestion, v: number): number {
-  const c = v - 3;
-  return q.reverse ? -c : c;
-}
+const HIDDEN_KEYS: HiddenKey[] = ["linger", "jealous", "doubt"];
 
 function intensityOf(score: number): Intensity {
   const a = Math.abs(score);
   return a >= 1.2 ? "strong" : a >= 0.5 ? "clear" : "mild";
 }
 
+function chosen(decode: Record<string, Decoded>, answers: Record<string, string>): Weights[] {
+  return Object.entries(decode).map(([qid, d]) => d.options[answers[qid]]?.w ?? {});
+}
+
 /**
- * Scores the 4 axes. Ties (exact 0) are broken toward the pole of the item answered most
- * decisively, then toward the second pole — so every respondent lands on a definite type.
+ * Scores the 4 axes from interview answers. Each axis is normalised by how many questions can touch it,
+ * so a consistent respondent reaches ±2. Exact ties lean on a hash of the answers so everyone gets a type.
  */
-export function scoreProfile(questions: LikertQuestion[], answers: Record<string, number>): Profile {
+export function scoreProfile(decode: Record<string, Decoded>, answers: Record<string, string>): Profile {
+  const picks = chosen(decode, answers);
+  const tie = seedOf(JSON.stringify(answers));
   const raw = {} as Record<AxisKey, number>;
   const poles = {} as Record<AxisKey, Pole>;
-  const axes: AxisResult[] = AXES.map((ax) => {
-    const items = questions.filter((q) => q.axis === ax.key);
-    const vals = items.map((q) => keyed(q, answers[q.id] ?? 3));
-    let score = vals.reduce((s, v) => s + v, 0) / vals.length;
-    if (score === 0) {
-      const decisive = vals.reduce((b, v) => (Math.abs(v) > Math.abs(b) ? v : b), 0);
-      score = decisive > 0 ? 0.01 : -0.01;
-    }
+  const axes: AxisResult[] = AXES.map((ax, i) => {
+    const reach = Object.values(decode).filter((d) => Object.values(d.options).some((o) => o.w[ax.key])).length;
+    const sum = picks.reduce((s, w) => s + (w[ax.key] ?? 0), 0);
+    let score = Math.max(-2, Math.min(2, sum / Math.max(1, reach * 0.55)));
+    if (score === 0) score = (tie >> i) & 1 ? 0.01 : -0.01;
     raw[ax.key] = score;
     const pole = score > 0 ? ax.poles[0] : ax.poles[1];
     poles[ax.key] = pole;
@@ -58,37 +59,41 @@ export function scoreProfile(questions: LikertQuestion[], answers: Record<string
       intensity: intensityOf(score),
     };
   });
-  return { axes, raw, poles, code: AXES.map((a) => poles[a.key]).join("") };
+  const hidden = Object.fromEntries(
+    HIDDEN_KEYS.map((k) => [k, picks.reduce((s, w) => s + (w[k] ?? 0), 0)]),
+  ) as Record<HiddenKey, number>;
+  return { axes, raw, poles, code: AXES.map((a) => poles[a.key]).join(""), hidden };
+}
+
+/** Hidden trait sum → 0..100 gauge. */
+export function hiddenPct(sum: number): number {
+  return Math.round(Math.max(8, Math.min(96, 30 + sum * 11)));
 }
 
 /**
- * 응답 일관성: how much the keyed items within each axis agree with each other
- * (reverse-keyed items included). Straight-lining the midpoint lowers it.
+ * 응답 일관성: per axis, how much the chosen answers point the same way (|Σw| / Σ|w|).
  */
-export function reliability(questions: LikertQuestion[], answers: Record<string, number>): number {
-  let spread = 0;
+export function reliability(decode: Record<string, Decoded>, answers: Record<string, string>): number {
+  const picks = chosen(decode, answers);
+  let agree = 0;
   for (const ax of AXES) {
-    const vals = questions.filter((q) => q.axis === ax.key).map((q) => keyed(q, answers[q.id] ?? 3));
-    const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
-    spread += Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
+    const ws = picks.map((w) => w[ax.key] ?? 0).filter((v) => v !== 0);
+    const abs = ws.reduce((s, v) => s + Math.abs(v), 0);
+    agree += abs ? Math.abs(ws.reduce((s, v) => s + v, 0)) / abs : 0.5;
   }
-  const neutral = questions.filter((q) => answers[q.id] === 3).length / questions.length;
-  const score = 97 - (spread / AXES.length) * 14 - neutral * 18;
-  return Math.round(Math.max(71, Math.min(98, score)));
+  return Math.round(Math.max(76, Math.min(98, 79 + (agree / AXES.length) * 19)));
 }
 
-/** The most decisive self answer (5 or 1 preferred), for quoting back to the user. */
-export function mostDecisive(
-  questions: LikertQuestion[],
-  answers: Record<string, number>,
-): { q: LikertQuestion; value: number; answer: string } | null {
-  let best: { q: LikertQuestion; value: number } | null = null;
-  for (const q of questions) {
-    const v = answers[q.id] ?? 3;
-    if (v === 3) continue;
-    if (!best || Math.abs(v - 3) > Math.abs(best.value - 3)) best = { q, value: v };
-  }
-  return best ? { ...best, answer: LIKERT_LABELS[best.value - 1] } : null;
+/**
+ * The answers that say the most about a person: total weight, with hidden traits counted double
+ * (they're the "how did it know that" ones). Most telling first.
+ */
+export function tellingOrder(decode: Record<string, Decoded>, answers: Record<string, string>): string[] {
+  const weight = (w: Weights) =>
+    Object.entries(w).reduce((s, [k, v]) => s + Math.abs(v ?? 0) * ((HIDDEN_KEYS as string[]).includes(k) ? 2 : 1), 0);
+  return Object.keys(decode)
+    .filter((qid) => decode[qid].options[answers[qid]])
+    .sort((a, b) => weight(decode[b].options[answers[b]].w) - weight(decode[a].options[answers[a]].w));
 }
 
 /** Small deterministic hash for stable "random" picks per input. */

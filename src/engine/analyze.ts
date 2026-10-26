@@ -2,7 +2,8 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { copula, daNyang, josa } from "@/lib/josa";
 import { syllableStrokes } from "@/lib/nameCompat";
-import { COUPLE_CONCERNS, PARTNER_QUESTIONS, SELF_QUESTIONS, SOLO_CONCERNS } from "@/lib/questions";
+import { PARTNER_INTERVIEW, SELF_INTERVIEW, fill, optionOf, type InterviewQuestion } from "@/lib/interview";
+import { COUPLE_CONCERNS, SOLO_CONCERNS } from "@/lib/questions";
 import type {
   AxisKey,
   CoupleConcernId,
@@ -16,6 +17,7 @@ import type {
   QuestionnaireInput,
   ReportSection,
   SoloConcernId,
+  Tell,
   SoloTeaser,
   TeaserReport,
   TypeInfo,
@@ -27,15 +29,15 @@ import {
   INNER,
   NAME_RELATION,
   OUTER,
-  QUOTE_READING,
   SCENES,
   TYPES,
   traitText,
 } from "./content/free";
+import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, PARTNER_DECODE, SELF_DECODE, type Decoded, type HiddenKey } from "./content/decode";
 import * as P from "./content/paid";
 import * as SOLO from "./content/solo";
 import { MBTI_LOVE, bestMbti, hardMbti, mbtiPair, mbtiShort, normalizeMbti } from "./mbti";
-import { AXES, mostDecisive, reliability, scoreProfile, seedOf, type Profile } from "./profile";
+import { AXES, hiddenPct, reliability, scoreProfile, seedOf, tellingOrder, type Profile } from "./profile";
 import {
   ELEMENT_LABEL,
   branchRelation,
@@ -54,17 +56,18 @@ import {
 
 // ───────────── Input hygiene ─────────────
 
-const likert = (v: unknown) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 5;
+const answered = (decode: Record<string, Decoded>, a: unknown) =>
+  Object.entries(decode).every(([qid, d]) => typeof (a as Record<string, unknown>)?.[qid] === "string" && Boolean(d.options[(a as Record<string, string>)[qid]]));
 
 export function validateInput(raw: unknown): QuestionnaireInput | null {
   const i = raw as QuestionnaireInput;
   if (i?.mode !== "solo" && i?.mode !== "couple") return null;
   if (!i.me?.name?.trim() || !i.me.birthdate) return null;
-  if (!SELF_QUESTIONS.every((q) => likert(i.self?.[q.id]))) return null;
+  if (!answered(SELF_DECODE, i.self)) return null;
   if (i.mode === "couple") {
     if (!i.partner?.name?.trim()) return null;
     if (!["crush", "dating", "slump", "breakup"].includes(i.status)) return null;
-    if (!PARTNER_QUESTIONS.every((q) => likert(i.partnerObs?.[q.id]))) return null;
+    if (!answered(PARTNER_DECODE, i.partnerObs)) return null;
   }
   return normalize(i);
 }
@@ -83,8 +86,8 @@ function normalize(i: QuestionnaireInput): QuestionnaireInput {
     me: person(i.me),
     partner: couple ? person(i.partner) : person(),
     status: couple ? i.status : "dating",
-    self: Object.fromEntries(SELF_QUESTIONS.map((q) => [q.id, i.self[q.id]])),
-    partnerObs: couple ? Object.fromEntries(PARTNER_QUESTIONS.map((q) => [q.id, i.partnerObs[q.id]])) : {},
+    self: Object.fromEntries(Object.keys(SELF_DECODE).map((id) => [id, i.self[id]])),
+    partnerObs: couple ? Object.fromEntries(Object.keys(PARTNER_DECODE).map((id) => [id, i.partnerObs[id]])) : {},
   };
 }
 
@@ -108,7 +111,7 @@ interface Core {
 }
 
 function core(input: QuestionnaireInput): Core {
-  const me = scoreProfile(SELF_QUESTIONS, input.self);
+  const me = scoreProfile(SELF_DECODE, input.self);
   return {
     input,
     me,
@@ -152,7 +155,6 @@ function personalReading(c: Core): TeaserReport["personal"] {
     const list = SCENES[me.poles[key]];
     return list[(c.seed >> (i * 2)) % list.length];
   });
-  const decisive = mostDecisive(SELF_QUESTIONS, input.self);
 
   // Two faces: outer = expression (drive when expression is mild), inner = attachment (conflict when mild).
   const ax = (k: AxisKey) => me.axes.find((a) => a.key === k)!;
@@ -177,18 +179,80 @@ function personalReading(c: Core): TeaserReport["personal"] {
     twoFaces: { outer: OUTER[me.poles[outerKey]], inner: INNER[me.poles[innerKey]] },
     signature: TYPES[me.code].signature,
     traits,
-    quote: decisive
-      ? {
-          question: decisive.q.text,
-          answer: decisive.answer,
-          reading: QUOTE_READING[decisive.q.id][decisive.value > 3 ? "agree" : "disagree"],
-        }
-      : null,
+    tells: tellingOrder(SELF_DECODE, input.self)
+      .filter((id) => id !== COLOR_Q)
+      .slice(0, FREE_TELLS)
+      .map((id) => tell(SELF_INTERVIEW, SELF_DECODE, id, input.self[id], "")),
+    colorReading: colorReading(c),
+    hidden: hiddenGauges(me),
     scenes,
   };
 }
 
 const ELEMENT_ORDER = ["wood", "fire", "earth", "metal", "water"] as const;
+
+const COLOR_Q = "s6";
+const FREE_TELLS = 2;
+const HIDDEN_KEYS = Object.keys(HIDDEN_META) as HiddenKey[];
+
+const questionText = (q: InterviewQuestion, p: string) => fill(q.short, p);
+
+function tell(qs: InterviewQuestion[], decode: Record<string, Decoded>, qid: string, oid: string, p: string): Tell {
+  const q = qs.find((x) => x.id === qid)!;
+  return {
+    question: questionText(q, p),
+    answer: optionOf(qs, qid, oid)?.label ?? "",
+    why: fill(decode[qid].why, p),
+    read: fill(decode[qid].options[oid].read, p),
+  };
+}
+
+function decodeBullets(qs: InterviewQuestion[], decode: Record<string, Decoded>, answers: Record<string, string>, p: string): string[] {
+  return qs.map((q, i) => {
+    const t = tell(qs, decode, q.id, answers[q.id], p);
+    return `Q${i + 1}. ${t.question}\n→ ${t.answer}\n💭 왜 물었냐면: ${t.why}\n🔮 ${t.read}`;
+  });
+}
+
+function colorReading(c: Core): string | null {
+  const pick = c.input.self[COLOR_Q] as (typeof ELEMENT_ORDER)[number];
+  const base = SELF_DECODE[COLOR_Q].options[pick]?.read;
+  if (!base) return null;
+  if (!c.mySaju) return base;
+  const els = c.mySaju.summary.elements;
+  const max = Math.max(...Object.values(els));
+  const vs =
+    pick === c.mySaju.summary.lacking
+      ? COLOR_VS_SAJU.lacking
+      : pick === c.mySaju.dm.element
+        ? COLOR_VS_SAJU.dayMaster
+        : els[pick] === max
+          ? COLOR_VS_SAJU.strongest
+          : COLOR_VS_SAJU.other;
+  return `${base} ${vs}`;
+}
+
+const hiddenLevel = (pct: number) => (pct >= 66 ? "high" : pct >= 42 ? "mid" : "low");
+
+function hiddenGauges(me: Profile): TeaserReport["personal"]["hidden"] {
+  return HIDDEN_KEYS.map((k) => ({ key: k, ...HIDDEN_META[k], pct: hiddenPct(me.hidden[k]) }));
+}
+
+/** Paid: what each hidden gauge means for this person, strongest first. */
+function hiddenReadings(me: Profile): string[] {
+  return hiddenGauges(me)
+    .sort((a, b) => b.pct - a.pct)
+    .map((g) => `${g.icon} ${g.label} ${g.pct}% · ${HIDDEN_READING[g.key as HiddenKey][hiddenLevel(g.pct)]}`);
+}
+
+function decodeSection(c: Core, intro: string): ReportSection {
+  return {
+    title: "면담 기록 전체 해석 · 냥신이 그 질문을 한 이유",
+    headline: `'왜 이런 걸 묻지?' 싶었던 ${SELF_INTERVIEW.length}개, 전부 이유가 있었다냥 🔍`,
+    body: intro,
+    bullets: decodeBullets(SELF_INTERVIEW, SELF_DECODE, c.input.self, c.input.partner.name),
+  };
+}
 
 /**
  * 이름 기운 (한글 수리오행): total strokes of a real Hangul name (2–4 syllables) → element by last digit,
@@ -301,9 +365,32 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
       .filter(Boolean)
       .join(" "),
     bullets: [
+      ...hiddenReadings(me),
       `⚠️ 자주 하는 실수: ${SOLO.MISTAKE[me.poles[top1]]}`,
       `⚠️ 이것도 조심: ${SOLO.MISTAKE[me.poles[top2]]}`,
       `💡 바꾸면 달라지는 한 가지: ${P.SELF_ACTION[me.poles[top1]].replace(/^📝 /, "")}`,
+    ],
+  };
+
+  const decode = decodeSection(
+    c,
+    `${name}, 면담 중에 '이걸 왜 묻지?' 싶었지? 냥신은 처음부터 네 답 하나하나에서 연애 습관을 읽고 있었다냥. 전부 풀어 주겠다냥.`,
+  );
+
+  const topHidden = [...HIDDEN_KEYS].sort((a, b) => me.hidden[b] - me.hidden[a])[0];
+  const crisisKey = hiddenPct(me.hidden[topHidden]) >= 66 ? topHidden : me.poles.attach;
+  const days = mySaju ? luckyDays(mySaju.dm) : [];
+  const future: ReportSection = {
+    title: "다음 연애 시나리오 · 첫 만남부터 6주 차 고비까지",
+    headline: "냥신이 미리 본 네 다음 연애 🎬",
+    body: `네 성향이랑 사주 흐름으로 다음 연애가 어떻게 흘러갈지 미리 돌려 봤다냥. ${
+      days.length ? `인연이 들어올 확률이 제일 높은 날은 ${days[0]}이다냥.` : ""
+    } 장면마다 네가 할 일까지 적어 뒀다냥.`,
+    bullets: [
+      `📍 첫 만남 · ${lackingLuck(c).place}\n${SOLO.SCENARIO.meet[me.poles.drive as "G" | "W"]}`,
+      `💬 첫 한 달\n${SOLO.SCENARIO.month1[me.poles.express as "E" | "H"]}`,
+      `⚠️ 6주 차 고비\n${SOLO.SCENARIO.crisis[crisisKey as keyof typeof SOLO.SCENARIO.crisis]}`,
+      `🔑 ${SOLO.SCENARIO.key[me.poles.conflict as "F" | "R"]}`,
     ],
   };
 
@@ -348,7 +435,9 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
     subScores,
     sections: [
       { id: "match", icon: "🎯", section: match },
+      { id: "decode", icon: "🔍", section: decode },
       { id: "pattern", icon: "💔", section: pattern },
+      { id: "future", icon: "🎬", section: future },
       { id: "prescriptions", icon: "🩺", section: prescriptions },
     ],
     luck,
@@ -373,7 +462,7 @@ const pair = (a: Profile, b: Profile, axis: AxisKey) => a.poles[axis] + b.poles[
 function couple(c: Core): Couple {
   const { input, me, mySaju, seed } = c;
   const names = { me: input.me.name, p: input.partner.name };
-  const partner = scoreProfile(PARTNER_QUESTIONS, input.partnerObs);
+  const partner = scoreProfile(PARTNER_DECODE, input.partnerObs);
   const partnerSaju = computeSaju(input.partner.birthdate, input.partner.birthtime);
   const stemRel = mySaju && partnerSaju ? stemRelation(mySaju.dm, partnerSaju.dm) : null;
   const branchRel = mySaju && partnerSaju ? branchRelation(mySaju.dm.branch, partnerSaju.dm.branch) : null;
@@ -553,6 +642,35 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     ],
   };
 
+  const letterBody = [
+    `${vocative(givenName(n.me))},`,
+    P.LETTER.attach[partner.poles.attach as "A" | "S"],
+    P.LETTER.express[partner.poles.express as "E" | "H"],
+    P.LETTER.conflict[partner.poles.conflict as "F" | "R"],
+    P.LETTER.drive[partner.poles.drive as "G" | "W"],
+    P.LETTER.closing[input.status],
+    `― ${n.p}`,
+  ].join("\n\n");
+  const letter: ReportSection = {
+    title: `${josa(n.p, "이/가")} 보내지 못한 편지`,
+    headline: `💌 냥신이 ${n.p}의 기운을 받아 적었다냥`,
+    body: letterBody,
+    bullets: [
+      `✉️ 답장 대신 이 말을 해 줘라냥: ${P.WANT_TO_HEAR[partner.poles.express]}`,
+      `🙊 ${josa(n.p, "이/가")} 편지에도 못 쓴 말: ${P.WANT_TO_SAY[partner.poles.attach]}`,
+    ],
+  };
+
+  const partnerDecode: ReportSection = {
+    title: `네가 말한 ${n.p}의 행동 ${PARTNER_INTERVIEW.length}가지, 진짜 의미`,
+    headline: `사소해 보여도 ${n.p}의 마음은 습관에 새어 나온다냥 🕵️`,
+    body: `${n.p} 얘기할 때 냥신이 이상한 것만 물어봤지? 사람 속마음은 말보다 습관에 먼저 나온다냥. 네가 본 ${n.p}의 모습 ${PARTNER_INTERVIEW.length}개를 하나씩 번역해 주겠다냥.`,
+    bullets: decodeBullets(PARTNER_INTERVIEW, PARTNER_DECODE, input.partnerObs, n.p),
+  };
+
+  const decode = decodeSection(x, `이번엔 너다냥, ${n.me}. 면담 때 '이걸 왜 묻지?' 싶었던 것들, 네 답에 숨은 것까지 다 읽었다냥.`);
+  decode.bullets.unshift(...hiddenReadings(me));
+
   const expressKey = mixKey(e, "EE", "HH", "MIX");
   const attachKey = mixKey(a, "AA", "SS", "MIX");
   const conflictKey = mixKey(f, "FF", "RR", "MIX");
@@ -611,12 +729,25 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     sections: [
       { id: "overall", icon: "💖", section: overall },
       { id: "hiddenMind", icon: "🔒", section: hiddenMind },
+      { id: "letter", icon: "💌", section: letter },
+      { id: "partnerDecode", icon: "🕵️", section: partnerDecode },
       { id: "chemistry", icon: "🔥", section: chemistry },
       { id: "crisis", icon: "⚡", section: crisis },
+      { id: "decode", icon: "🔍", section: decode },
       { id: "prescriptions", icon: "🩺", section: prescriptions },
     ],
     luck,
   };
+}
+
+/** "김지민" → "지민": a 3-syllable Hangul name is read as surname + given name. */
+function givenName(name: string): string {
+  return /^[가-힣]{3}$/.test(name) ? name.slice(1) : name;
+}
+
+/** "지민" → "지민아", "태현" → "태현아", "수지" → "수지야" */
+function vocative(name: string): string {
+  return josa(name, "이/가").endsWith("이") ? `${name}아` : `${name}야`;
 }
 
 function shortHurt(axis?: AxisKey): string {
@@ -686,18 +817,30 @@ function lockedPreviews(input: QuestionnaireInput, report: FullReport): LockedPr
     : cut(report.luck?.body ?? "");
   const luckCount = (report.luck?.actionItems.length ?? 0) + days.length + 3;
 
+  // Tease the decode with an answer that wasn't decoded for free.
+  const order = tellingOrder(SELF_DECODE, input.self).filter((id) => id !== COLOR_Q);
+  const hiddenTell = order[FREE_TELLS] ?? order[0];
+  const ht = tell(SELF_INTERVIEW, SELF_DECODE, hiddenTell, input.self[hiddenTell], p);
+  const decodeTease = `"${ht.question}" → ${ht.answer}. ${cut(ht.read, 26)}`;
+  const decodeTitle = `냥신이 그 질문을 한 진짜 이유 (네 답 ${SELF_INTERVIEW.length}개 전부 해석)`;
+
   if (input.mode === "solo") {
     return [
       { id: "match", icon: "🎯", title: "네가 절대 만나면 안 되는 유형 & 찰떡 상대 상세", tease: cut(sec("match").bullets.find((b) => b.startsWith("🚫")) ?? sec("match").body, 15), count: sentenceCount(sec("match")) },
-      { id: "pattern", icon: "💔", title: "네가 연애할 때마다 반복하는 치명적 실수", tease: cut(sec("pattern").body), count: sentenceCount(sec("pattern")) },
+      { id: "decode", icon: "🔍", title: decodeTitle, tease: decodeTease, count: SELF_INTERVIEW.length },
+      { id: "pattern", icon: "💔", title: "네가 연애할 때마다 반복하는 치명적 실수 + 숨은 미련·질투 해석", tease: cut(sec("pattern").body), count: sentenceCount(sec("pattern")) },
+      { id: "future", icon: "🎬", title: "다음 연애 시나리오: 첫 만남 장소부터 6주 차 고비까지", tease: cut(sec("future").bullets[0].replace("\n", " "), 30), count: sec("future").bullets.length },
       { id: "prescriptions", icon: "🩺", title: "솔로 탈출 처방전 6장 (언제 · 누구랑 · 어떻게)", tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
       { id: "luck", icon: "🔮", title: `이번 달 인연이 들어오는 날짜 ${days.length || ""}개 공개`.replace("  ", " "), tease: luckTease, count: luckCount },
     ];
   }
   return [
-    { id: "hiddenMind", icon: "🔒", title: `${josa(p, "이/가")} 너한테 끝내 말 못 한 속마음`, tease: cut(sec("hiddenMind").body.split(/(?<=[.?!])\s+/).slice(-1)[0], 22), count: sentenceCount(sec("hiddenMind")) },
+    { id: "hiddenMind", icon: "🔒", title: `${p}의 진짜 속마음 & 너한테 섭섭한 점`, tease: cut(sec("hiddenMind").body.split(/(?<=[.?!])\s+/).slice(-1)[0], 22), count: sentenceCount(sec("hiddenMind")) },
+    { id: "letter", icon: "💌", title: `${josa(p, "이/가")} 너한테 끝내 보내지 못한 편지`, tease: cut(sec("letter").body.split("\n\n")[1], 24), count: sec("letter").body.split("\n\n").length - 2 + sec("letter").bullets.length },
+    { id: "partnerDecode", icon: "🕵️", title: `네가 말한 ${p}의 행동 ${PARTNER_INTERVIEW.length}가지, 진짜 의미`, tease: cut(sec("partnerDecode").bullets[3].split("🔮 ")[1] ?? "", 28), count: PARTNER_INTERVIEW.length },
     { id: "chemistry", icon: "🔥", title: "두 사람 스킨십 · 속궁합, 불붙는 순간", tease: cut(sec("chemistry").body), count: sentenceCount(sec("chemistry")) },
     { id: "crisis", icon: "⚡", title: "이 커플이 헤어진다면, 바로 이 순간 (이별 예방책)", tease: cut(sec("crisis").body), count: sentenceCount(sec("crisis")) },
+    { id: "decode", icon: "🔍", title: decodeTitle, tease: decodeTease, count: SELF_INTERVIEW.length },
     { id: "prescriptions", icon: "🩺", title: `${p} 맞춤 연애 처방전 6장`, tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
     { id: "luck", icon: "🔮", title: `이번 달 두 사람의 연애 길일 ${days.length || ""}개 공개`.replace("  ", " "), tease: luckTease, count: luckCount },
   ];
@@ -709,7 +852,7 @@ export function buildTeaser(input: QuestionnaireInput): TeaserReport {
     mode: input.mode,
     myType: typeInfo(c.me.code),
     axes: c.me.axes,
-    reliability: reliability(SELF_QUESTIONS, input.self),
+    reliability: reliability(SELF_DECODE, input.self),
     saju: c.mySaju?.summary ?? null,
     personal: personalReading(c),
     match: matchTeaser(c),

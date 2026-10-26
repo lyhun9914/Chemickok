@@ -37,7 +37,7 @@ export function Landing() {
         <h1 className="mt-6 text-[27px] font-extrabold leading-tight tracking-tight">
           네 연애가 매번 꼬이는 이유,
           <br />
-          <span className="text-gradient">냥신은 3분이면 안다냥</span>
+          <span className="text-gradient">냥신은 면담 한 번이면 안다냥</span>
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-muted">
           그 사람 속마음부터 이번 달 인연 오는 날짜까지
@@ -47,9 +47,9 @@ export function Landing() {
       </div>
 
       <button onClick={start} className="btn-primary glow shine mt-8 w-full py-4 text-[17px]">
-        무료로 내 연애 팔자 보기 🐾
+        🕯️ 냥신과 1:1 면담 시작 (무료)
       </button>
-      <p className="mt-3 text-center text-xs text-muted">⏱ 2~3분 · 회원가입 없음 · 기본 점괘 무료</p>
+      <p className="mt-3 text-center text-xs text-muted">⏱ 약 4분 · 회원가입 없음 · 기본 점괘 무료</p>
 
       <section className="fade-up mt-10" style={{ animationDelay: "0.15s" }}>
         <h2 className="mb-3 text-sm font-semibold text-muted">심심할 땐 10초 컷 🎲</h2>
@@ -81,10 +81,11 @@ export function Landing() {
 
       <section className="fade-up mb-10 mt-8 space-y-3" style={{ animationDelay: "0.35s" }}>
         {[
+          ["🕯️", "냥신이 1:1로 묻는 이상한 질문들… 근데 다 이유가 있다"],
           ["😳", "\"이거 나 몰래 본 거 아니냥?\" 소름 돋는 일간 해석"],
           ["🃏", "카드를 뒤집으면 나오는 나의 연애 유형"],
           ["💘", "너랑 찰떡인 사람 vs 절대 만나면 안 되는 사람"],
-          ["🔒", "그 사람이 끝내 말 못 한 속마음까지"],
+          ["💌", "그 사람이 끝내 보내지 못한 편지까지"],
         ].map(([icon, text]) => (
           <div key={text} className="flex items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3 text-sm">
             <span className="text-xl">{icon}</span>

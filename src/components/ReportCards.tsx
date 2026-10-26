@@ -11,6 +11,7 @@ import type {
   ReportSection,
   SajuSummary,
   TeaserReport,
+  Tell,
 } from "@/models/types";
 
 export function ScoreRing({ score, label = "궁합 지수" }: { score: number; label?: string }) {
@@ -190,16 +191,55 @@ export function TraitsCard({ teaser, myName }: { teaser: TeaserReport; myName: s
   );
 }
 
-export function QuoteCard({ personal, myName }: { personal: PersonalReadingT; myName: string }) {
-  if (!personal.quote) return null;
+/** One decoded interview answer: what 냥신 asked, what you said, why it was asked, what it reveals. */
+export function TellCard({ tell }: { tell: Tell }) {
   return (
     <Card className="border-pink/30">
-      <p className="text-xs font-semibold text-pink">📌 냥신이 네 답변에서 읽어 낸 것</p>
+      <p className="text-xs font-semibold text-pink">🔍 냥신이 그 질문을 한 이유</p>
       <p className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm leading-relaxed text-muted">
-        「{personal.quote.question}」
-        <br />→ <b className="text-ink">{personal.quote.answer}</b>
+        「{tell.question}」
+        <br />→ <b className="text-ink">{tell.answer}</b>
       </p>
-      <p className="mt-3 text-[15px] leading-relaxed">{personal.quote.reading}</p>
+      <p className="mt-3 text-sm leading-relaxed text-violet">💭 {tell.why}</p>
+      <p className="mt-2 text-[15px] leading-relaxed">{tell.read}</p>
+    </Card>
+  );
+}
+
+export function ColorCard({ reading }: { reading: string }) {
+  return (
+    <Card className="border-peach/30">
+      <p className="text-xs font-semibold text-peach">🎨 네가 고른 색 × 네 사주</p>
+      <p className="mt-2 text-[15px] leading-relaxed">{reading}</p>
+    </Card>
+  );
+}
+
+/** 미련 / 질투 / 자기 의심 gauges; what they mean is in the paid report. */
+export function HiddenCard({ personal, onLocked }: { personal: PersonalReadingT; onLocked?: () => void }) {
+  return (
+    <Card>
+      <p className="text-xs font-semibold text-muted">🫣 네 답변 속에 숨어 있던 것</p>
+      <div className="mt-4 space-y-4">
+        {personal.hidden.map((h) => (
+          <div key={h.key}>
+            <div className="mb-1.5 flex justify-between text-sm">
+              <span className="font-semibold">
+                {h.icon} {h.label}
+              </span>
+              <span className="font-bold text-pink">{h.pct}%</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+              <div className="gauge-fill h-full rounded-full bg-gradient-to-r from-violet to-pink" style={{ width: `${h.pct}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {onLocked && (
+        <button onClick={onLocked} className="mt-4 w-full rounded-xl bg-white/[0.04] px-3 py-2.5 text-left text-sm text-muted">
+          🔒 이 숫자가 네 연애에서 무슨 뜻인지는 냥신이 따로 적어 뒀다냥 →
+        </button>
+      )}
     </Card>
   );
 }
@@ -210,7 +250,7 @@ export function SectionCard({ icon, section, delay = 0 }: { icon: string; sectio
       <div className="mb-2 text-2xl">{icon}</div>
       <h3 className="text-xs font-semibold tracking-wide text-muted">{section.title}</h3>
       <p className="mt-1 text-[17px] font-bold leading-snug">{section.headline}</p>
-      <p className="mt-3 text-[15px] leading-relaxed text-ink/90">{section.body}</p>
+      <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink/90">{section.body}</p>
       <ul className="mt-4 space-y-2">
         {section.bullets.map((b) => (
           <li key={b} className="whitespace-pre-line rounded-xl bg-white/[0.04] px-3 py-2 text-sm leading-relaxed">
@@ -263,6 +303,29 @@ function LuckCard({ luck }: { luck: LuckSection }) {
 }
 
 /** intros: 냥신's line shown before each section (keyed by section id, "luck" for the luck card). */
+/** The partner's unsent letter, on paper. */
+export function LetterCard({ section }: { section: ReportSection }) {
+  return (
+    <div className="fade-up space-y-3">
+      <div className="relative rotate-[-0.6deg] rounded-2xl bg-[#fff6ec] p-6 text-[#2b1d16] shadow-[0_12px_40px_-12px_rgba(255,95,162,0.5)]">
+        <p className="mb-1 text-xs font-semibold text-[#b07a5a]">{section.title}</p>
+        <p className="mb-4 text-sm font-bold text-[#8a5a3a]">{section.headline}</p>
+        <p className="whitespace-pre-line text-[15px] leading-[1.9]">{section.body}</p>
+        <span className="absolute -top-3 right-5 text-3xl" aria-hidden>
+          💌
+        </span>
+      </div>
+      <ul className="space-y-2">
+        {section.bullets.map((b) => (
+          <li key={b} className="rounded-xl bg-white/[0.04] px-3 py-2 text-sm leading-relaxed">
+            {b}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function FullReportView({ report, intros = {} }: { report: FullReport; intros?: Record<string, string> }) {
   return (
     <div className="space-y-4">
@@ -287,7 +350,11 @@ export function FullReportView({ report, intros = {} }: { report: FullReport; in
       {report.sections.map((s, i) => (
         <div key={s.id} className="space-y-3">
           {intros[s.id] && <Say mood={i % 2 ? "smug" : "talk"}>{intros[s.id]}</Say>}
-          <SectionCard icon={s.icon} section={s.section} delay={0.05 * (i + 1)} />
+          {s.id === "letter" ? (
+            <LetterCard section={s.section} />
+          ) : (
+            <SectionCard icon={s.icon} section={s.section} delay={0.05 * (i + 1)} />
+          )}
         </div>
       ))}
       {report.luck && (

@@ -15,14 +15,14 @@ npm run dev        # http://localhost:3000
 Works with zero configuration (test-mode payment unlocks instantly). See `.env.example` for Toss/Kakao keys.
 
 ## User flow
-1. Landing → **무료로 내 연애 유형 테스트하기**
+1. Landing → **🕯️ 냥신과 1:1 면담 시작** — the whole questionnaire is a chat with 냥신 (`src/components/Questionnaire.tsx`): typing bubbles, answer chips, a reaction to every answer, incense/crystal-ball rituals.
 2. Choose a mode: **🙋 나 혼자 보기 (솔로)** or **💞 그 사람과 궁합 보기** (연애 중·썸·짝사랑·권태기·이별 후)
-3. **Solo** (15 steps): 내 정보 (+ MBTI, optional) → PART 1 성향 12문항
-   - Free: my type (16 types), 4 axes, 사주 원국 & 띠, 일간 해석, answer quote-back, scenes, **찰떡 궁합** (best type · MBTI · 띠), **이번 달 연애운 %**
-   - Paid: 나와 맞는 사람 vs 피해야 할 사람 (share-to-unlock), 연애 패턴 & 실수, 이번 달 연애운 & 인연 길일
-4. **Couple** (27 steps): 내 정보 → 상대 정보 (+ both MBTIs) → 관계 상태 → PART 1 (12) → PART 2 그 사람 관찰 (8)
-   - Free: everything above + couple score/title/summary, partner type, **MBTI 궁합** (e.g. INFP × ENFJ = 천생연분)
-   - Paid: 종합 궁합, 속마음 (share-to-unlock), 스킨십/멘탈 케미, 위기 & 이별 예방책, 개운 & 길일
+3. **Interview** — 14 projective/situational questions (`src/lib/interview.ts`: 카페 자리, 자기 전 마지막 화면, 꿈, 전 연인 사진, 어릴 때 혼나던 방식, 떠오르는 색 …); couple mode adds 8 observations of the partner (카톡 말투, 폰 두는 방식 …).
+   Scoring weights and the "왜 물었냐면" decoding are server-only (`src/engine/content/decode.ts`): 4 axes + hidden 미련 · 질투 · 자기 의심.
+4. **Solo** — Free: type, axes, 사주·일간·이름 기운, 색 × 사주, 2 decoded answers, hidden gauges, 찰떡 궁합, 이번 달 연애운.
+   Paid: 찰떡/피해야 할 사람 (share-to-unlock), 답변 14개 전체 해석, 반복 패턴 + 숨은 지수 해석, 다음 연애 시나리오, 처방전 6장, 길일.
+   **Couple** — Free: above + couple score/title, partner type, MBTI 궁합.
+   Paid: 속마음 (share-to-unlock), 그 사람이 보내지 못한 편지, 그 사람 행동 8가지 해석, 케미, 위기, 내 답변 전체 해석, 처방전, 길일.
 5. Pay 990원 (test mode by default) or share to unlock one section; the share card adapts to the mode.
 
 ## 냥신 & mini games

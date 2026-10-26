@@ -26,10 +26,10 @@ export interface QuestionnaireInput {
   partner: PersonInput;
   /** couple mode only */
   status: RelationshipStatus;
-  /** self-question id → Likert 1..5 */
-  self: Record<string, number>;
-  /** partner-observation question id → Likert 1..5 (couple mode only) */
-  partnerObs: Record<string, number>;
+  /** interview question id → chosen option id */
+  self: Record<string, string>;
+  /** partner-observation question id → chosen option id (couple mode only) */
+  partnerObs: Record<string, string>;
 }
 
 // ───────────── Analysis model ─────────────
@@ -83,8 +83,21 @@ export interface PersonalReading {
   signature: string;
   /** all 4 axes, most decisive first */
   traits: { title: string; label: string; pct: number; text: string }[];
-  quote: { question: string; answer: string; reading: string } | null;
+  /** the two most telling interview answers, decoded (the rest are in the paid report) */
+  tells: Tell[];
+  /** the color the user picked, read against their saju */
+  colorReading: string | null;
+  /** hidden gauges (미련 / 질투 / 자기 의심); readings are paid */
+  hidden: { key: string; icon: string; label: string; pct: number }[];
   scenes: string[];
+}
+
+export interface Tell {
+  question: string;
+  answer: string;
+  /** why 냥신 asked this */
+  why: string;
+  read: string;
 }
 
 export type MbtiLevel = "천생연분" | "좋음" | "무난" | "노력 필요";
