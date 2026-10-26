@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { copula, josa } from "@/lib/josa";
+import { copula, daNyang, josa } from "@/lib/josa";
 import { syllableStrokes } from "@/lib/nameCompat";
 import { COUPLE_CONCERNS, PARTNER_QUESTIONS, SELF_QUESTIONS, SOLO_CONCERNS } from "@/lib/questions";
 import type {
@@ -171,7 +171,7 @@ function personalReading(c: Core): TeaserReport["personal"] {
   return {
     nameReading: mySaju ? nameReading(input.me.name, mySaju.dm.element) : null,
     dayMasterReading: mySaju
-      ? `${input.me.name}님의 일간은 ${dayMasterLabel(mySaju.dm)}, '${mySaju.summary.dayMaster.image}'의 기운이에요. ${DAY_MASTER_READING[mySaju.dm.stem]}`
+      ? `네 일간은 ${dayMasterLabel(mySaju.dm)}, '${mySaju.summary.dayMaster.image}'의 기운이다냥. ${DAY_MASTER_READING[mySaju.dm.stem]}`
       : null,
     elementReading,
     twoFaces: { outer: OUTER[me.poles[outerKey]], inner: INNER[me.poles[innerKey]] },
@@ -206,7 +206,7 @@ function nameReading(name: string, dm: (typeof ELEMENT_ORDER)[number]): string |
   // 생: index+1 generates the next; 극: index+2 controls
   const rel =
     el === dm ? "same" : (i + 1) % 5 === d ? "nourish" : (d + 1) % 5 === i ? "express" : (d + 2) % 5 === i ? "wealth" : "pressure";
-  return `'${name}' 이름의 총 획수는 ${total}획, 수리오행으로 ${ELEMENT_LABEL[el]}의 기운이에요. ${NAME_RELATION[rel]}`;
+  return `'${name}' 이름의 총 획수는 ${total}획, 수리오행으로 ${ELEMENT_LABEL[el]}의 기운이다냥. ${NAME_RELATION[rel]}`;
 }
 
 function matchTeaser(c: Core): MatchTeaser {
@@ -242,12 +242,12 @@ function soloLoveLuck(c: Core): SoloTeaser {
   );
   const headline =
     score >= 88
-      ? `이번 달 연애운 ${score}%, 인연의 문이 활짝 열린 달이에요 🔥`
+      ? `이번 달 연애운 ${score}%, 인연의 문이 활짝 열린 달이다냥 🔥`
       : score >= 78
-        ? `이번 달 연애운 ${score}%, 먼저 움직이면 잡히는 달이에요 💘`
+        ? `이번 달 연애운 ${score}%, 먼저 움직이면 잡히는 달이다냥 💘`
         : score >= 68
-          ? `이번 달 연애운 ${score}%, 작은 기회를 살리면 좋은 달이에요 🍀`
-          : `이번 달 연애운 ${score}%, 나를 먼저 채우면 좋은 달이에요 🌙`;
+          ? `이번 달 연애운 ${score}%, 작은 기회만 잘 잡으면 되는 달이다냥 🍀`
+          : `이번 달 연애운 ${score}%, 너부터 채우면 좋은 달이다냥 🌙`;
   return { loveLuck: score, loveLuckHeadline: headline };
 }
 
@@ -264,20 +264,20 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
   const hardM = hardMbti(mbti);
   const animals = mySaju ? goodAnimals(mySaju.dm.yearBranch) : [];
   const matchBody = [
-    `${name}님에게 가장 잘 맞는 건 '${best.name}' 유형이에요.`,
+    `너랑 제일 잘 맞는 건 '${best.name}' 유형이다냥.`,
     ...reasons,
     bestM.length
-      ? `MBTI로 보면 ${mbti}인 ${name}님은 ${bestM.join(", ")}와 천생연분 조합이에요. 특히 ${bestM[0]}는 '${mbtiShort(bestM[0])}' 타입이라 ${name}님의 빈칸을 채워 줘요.`
+      ? `MBTI로 보면 ${mbti}인 너는 ${bestM.join(", ")}랑 천생연분이다냥. 특히 ${bestM[0]}는 '${mbtiShort(bestM[0])}' 타입이라 네 빈칸을 딱 채워 준다냥.`
       : "",
-    animals.length ? `띠로는 ${animals.map((a) => `${a}띠`).join(", ")}와 기운이 잘 맞아요(삼합·육합).` : "",
-    mySaju ? `사주로는 일간이 ${combineStemLabel(mySaju.dm.stem)}인 사람과 천간합(天干合), 즉 '끌림의 합'이에요.` : "",
+    animals.length ? `띠로는 ${animals.map((a) => `${a}띠`).join(", ")}랑 기운이 잘 맞는다냥(삼합·육합).` : "",
+    mySaju ? `사주로는 일간이 ${combineStemLabel(mySaju.dm.stem)}인 놈이랑 천간합(天干合), 즉 '끌림의 합'이다냥. 이런 놈 만나면 이유 없이 끌린다냥.` : "",
   ]
     .filter(Boolean)
     .join(" ");
 
   const match: ReportSection = {
     title: "나와 맞는 사람 vs 피해야 할 사람",
-    headline: `${best.emoji} '${best.name}' 유형을 만나면 놓치지 마세요`,
+    headline: `${best.emoji} '${best.name}' 유형 만나면 절대 놓치지 마라냥`,
     body: matchBody,
     bullets: [
       `✅ 찰떡 유형: ${best.emoji} ${best.name} (${best.tagline})`,
@@ -296,7 +296,7 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
     body: [
       SOLO.PATTERN[me.poles[top1]],
       SOLO.PATTERN[me.poles[top2]],
-      mbti ? `MBTI로 봐도 ${mbti}는 '${mbtiShort(mbti)}' 타입이라 이 패턴이 더 선명하게 나타나요.` : "",
+      mbti ? `MBTI로 봐도 ${mbti}는 '${mbtiShort(mbti)}' 타입이라 이 패턴이 더 선명하게 나온다냥.` : "",
     ]
       .filter(Boolean)
       .join(" "),
@@ -310,8 +310,8 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
   const loveLuck = soloLoveLuck(c);
   const prescriptions: ReportSection = {
     title: "솔로 고민 6가지 맞춤 처방",
-    headline: `${name}님 성향에 맞춘 처방전 6장 🩺`,
-    body: `솔로들이 가장 많이 하는 고민 6가지를 ${name}님의 연애 성향과 사주에 맞춰 풀었어요. 지금 마음에 걸리는 것부터 읽어 보세요.`,
+    headline: `냥신이 너한테만 써 주는 처방전 6장 🩺`,
+    body: "솔로들이 제일 많이 하는 고민 6가지를 네 연애 성향이랑 사주에 맞춰 풀었다냥. 지금 마음에 걸리는 것부터 읽어라냥.",
     bullets: SOLO_CONCERNS.map((q) => {
       const a = SOLO.SOLO_ADVICE[q.id];
       return `${q.emoji} ${q.label}\n→ ${a.byPole[me.poles[a.axis]] ?? ""}`;
@@ -324,7 +324,7 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
     headline: loveLuck.loveLuckHeadline,
     body: [
       SOLO.MONTH_FLOW[soloMonthFlow(c)],
-      lackingLabel ? `${name}님의 사주에서 가장 약한 기운은 ${copula(lackingLabel)}. 이 기운을 채우는 색과 장소가 인연을 불러와요.` : "",
+      lackingLabel ? `네 사주에서 제일 약한 기운은 ${daNyang(lackingLabel)}. 이 기운을 채우는 색이랑 장소가 인연을 불러온다냥.` : "",
     ]
       .filter(Boolean)
       .join(" "),
@@ -428,10 +428,10 @@ function coupleTitle(x: Couple): string {
 }
 
 function overallHeadline(score: number): string {
-  if (score >= 88) return `${score}점, 이 정도면 사주가 먼저 알아본 인연이에요 🔥`;
-  if (score >= 78) return `${score}점, 끌림은 확실한데 사용법이 필요한 커플이에요 💘`;
-  if (score >= 68) return `${score}점, 맞춰 가는 재미가 있는 커플이에요 🧩`;
-  return `${score}점, 서로 다른 언어로 사랑하는 중이에요 🌗`;
+  if (score >= 88) return `${score}점, 이 정도면 사주가 먼저 알아본 인연이다냥 🔥`;
+  if (score >= 78) return `${score}점, 끌림은 확실한데 사용법이 필요한 커플이다냥 💘`;
+  if (score >= 68) return `${score}점, 맞춰 가는 재미가 있는 커플이다냥 🧩`;
+  return `${score}점, 서로 다른 언어로 사랑하는 중이다냥 🌗`;
 }
 
 function coupleTeaser(x: Couple): CoupleTeaser {
@@ -452,41 +452,41 @@ function sajuParagraph(x: Couple): string {
   const { me, p } = x.names;
   if (!x.mySaju) return "";
   if (!x.partnerSaju || !x.stemRel) {
-    return `${p}님의 생년월일을 알면 두 사람의 일주(日柱) 궁합까지 볼 수 있어요. 지금은 성향 데이터를 중심으로 읽었어요.`;
+    return `${p} 생일을 알면 둘의 일주(日柱) 궁합까지 볼 수 있다냥. 지금은 성향 위주로 읽었다냥.`;
   }
   const mine = dayMasterLabel(x.mySaju.dm);
   const theirs = dayMasterLabel(x.partnerSaju.dm);
   const el1 = ELEMENT_LABEL[x.mySaju.dm.element];
   const el2 = ELEMENT_LABEL[x.partnerSaju.dm.element];
   const rel: Record<StemRelation, string> = {
-    combine: `두 사람의 일간은 ${josa(mine, "과/와")} ${theirs}, 사주에서 말하는 천간합(天干合)이에요. 서로를 끌어당겨 하나가 되려는 기운이라, 처음 만났을 때부터 이유 없이 끌렸을 가능성이 커요.`,
-    same: `두 사람 모두 ${el1}의 기운을 타고났어요(비화 比和). 친구처럼 편하고 말이 잘 통하지만, 고집이 부딪히면 둘 다 물러서지 않아요.`,
-    iGenerate: `${me}님의 ${josa(el1, "이/가")} ${p}님의 ${josa(el2, "을/를")} 살려 주는 상생(相生) 관계예요. ${me}님이 주는 사랑이 ${p}님을 자라게 하지만, 주기만 하다 지치지 않게 조심해야 해요.`,
-    theyGenerate: `${p}님의 ${josa(el2, "이/가")} ${me}님의 ${josa(el1, "을/를")} 북돋아 주는 상생(相生) 관계예요. ${p}님 곁에 있으면 ${me}님이 더 나다워지는 느낌을 받을 거예요.`,
-    iControl: `${me}님의 ${josa(el1, "이/가")} ${p}님의 ${josa(el2, "을/를")} 다스리는 상극(相剋) 관계예요. ${me}님이 관계를 리드하기 쉽지만, 그게 통제로 느껴지지 않게 균형이 필요해요.`,
-    theyControl: `${p}님의 ${josa(el2, "이/가")} ${me}님의 ${josa(el1, "을/를")} 누르는 상극(相剋) 관계예요. 묘한 긴장감이 끌림을 만들지만, ${me}님이 자기 목소리를 잃지 않는 게 중요해요.`,
+    combine: `둘의 일간은 ${josa(mine, "과/와")} ${theirs}, 사주에서 말하는 천간합(天干合)이다냥! 서로 끌어당겨 하나가 되려는 기운이라, 처음 봤을 때부터 이유 없이 끌렸을 거다냥.`,
+    same: `둘 다 ${el1}의 기운을 타고났다냥(비화 比和). 친구처럼 편하고 말이 잘 통하는데, 고집 부딪히면 둘 다 절대 안 물러선다냥.`,
+    iGenerate: `네 ${josa(el1, "이/가")} ${p}의 ${josa(el2, "을/를")} 살려 주는 상생(相生) 관계다냥. 네가 주는 사랑이 ${josa(p, "을/를")} 키우는데, 주기만 하다 지치지 않게 조심하라냥.`,
+    theyGenerate: `${p}의 ${josa(el2, "이/가")} 네 ${josa(el1, "을/를")} 북돋아 주는 상생(相生) 관계다냥. ${p} 옆에 있으면 네가 더 너다워진다냥.`,
+    iControl: `네 ${josa(el1, "이/가")} ${p}의 ${josa(el2, "을/를")} 다스리는 상극(相剋) 관계다냥. 네가 리드하기 쉬운데, 그게 통제로 느껴지면 끝이다냥.`,
+    theyControl: `${p}의 ${josa(el2, "이/가")} 네 ${josa(el1, "을/를")} 누르는 상극(相剋) 관계다냥. 묘한 긴장감이 끌림을 만드는데, 네 목소리를 잃으면 안 된다냥.`,
   };
   const branch =
     x.branchRel === "clash"
-      ? " 게다가 일지(日支)가 서로 충(沖)하는 관계라, 부딪힐수록 더 끌리는 묘한 인연이에요."
+      ? " 게다가 일지(日支)가 서로 충(沖)해서, 부딪힐수록 더 끌리는 묘한 인연이다냥."
       : x.branchRel === "harmony"
-        ? " 일지(日支)끼리는 육합(六合)이라, 함께 있을 때 생활 리듬이 자연스럽게 맞아요."
+        ? " 일지(日支)끼리는 육합(六合)이라, 같이 있으면 생활 리듬이 저절로 맞는다냥."
         : "";
   return rel[x.stemRel] + branch;
 }
 
 const SUB_LABEL = { attraction: "끌림 케미", talk: "대화 케미", stability: "감정 안정", future: "미래 케미" } as const;
 const WEAPON = {
-  attraction: "✨ 이 커플의 무기: 처음의 끌림이 쉽게 식지 않아요",
-  talk: "✨ 이 커플의 무기: 말이 통한다는 게 뭔지 서로에게 알려 준 사이",
-  stability: "✨ 이 커플의 무기: 같이 있으면 마음이 놓이는 안정감",
-  future: "✨ 이 커플의 무기: 함께 그리는 그림이 닮아 있어요",
+  attraction: "✨ 이 커플의 무기: 처음의 끌림이 쉽게 안 식는다냥",
+  talk: "✨ 이 커플의 무기: 말이 통한다는 게 뭔지 서로 알려 준 사이다냥",
+  stability: "✨ 이 커플의 무기: 같이 있으면 마음 놓이는 안정감이다냥",
+  future: "✨ 이 커플의 무기: 같이 그리는 미래 그림이 닮았다냥",
 };
 const WEAKNESS = {
-  attraction: "⚠️ 이 커플의 약점: 편안함에 설렘이 묻히기 쉬워요",
-  talk: "⚠️ 이 커플의 약점: 같은 말을 다르게 알아듣는 순간이 잦아요",
-  stability: "⚠️ 이 커플의 약점: 감정 기복이 관계를 흔들 때가 있어요",
-  future: "⚠️ 이 커플의 약점: '우리 어디로 가?'라는 질문 앞에서 작아져요",
+  attraction: "⚠️ 이 커플의 약점: 편안함에 설렘이 묻히기 쉽다냥",
+  talk: "⚠️ 이 커플의 약점: 같은 말을 서로 다르게 알아듣는다냥",
+  stability: "⚠️ 이 커플의 약점: 감정 기복이 관계를 흔든다냥",
+  future: "⚠️ 이 커플의 약점: '우리 어디로 가?' 앞에서 작아진다냥",
 };
 
 const mixKey = <K extends string>(pairCode: string, same1: K, same2: K, mix: K): K =>
@@ -512,11 +512,11 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
 
   const hiddenMind: ReportSection = {
     title: "상대방이 말하지 않는 진짜 속마음 & 섭섭한 점",
-    headline: `${TYPES[partner.code].emoji} ${n.p}님은 '${TYPES[partner.code].name}' 유형이에요`,
+    headline: `${TYPES[partner.code].emoji} ${josa(n.p, "은/는")} '${TYPES[partner.code].name}' 유형이다냥`,
     body: [
       P.PARTNER_HIDDEN[partner.poles[partnerRanked[0].key]](n),
       P.PARTNER_HIDDEN[partner.poles[partnerRanked[1].key]](n),
-      partnerMbti ? `MBTI로 봐도 ${partnerMbti}는 '${mbtiShort(partnerMbti)}' 타입이라 이런 면이 더 강하게 나타나요.` : "",
+      partnerMbti ? `MBTI로 봐도 ${partnerMbti}는 '${mbtiShort(partnerMbti)}' 타입이라 이런 면이 더 세게 나온다냥.` : "",
       hurt,
     ]
       .filter(Boolean)
@@ -540,7 +540,7 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     body: [
       P.STATUS_OPENER[input.status],
       sajuParagraph(x),
-      mbti ? `MBTI로는 ${mbti.pair}, '${mbti.level}' 조합이에요. ${mbti.line}` : "",
+      mbti ? `MBTI로는 ${mbti.pair}, '${mbti.level}' 조합이다냥. ${mbti.line}` : "",
       P.PAIR[g](n),
       P.PAIR[e](n),
     ]
@@ -549,7 +549,7 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     bullets: [
       WEAPON[sortedSub[0]],
       WEAKNESS[sortedSub[sortedSub.length - 1]],
-      `🔑 관계의 열쇠: ${me.poles.conflict === "F" ? "말의 내용보다 말할 타이밍을 고르는 것" : "거리를 둘 때 '돌아올게' 한마디 남기는 것"}`,
+      `🔑 관계의 열쇠: ${me.poles.conflict === "F" ? "말의 내용보다 말할 타이밍을 고르라냥" : "거리를 둘 땐 '돌아올게' 한마디 남기라냥"}`,
     ],
   };
 
@@ -572,10 +572,10 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     title: "위기 순간 & 트러블 회피법",
     headline:
       conflictKey === "MIX"
-        ? "싸움의 진짜 원인은 내용이 아니라 '속도'예요 ⏱️"
+        ? "싸움의 진짜 원인은 내용이 아니라 '속도'다냥 ⏱️"
         : conflictKey === "FF"
-          ? "둘 다 물러서지 않을 때가 가장 위험해요 ⚔️"
-          : "조용한 거리감이 가장 큰 적이에요 🧊",
+          ? "둘 다 안 물러설 때가 제일 위험하다냥 ⚔️"
+          : "조용한 거리감이 제일 큰 적이다냥 🧊",
     body: `${P.PAIR[f](n)} ${P.PAIR[a](n)}`,
     bullets: [P.DANGER_SIGN[conflictKey], P.EXTINGUISHER[conflictKey], P.BREAKUP_GUARD[attachKey]],
   };
@@ -584,11 +584,11 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
   const luck: LuckSection = {
     title: "이번 달 연애 개운(開運) 솔루션",
     headline: lackingLabel
-      ? `이번 달 ${n.me}님에게 필요한 기운은 ${copula(lackingLabel)} 🍀`
-      : "이번 달은 '먼저 표현하는 사람'에게 운이 몰려요 🍀",
+      ? `이번 달 너한테 필요한 기운은 ${daNyang(lackingLabel)} 🍀`
+      : "이번 달은 '먼저 표현하는 놈'한테 운이 몰린다냥 🍀",
     body: lackingLabel
-      ? `${n.me}님의 사주 여덟 글자에서 가장 약한 기운은 ${copula(lackingLabel)}. 부족한 기운을 채우면 관계의 흐름이 부드러워져요. 아래 날짜들은 ${n.me}님의 일간과 합(合)이 되거나 기운을 북돋아 주는 날이라, 중요한 대화나 데이트를 잡기 좋아요.`
-      : "아래 행동들은 두 사람의 성향 조합에서 가장 효과가 큰 것들이에요.",
+      ? `네 사주 여덟 글자에서 제일 약한 기운이 ${daNyang(lackingLabel)}. 모자란 기운을 채우면 관계 흐름이 부드러워진다냥. 아래 날짜는 네 일간이랑 합(合)이 되거나 기운을 북돋아 주는 날이라, 중요한 대화나 데이트는 이날 잡아라냥.`
+      : "아래 행동들이 너희 성향 조합에서 제일 잘 먹힌다냥.",
     luckyColor: myLuck.color,
     luckyPlace: myLuck.place,
     luckyItem: myLuck.item,
@@ -598,8 +598,8 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
 
   const prescriptions: ReportSection = {
     title: "커플 고민 6가지 맞춤 처방",
-    headline: `${n.p}님 성향에 맞춘 처방전 6장 🩺`,
-    body: `커플들이 가장 많이 하는 고민 6가지를 ${n.p}님의 유형에 맞춰 풀었어요. 지금 두 사람에게 해당하는 것부터 읽어 보세요.`,
+    headline: `냥신이 ${n.p} 성향에 맞춰 쓴 처방전 6장 🩺`,
+    body: `커플들이 제일 많이 하는 고민 6가지를 ${n.p} 유형에 맞춰 풀었다냥. 지금 너희한테 해당하는 것부터 읽어라냥.`,
     bullets: COUPLE_CONCERNS.map((q) => {
       const a = P.CONCERN_ADVICE[q.id];
       return `${q.emoji} ${q.label}\n→ ${a.byPole[partner.poles[a.axis]]?.(n) ?? ""}`;
@@ -670,7 +670,7 @@ function cut(text: string, len = 34): string {
   return t.length <= len ? t : `${t.slice(0, len).trimEnd()}…`;
 }
 
-const sentenceCount = (s: ReportSection) => s.body.split(/(?<=[.?!요])\s+/).length + s.bullets.length;
+const sentenceCount = (s: ReportSection) => s.body.split(/(?<=[.?!])\s+/).length + s.bullets.length;
 
 /**
  * Paid-section previews for the paywall: personalised titles, the real first words of each
@@ -688,17 +688,17 @@ function lockedPreviews(input: QuestionnaireInput, report: FullReport): LockedPr
 
   if (input.mode === "solo") {
     return [
-      { id: "match", icon: "🎯", title: `${me}님이 절대 만나면 안 되는 유형 & 찰떡 상대 상세`, tease: cut(sec("match").bullets.find((b) => b.startsWith("🚫")) ?? sec("match").body, 15), count: sentenceCount(sec("match")) },
-      { id: "pattern", icon: "💔", title: `${me}님이 연애할 때마다 반복하는 치명적 실수`, tease: cut(sec("pattern").body), count: sentenceCount(sec("pattern")) },
+      { id: "match", icon: "🎯", title: "네가 절대 만나면 안 되는 유형 & 찰떡 상대 상세", tease: cut(sec("match").bullets.find((b) => b.startsWith("🚫")) ?? sec("match").body, 15), count: sentenceCount(sec("match")) },
+      { id: "pattern", icon: "💔", title: "네가 연애할 때마다 반복하는 치명적 실수", tease: cut(sec("pattern").body), count: sentenceCount(sec("pattern")) },
       { id: "prescriptions", icon: "🩺", title: "솔로 탈출 처방전 6장 (언제 · 누구랑 · 어떻게)", tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
       { id: "luck", icon: "🔮", title: `이번 달 인연이 들어오는 날짜 ${days.length || ""}개 공개`.replace("  ", " "), tease: luckTease, count: luckCount },
     ];
   }
   return [
-    { id: "hiddenMind", icon: "🔒", title: `${p}님이 ${me}님에게 끝내 말 못 한 속마음`, tease: cut(sec("hiddenMind").body.split(/(?<=요\.)\s+/).slice(-1)[0], 22), count: sentenceCount(sec("hiddenMind")) },
+    { id: "hiddenMind", icon: "🔒", title: `${josa(p, "이/가")} 너한테 끝내 말 못 한 속마음`, tease: cut(sec("hiddenMind").body.split(/(?<=[.?!])\s+/).slice(-1)[0], 22), count: sentenceCount(sec("hiddenMind")) },
     { id: "chemistry", icon: "🔥", title: "두 사람 스킨십 · 속궁합, 불붙는 순간", tease: cut(sec("chemistry").body), count: sentenceCount(sec("chemistry")) },
     { id: "crisis", icon: "⚡", title: "이 커플이 헤어진다면, 바로 이 순간 (이별 예방책)", tease: cut(sec("crisis").body), count: sentenceCount(sec("crisis")) },
-    { id: "prescriptions", icon: "🩺", title: `${p}님 맞춤 연애 처방전 6장`, tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
+    { id: "prescriptions", icon: "🩺", title: `${p} 맞춤 연애 처방전 6장`, tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
     { id: "luck", icon: "🔮", title: `이번 달 두 사람의 연애 길일 ${days.length || ""}개 공개`.replace("  ", " "), tease: luckTease, count: luckCount },
   ];
 }

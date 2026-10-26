@@ -21,11 +21,11 @@ export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Prop
       url: siteUrl(),
     });
     if (outcome === "cancelled") return;
-    if (outcome === "copied") toast("링크를 복사했어요! 친구에게 보내 주세요 💌");
+    if (outcome === "copied") toast("링크 복사했다냥! 친구한테 보내라냥 💌");
     try {
       onUnlocked(await paymentService.unlockByShare(input));
     } catch (e) {
-      toast(e instanceof Error ? e.message : "잠금 해제에 실패했어요");
+      toast(e instanceof Error ? e.message : "잠금 해제에 실패했다냥… 다시 해 보라냥");
     }
   };
 
@@ -33,7 +33,7 @@ export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Prop
     <div className="mt-4 rounded-2xl border border-dashed border-peach/40 bg-peach/5 p-4">
       <p className="text-sm font-bold text-peach">🎁 친구 데려오면 하나는 공짜로 알려주겠다냥</p>
       <p className="mt-1 text-xs leading-relaxed text-muted">
-        테스트를 친구에게 공유하면 &lsquo;{unlockTitle}&rsquo;을 바로 열어 드려요.
+        친구한테 냥신 점집을 공유하면 &lsquo;{unlockTitle}&rsquo; 하나는 공짜로 알려 주겠다냥.
       </p>
       <button
         onClick={share}

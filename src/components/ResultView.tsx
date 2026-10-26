@@ -60,7 +60,7 @@ export function ResultView() {
         mood: "talk",
         node: (
           <Card>
-            <p className="mb-3 text-xs font-semibold text-muted">🀄 {me}님의 사주 원국</p>
+            <p className="mb-3 text-xs font-semibold text-muted">🀄 {me}의 사주 원국</p>
             <SajuChart saju={saju} />
           </Card>
         ),
@@ -82,7 +82,7 @@ export function ResultView() {
           onFlip={() => setFlipped(true)}
           back={
             <div className="flex h-full flex-col items-center justify-center text-center text-white">
-              <p className="text-xs text-white/80">{me}님의 연애 유형</p>
+              <p className="text-xs text-white/80">{me}의 연애 유형</p>
               <div className="my-3 text-7xl">{myType.emoji}</div>
               <p className="text-2xl font-extrabold leading-tight">{myType.name}</p>
               <p className="mt-2 text-sm text-white/85">{myType.tagline}</p>
@@ -166,12 +166,12 @@ export function ResultView() {
             <p className="mt-4 rounded-2xl bg-white/[0.04] p-4 text-[15px] leading-relaxed">{couple.teaserSummary}</p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-left">
               <div className="rounded-2xl border border-line bg-surface p-4">
-                <p className="text-xs text-muted">{me}님</p>
+                <p className="text-xs text-muted">{me}</p>
                 <p className="mt-1 text-2xl">{myType.emoji}</p>
                 <p className="mt-1 text-sm font-bold leading-snug">{myType.name}</p>
               </div>
               <div className="rounded-2xl border border-line bg-surface p-4">
-                <p className="text-xs text-muted">{p}님</p>
+                <p className="text-xs text-muted">{p}</p>
                 <p className="mt-1 text-2xl">{couple.partnerType.emoji}</p>
                 <p className="mt-1 text-sm font-bold leading-snug">{couple.partnerType.name}</p>
                 {couple.partnerDayMaster && <p className="mt-1 text-[11px] text-muted">{couple.partnerDayMaster} 일간</p>}
@@ -240,7 +240,7 @@ export function ResultView() {
   return (
     <main className="flex-1 px-4 pb-10 pt-6">
       <div className="mb-6 flex items-center justify-center gap-2 text-sm text-muted">
-        <Nyang mood="smug" size={28} /> 냥신의 연애 점괘 · {me}님
+        <Nyang mood="smug" size={28} /> 냥신의 연애 점괘 · {me}
       </div>
 
       <div className="space-y-5">

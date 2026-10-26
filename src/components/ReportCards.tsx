@@ -134,7 +134,7 @@ export function DayMasterCard({ personal }: { personal: PersonalReadingT }) {
   if (!personal.dayMasterReading) return null;
   return (
     <Card>
-      <p className="text-xs font-semibold text-muted">🀄 일간(日干) 해석</p>
+      <p className="text-xs font-semibold text-muted">🀄 냥신이 본 일간(日干)</p>
       <p className="mt-2 text-[15px] leading-relaxed">{personal.dayMasterReading}</p>
       {personal.nameReading && (
         <>
@@ -155,7 +155,7 @@ export function DayMasterCard({ personal }: { personal: PersonalReadingT }) {
 export function TwoFacesCard({ personal, myName }: { personal: PersonalReadingT; myName: string }) {
   return (
     <Card className="border-violet/30">
-      <p className="text-xs font-semibold text-violet">🌗 남들은 모르는 {myName}님의 두 얼굴</p>
+      <p className="text-xs font-semibold text-violet">🌗 남들은 모르는 너의 두 얼굴</p>
       <p className="mt-3 text-[16px] font-bold leading-relaxed">{personal.twoFaces.outer},</p>
       <p className="mt-2 text-[15px] leading-relaxed text-ink/90">{personal.twoFaces.inner}</p>
     </Card>
@@ -167,7 +167,7 @@ export function TraitsCard({ teaser, myName }: { teaser: TeaserReport; myName: s
   return (
     <Card>
       <p className="text-xs font-semibold text-muted">
-        {teaser.myType.emoji} {myName}님의 연애 성향 상세 분석
+        {teaser.myType.emoji} 냥신이 꿰뚫어 본 너의 연애 성향
       </p>
       <p className="mt-2 text-[16px] font-bold leading-snug">{personal.signature}</p>
       <div className="mt-4">
@@ -194,7 +194,7 @@ export function QuoteCard({ personal, myName }: { personal: PersonalReadingT; my
   if (!personal.quote) return null;
   return (
     <Card className="border-pink/30">
-      <p className="text-xs font-semibold text-pink">📌 {myName}님의 답변에서 읽힌 것</p>
+      <p className="text-xs font-semibold text-pink">📌 냥신이 네 답변에서 읽어 낸 것</p>
       <p className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm leading-relaxed text-muted">
         「{personal.quote.question}」
         <br />→ <b className="text-ink">{personal.quote.answer}</b>
@@ -304,7 +304,7 @@ export function FullReportView({ report, intros = {} }: { report: FullReport; in
 export function MatchCard({ match, myName }: { match: MatchTeaser; myName: string }) {
   return (
     <Card className="border-pink/30">
-      <p className="text-xs font-semibold text-pink">💘 {myName}님과 찰떡인 사람</p>
+      <p className="text-xs font-semibold text-pink">💘 너랑 찰떡인 놈</p>
       <div className="mt-3 flex items-center gap-3">
         <span className="text-4xl">{match.bestType.emoji}</span>
         <div>
@@ -346,7 +346,7 @@ export function MbtiPairLine({ pair }: { pair: MbtiPair }) {
 
 // Blurred filler only — the real paid text never reaches the browser before unlock; the visible
 // tease is the real opening line, truncated on the server.
-const DUMMY = "그런데 진짜 이유는 따로 있어요. 이건 지금까지 아무도 말해 주지 않았던 부분인데, 사실은";
+const DUMMY = "근데 진짜 이유는 따로 있다냥. 이건 지금까지 아무도 말 안 해 준 부분인데, 사실은";
 
 export function LockedCard({ preview, onClick, compact = false }: { preview: LockedPreview; onClick: () => void; compact?: boolean }) {
   return (
@@ -370,7 +370,7 @@ export function LockedCard({ preview, onClick, compact = false }: { preview: Loc
         </p>
       )}
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-xs text-muted">🔒 {preview.count}개의 분석이 가려져 있어요</span>
+        <span className="text-xs text-muted">🔒 냥신이 {preview.count}개를 숨겨 놨다냥</span>
         <span className="rounded-full bg-pink/20 px-3 py-1 text-xs font-bold text-pink">열어 보기 →</span>
       </div>
     </button>
