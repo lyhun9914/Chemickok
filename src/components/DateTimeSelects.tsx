@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 const selectCls =
   "min-w-0 flex-1 appearance-none rounded-2xl border border-line bg-surface-2 bg-[length:12px] bg-[right_0.75rem_center] bg-no-repeat py-3 pl-3 pr-7 text-center text-[15px] font-semibold text-ink outline-none focus:border-pink/60 invalid:text-muted";
-const caret = { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aaaab4' stroke-width='2' fill='none'/%3E%3C/svg%3E\")" };
+const caret = { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a99cc8' stroke-width='2' fill='none'/%3E%3C/svg%3E\")" };
 
 const range = (from: number, to: number) => Array.from({ length: Math.abs(to - from) + 1 }, (_, k) => (from <= to ? from + k : from - k));
 const pad = (n: number) => String(n).padStart(2, "0");

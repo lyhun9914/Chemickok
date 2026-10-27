@@ -13,7 +13,7 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: TeaserReport; myNa
         className="relative mx-auto aspect-[9/14] w-full max-w-[320px] overflow-hidden rounded-[28px] p-6 text-white"
         style={{
           background:
-            "radial-gradient(120% 80% at 0% 0%, #ff5fa2 0%, transparent 55%), radial-gradient(120% 80% at 100% 100%, #9b6bff 0%, transparent 55%), #2c2c32",
+            "radial-gradient(120% 80% at 0% 0%, #ff5fa2 0%, transparent 55%), radial-gradient(120% 80% at 100% 100%, #9b6bff 0%, transparent 55%), #1b1234",
           fontFamily: "'Pretendard Variable', Pretendard, system-ui, sans-serif",
         }}
       >
