@@ -1,5 +1,6 @@
 import "server-only";
 import type { Decoded, HiddenKey, Weights } from "./content/decode";
+import { resolve } from "./freeText";
 import type { AxisKey, AxisResult, Intensity, Pole } from "@/models/types";
 
 export const AXES: { key: AxisKey; title: string; poles: [Pole, Pole]; labels: [string, string] }[] = [
@@ -27,7 +28,7 @@ function intensityOf(score: number): Intensity {
 }
 
 function chosen(decode: Record<string, Decoded>, answers: Record<string, string>): Weights[] {
-  return Object.entries(decode).map(([qid, d]) => d.options[answers[qid]]?.w ?? {});
+  return Object.entries(decode).map(([qid, d]) => resolve(d, qid, answers[qid])?.w ?? {});
 }
 
 /**
@@ -91,9 +92,14 @@ export function reliability(decode: Record<string, Decoded>, answers: Record<str
 export function tellingOrder(decode: Record<string, Decoded>, answers: Record<string, string>): string[] {
   const weight = (w: Weights) =>
     Object.entries(w).reduce((s, [k, v]) => s + Math.abs(v ?? 0) * ((HIDDEN_KEYS as string[]).includes(k) ? 2 : 1), 0);
+  // Typed-in answers come first: quoting the user's own words back is the strongest "how did it know".
+  const score = (qid: string) => {
+    const r = resolve(decode[qid], qid, answers[qid]);
+    return r ? weight(r.w) + (r.custom ? 100 : 0) : -1;
+  };
   return Object.keys(decode)
-    .filter((qid) => decode[qid].options[answers[qid]])
-    .sort((a, b) => weight(decode[b].options[answers[b]].w) - weight(decode[a].options[answers[a]].w));
+    .filter((qid) => score(qid) >= 0)
+    .sort((a, b) => score(b) - score(a));
 }
 
 /** Small deterministic hash for stable "random" picks per input. */

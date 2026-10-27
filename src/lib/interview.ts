@@ -505,3 +505,14 @@ export function fill(text: string, partnerName: string): string {
 export function optionOf(qs: InterviewQuestion[], qid: string, oid: string | undefined): InterviewOption | undefined {
   return qs.find((q) => q.id === qid)?.options.find((o) => o.id === oid);
 }
+
+/** A typed-in answer is stored as "=" + text instead of an option id. */
+export const CUSTOM_PREFIX = "=";
+export const CUSTOM_MAX = 60;
+export const isCustom = (a: string | undefined): a is string => Boolean(a?.startsWith(CUSTOM_PREFIX));
+export const customText = (a: string) => a.slice(CUSTOM_PREFIX.length);
+
+/** How a stored answer reads back in the chat and the reading. */
+export function answerLabel(qs: InterviewQuestion[], qid: string, a: string | undefined): string {
+  return isCustom(a) ? `✏️ ${customText(a)}` : (optionOf(qs, qid, a)?.label ?? "");
+}

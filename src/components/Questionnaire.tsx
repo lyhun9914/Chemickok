@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PARTNER_INTERVIEW, fill, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
+import { CUSTOM_MAX, CUSTOM_PREFIX, PARTNER_INTERVIEW, answerLabel, fill, isCustom, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
 import type { Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
@@ -147,12 +147,19 @@ function answerOf(t: Turn, i: QuestionnaireInput): string {
       return t.id === "incense" ? "🕯️ (향에 불을 붙였다)" : "🔮 (떠올렸다)";
     case "q": {
       const answers = t.part === "self" ? i.self : i.partnerObs;
-      return fill(optionOf(t.part === "self" ? selfInterview(i.mode) : PARTNER_INTERVIEW, t.q.id, answers[t.q.id])?.label ?? "", i.partner.name);
+      return fill(answerLabel(t.part === "self" ? selfInterview(i.mode) : PARTNER_INTERVIEW, t.q.id, answers[t.q.id]), i.partner.name);
     }
     case "end":
       return "";
   }
 }
+
+const CUSTOM_REACTS = [
+  "오호… 보기에 없는 답이구냥. 이런 게 진짜 정보다냥 😼",
+  "흠… 직접 썼구냥. 냥신이 한 글자씩 꼼꼼히 읽겠다냥.",
+  "그렇구냥… 이건 따로 메모해 두겠다냥 📝",
+  "네 말로 들으니까 더 잘 보인다냥.",
+];
 
 function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
   const p = i.partner.name || "그 사람";
@@ -185,8 +192,9 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
         : [n(`…보인다냥. ${p}의 기운이.`, "wow", <Orb name={p} />)];
     case "q": {
       const qs = t.part === "self" ? selfInterview(i.mode) : PARTNER_INTERVIEW;
-      const o = optionOf(qs, t.q.id, (t.part === "self" ? i.self : i.partnerObs)[t.q.id]);
-      const out = o ? [n(o.react, o.mood ?? "smug")] : [];
+      const a = (t.part === "self" ? i.self : i.partnerObs)[t.q.id];
+      const o = optionOf(qs, t.q.id, a);
+      const out = isCustom(a) ? [n(CUSTOM_REACTS[(a.length + t.num) % CUSTOM_REACTS.length], "wow")] : o ? [n(o.react, o.mood ?? "smug")] : [];
       if (t.part === "self" && t.num === Math.ceil(selfInterview(i.mode).length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
       return out;
     }
@@ -341,6 +349,54 @@ function Select({ value, placeholder, options, onChange }: { value: string; plac
 }
 
 /** Birth date / time as native dropdowns (a scroll wheel on phones) instead of a calendar input. */
+/** Answer chips plus a "type my own answer" escape hatch. */
+function QuestionDock({ options, onAnswer }: { options: { id: string; label: string }[]; onAnswer: (a: string) => void }) {
+  const [writing, setWriting] = useState(false);
+  const [v, setV] = useState("");
+  const ok = v.trim() !== "";
+  if (writing) {
+    return (
+      <form
+        className="chip-pop space-y-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (ok) onAnswer(CUSTOM_PREFIX + v.trim());
+        }}
+      >
+        <p className="text-xs text-peach">💡 네 말 그대로 적어라냥. 구체적일수록 냥신이 더 정확하게 읽는다냥.</p>
+        <div className="flex gap-2">
+          <input
+            className={inputCls}
+            value={v}
+            maxLength={CUSTOM_MAX}
+            placeholder="예: 일단 친구한테 전화해서 물어본다"
+            autoFocus
+            onChange={(e) => setV(e.target.value)}
+          />
+          <button disabled={!ok} className="btn-primary shrink-0 px-5">
+            보내기
+          </button>
+        </div>
+        <button type="button" onClick={() => setWriting(false)} className="w-full py-1 text-xs text-muted">
+          ← 보기에서 고를래
+        </button>
+      </form>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <Chips items={options} onPick={onAnswer} />
+      <button
+        onClick={() => setWriting(true)}
+        className="chip-pop w-full rounded-2xl border border-dashed border-peach/50 px-4 py-3 text-left text-[15px] font-medium text-peach active:scale-[0.98]"
+        style={{ animationDelay: `${options.length * 55}ms` }}
+      >
+        ✏️ 맞는 게 없다냥, 직접 입력할래
+      </button>
+    </div>
+  );
+}
+
 function PickerDock({
   type,
   initial,
@@ -581,11 +637,11 @@ export function Questionnaire() {
       const q = cur.q;
       const self = cur.part === "self";
       dock = (
-        <Chips
-          items={q.options.map((o) => ({ id: o.id, label: fill(o.label, p) }))}
-          onPick={(id) => {
-            if (self) s.setSelf(q.id, id);
-            else s.setPartnerObs(q.id, id);
+        <QuestionDock
+          options={q.options.map((o) => ({ id: o.id, label: fill(o.label, p) }))}
+          onAnswer={(a) => {
+            if (self) s.setSelf(q.id, a);
+            else s.setPartnerObs(q.id, a);
             advance();
           }}
         />

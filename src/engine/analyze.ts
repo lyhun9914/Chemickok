@@ -36,6 +36,7 @@ import {
 import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, PARTNER_DECODE, selfDecode, type Decoded, type HiddenKey } from "./content/decode";
 import * as P from "./content/paid";
 import * as SOLO from "./content/solo";
+import { isValidAnswer, normalizeAnswer, resolve } from "./freeText";
 import { MBTI_LOVE, bestMbti, hardMbti, mbtiPair, mbtiShort, normalizeMbti } from "./mbti";
 import { AXES, hiddenPct, reliability, scoreProfile, seedOf, tellingOrder, type Profile } from "./profile";
 import {
@@ -57,7 +58,7 @@ import {
 // ───────────── Input hygiene ─────────────
 
 const answered = (decode: Record<string, Decoded>, a: unknown) =>
-  Object.entries(decode).every(([qid, d]) => typeof (a as Record<string, unknown>)?.[qid] === "string" && Boolean(d.options[(a as Record<string, string>)[qid]]));
+  Object.entries(decode).every(([qid, d]) => isValidAnswer(d, (a as Record<string, unknown>)?.[qid]));
 
 export function validateInput(raw: unknown): QuestionnaireInput | null {
   const i = raw as QuestionnaireInput;
@@ -86,8 +87,8 @@ function normalize(i: QuestionnaireInput): QuestionnaireInput {
     me: person(i.me),
     partner: couple ? person(i.partner) : person(),
     status: couple ? i.status : "dating",
-    self: Object.fromEntries(Object.keys(selfDecode(i.mode)).map((id) => [id, i.self[id]])),
-    partnerObs: couple ? Object.fromEntries(Object.keys(PARTNER_DECODE).map((id) => [id, i.partnerObs[id]])) : {},
+    self: Object.fromEntries(Object.keys(selfDecode(i.mode)).map((id) => [id, normalizeAnswer(i.self[id])])),
+    partnerObs: couple ? Object.fromEntries(Object.keys(PARTNER_DECODE).map((id) => [id, normalizeAnswer(i.partnerObs[id])])) : {},
   };
 }
 
@@ -197,13 +198,14 @@ const HIDDEN_KEYS = Object.keys(HIDDEN_META) as HiddenKey[];
 
 const questionText = (q: InterviewQuestion, p: string) => fill(q.short, p);
 
-function tell(qs: InterviewQuestion[], decode: Record<string, Decoded>, qid: string, oid: string, p: string): Tell {
+function tell(qs: InterviewQuestion[], decode: Record<string, Decoded>, qid: string, answer: string, p: string): Tell {
   const q = qs.find((x) => x.id === qid)!;
+  const r = resolve(decode[qid], qid, answer)!;
   return {
     question: questionText(q, p),
-    answer: optionOf(qs, qid, oid)?.label ?? "",
+    answer: fill(r.custom ? r.label : (optionOf(qs, qid, answer)?.label ?? ""), p),
     why: fill(decode[qid].why, p),
-    read: fill(decode[qid].options[oid].read, p),
+    read: fill(r.read, p),
   };
 }
 
@@ -215,9 +217,10 @@ function decodeBullets(qs: InterviewQuestion[], decode: Record<string, Decoded>,
 }
 
 function colorReading(c: Core): string | null {
-  const pick = c.input.self[COLOR_Q] as (typeof ELEMENT_ORDER)[number];
-  const base = selfDecode(c.input.mode)[COLOR_Q].options[pick]?.read;
-  if (!base) return null;
+  const r = resolve(selfDecode(c.input.mode)[COLOR_Q], COLOR_Q, c.input.self[COLOR_Q]);
+  if (!r?.oid) return null;
+  const pick = r.oid as (typeof ELEMENT_ORDER)[number];
+  const base = r.read;
   if (!c.mySaju) return base;
   const els = c.mySaju.summary.elements;
   const max = Math.max(...Object.values(els));
