@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0e0a1a;
-  --surface: #1a1430;
-  --surface-2: #241b40;
-  --line: rgba(255, 255, 255, 0.08);
-  --text: #f5f0ff;
-  --muted: #a99cc8;
+  --bg: #232327;
+  --surface: #2e2e34;
+  --surface-2: #3a3a41;
+  --line: rgba(255, 255, 255, 0.11);
+  --text: #f4f4f6;
+  --muted: #aaaab4;
   --pink: #ff5fa2;
   --violet: #9b6bff;
   --peach: #ffb38a;
@@ -31,8 +31,8 @@ html {
 
 body {
   background:
-    radial-gradient(60rem 40rem at 50% -10%, rgba(155, 107, 255, 0.22), transparent 60%),
-    radial-gradient(40rem 30rem at 100% 30%, rgba(255, 95, 162, 0.12), transparent 60%),
+    radial-gradient(60rem 40rem at 50% -10%, rgba(155, 107, 255, 0.12), transparent 60%),
+    radial-gradient(40rem 30rem at 100% 30%, rgba(255, 95, 162, 0.06), transparent 60%),
     var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -186,10 +186,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   background:
     radial-gradient(120% 80% at 0% 0%, #ff5fa2 0%, transparent 55%),
     radial-gradient(120% 80% at 100% 100%, #9b6bff 0%, transparent 55%),
-    #1b1234;
+    #2c2c32;
 }
 .bg-card-front {
-  background: radial-gradient(circle at 50% 30%, #3b2466, #1b1234);
+  background: radial-gradient(circle at 50% 30%, #4a4652, #2c2c32);
 }
 
 /* ── 1:1 면담 (chat) ── */
