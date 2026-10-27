@@ -17,7 +17,9 @@ Works with zero configuration (test-mode payment unlocks instantly). See `.env.e
 ## User flow
 1. Landing → **🕯️ 냥신과 1:1 면담 시작** — the whole questionnaire is a chat with 냥신 (`src/components/Questionnaire.tsx`): typing bubbles, answer chips, a reaction to every answer, incense/crystal-ball rituals.
 2. Choose a mode: **🙋 나 혼자 보기 (솔로)** or **💞 그 사람과 궁합 보기** (연애 중·썸·짝사랑·권태기·이별 후)
-3. **Interview** — 14 projective/situational questions (`src/lib/interview.ts`: 카페 자리, 자기 전 마지막 화면, 꿈, 전 연인 사진, 어릴 때 혼나던 방식, 떠오르는 색 …); couple mode adds 8 observations of the partner (카톡 말투, 폰 두는 방식 …).
+3. **Interview** — different question sets per mode (`src/lib/interview.ts`):
+   - Solo (14): 카페 자리, 자기 전 마지막 화면, 소개팅 사진에서 먼저 보는 곳, 단톡 무반응, 약속 없는 토요일, "누가 너 좋아한대", 전 연인 사진, 어릴 때 혼나던 방식, 떠오르는 색 …
+   - Couple (14 about you *in this relationship* + 10 about the partner): 그 사람 카톡 답장 속도, 술자리 밤 12시, 처음 보는 이름의 알림, 기념일, 아직 못 한 말, 그 사람 전 연인 얘기, 미래 … / 그 사람의 카톡 말투, 폰 두는 방식, 취했을 때, SNS …
    Scoring weights and the "왜 물었냐면" decoding are server-only (`src/engine/content/decode.ts`): 4 axes + hidden 미련 · 질투 · 자기 의심.
 4. **Solo** — Free: type, axes, 사주·일간·이름 기운, 색 × 사주, 2 decoded answers, hidden gauges, 찰떡 궁합, 이번 달 연애운.
    Paid: 찰떡/피해야 할 사람 (share-to-unlock), 답변 14개 전체 해석, 반복 패턴 + 숨은 지수 해석, 다음 연애 시나리오, 처방전 6장, 길일.

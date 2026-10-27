@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PARTNER_INTERVIEW, SELF_INTERVIEW, fill, optionOf, type InterviewQuestion } from "@/lib/interview";
+import { PARTNER_INTERVIEW, fill, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
 import type { Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
@@ -16,7 +16,7 @@ type Turn =
   | { kind: "q"; q: InterviewQuestion; part: "self" | "partner"; num: number };
 
 function turnsFor(mode: Mode): Turn[] {
-  const self: Turn[] = SELF_INTERVIEW.map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
+  const self: Turn[] = selfInterview(mode).map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
   const info: Turn[] = [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }, { kind: "mbti" }];
   if (mode === "solo") return [...info, { kind: "ritual", id: "incense" }, ...self, { kind: "end" }];
   const partner: Turn[] = PARTNER_INTERVIEW.map((q, i) => ({ kind: "q", q, part: "partner", num: i + 1 }));
@@ -101,7 +101,9 @@ function asks(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
       return t.id === "incense"
         ? [
             n("좋다냥. 이제부터 진짜 면담이다냥."),
-            n("냥신이 좀 이상한 걸 물어볼 거다냥. 왜 묻는지는 묻지 마라냥. 다 이유가 있다냥 😼", "smug"),
+            i.mode === "solo"
+              ? n("냥신이 좀 이상한 걸 물어볼 거다냥. 왜 묻는지는 묻지 마라냥. 다 이유가 있다냥 😼", "smug")
+              : n(`${p} 얘기 전에, 둘 사이에서 네가 어떤 사람인지부터 보겠다냥. 좀 이상한 걸 물어볼 거다냥. 다 이유가 있다냥 😼`, "smug"),
             n("향에 불을 붙여라냥."),
           ]
         : [
@@ -145,7 +147,7 @@ function answerOf(t: Turn, i: QuestionnaireInput): string {
       return t.id === "incense" ? "🕯️ (향에 불을 붙였다)" : "🔮 (떠올렸다)";
     case "q": {
       const answers = t.part === "self" ? i.self : i.partnerObs;
-      return fill(optionOf(t.part === "self" ? SELF_INTERVIEW : PARTNER_INTERVIEW, t.q.id, answers[t.q.id])?.label ?? "", i.partner.name);
+      return fill(optionOf(t.part === "self" ? selfInterview(i.mode) : PARTNER_INTERVIEW, t.q.id, answers[t.q.id])?.label ?? "", i.partner.name);
     }
     case "end":
       return "";
@@ -182,10 +184,10 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
         ? [n("…연기가 오른다냥. 시작하겠다냥.", "talk", <Incense />)]
         : [n(`…보인다냥. ${p}의 기운이.`, "wow", <Orb name={p} />)];
     case "q": {
-      const qs = t.part === "self" ? SELF_INTERVIEW : PARTNER_INTERVIEW;
+      const qs = t.part === "self" ? selfInterview(i.mode) : PARTNER_INTERVIEW;
       const o = optionOf(qs, t.q.id, (t.part === "self" ? i.self : i.partnerObs)[t.q.id]);
       const out = o ? [n(o.react, o.mood ?? "smug")] : [];
-      if (t.part === "self" && t.num === Math.ceil(SELF_INTERVIEW.length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
+      if (t.part === "self" && t.num === Math.ceil(selfInterview(i.mode).length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
       return out;
     }
     default:
