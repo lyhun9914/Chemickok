@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { api } from "@/services/apiClient";
+import { accountApi, api } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
 import { Nyang } from "./Nyang";
 
@@ -39,6 +39,11 @@ export function LoadingScreen() {
     Promise.all([api.analyze(input), minWait])
       .then(([res]) => {
         setProgress(100);
+        // Logged in without saved 기본 정보: keep what was just typed so the next interview skips it.
+        const { me, setMe } = useAppStore.getState();
+        if (me && !me.profile && input.me.birthdate) {
+          accountApi.saveProfile(input.me).then((r) => setMe({ ...me, profile: r.profile })).catch(() => null);
+        }
         setTimeout(() => setTeaser(res.teaser, res.inputHash), 300);
       })
       .catch((e: Error) => setError(e.message));

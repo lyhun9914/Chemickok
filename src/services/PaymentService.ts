@@ -1,4 +1,4 @@
-import { PRODUCT, TOSS_CLIENT_KEY, isTestMode as defaultTestMode } from "@/lib/config";
+import { TOSS_CLIENT_KEY, productOf, isTestMode as defaultTestMode } from "@/lib/config";
 import { loadScript } from "@/lib/loadScript";
 import type { PaymentMethod, QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { api } from "./apiClient";
@@ -33,7 +33,7 @@ export class PaymentService {
   async purchase(input: QuestionnaireInput, inputHash: string, method: PaymentMethod): Promise<PaymentResult> {
     try {
       if (this.isTestMode) return await this.mockPurchase(input);
-      await this.requestTossPayment(inputHash, method);
+      await this.requestTossPayment(input, inputHash, method);
       return { status: "redirecting" };
     } catch (e) {
       return { status: "failed", message: e instanceof Error ? e.message : "결제 중 오류가 발생했어요." };
@@ -50,7 +50,8 @@ export class PaymentService {
    * Real flow hook — Toss Payments JS SDK v2 (결제창 호출).
    * Kakao Pay is routed through Toss's easy-pay (간편결제) option.
    */
-  private async requestTossPayment(inputHash: string, method: PaymentMethod): Promise<void> {
+  private async requestTossPayment(input: QuestionnaireInput, inputHash: string, method: PaymentMethod): Promise<void> {
+    const product = productOf(input.mode);
     if (!TOSS_CLIENT_KEY) throw new Error("NEXT_PUBLIC_TOSS_CLIENT_KEY가 설정되지 않았어요.");
     await loadScript(TOSS_SDK_URL);
     if (!window.TossPayments) throw new Error("Toss Payments SDK를 불러오지 못했어요.");
@@ -59,9 +60,9 @@ export class PaymentService {
     const origin = window.location.origin;
     await payment.requestPayment({
       method: "CARD",
-      amount: { currency: "KRW", value: PRODUCT.price },
+      amount: { currency: "KRW", value: product.price },
       orderId: PaymentService.makeOrderId(inputHash),
-      orderName: PRODUCT.orderName,
+      orderName: product.orderName,
       successUrl: `${origin}/payment/success`,
       failUrl: `${origin}/payment/fail`,
       ...(method === "kakaopay" ? { card: { flowMode: "DIRECT", easyPay: "KAKAOPAY" } } : {}),

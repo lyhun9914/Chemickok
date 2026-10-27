@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PRODUCT } from "@/lib/config";
+import { productOf, won } from "@/lib/config";
 import type { PaymentMethod, QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
 import { useAppStore } from "@/store/useAppStore";
@@ -22,6 +22,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
   const locked = useAppStore((s) => s.teaser?.locked ?? []);
 
   if (!open) return null;
+  const product = productOf(input.mode);
 
   const pay = async () => {
     setBusy(true);
@@ -46,11 +47,11 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
         <h2 className="text-lg font-bold">🐾 냥신에게 복채 내기</h2>
         <div className="mt-4 flex items-end justify-between rounded-2xl bg-white/[0.04] p-4">
           <div>
-            <p className="text-sm text-muted">{PRODUCT.orderName}</p>
-            <p className="mt-1 text-xs text-peach">☕ 아메리카노보다 싸다냥</p>
+            <p className="text-sm text-muted">{product.orderName}</p>
+            <p className="mt-1 text-xs text-peach">{product.price < 3000 ? "☕ 아메리카노보다 싸다냥" : "☕ 커피 한 잔 값이다냥"}</p>
           </div>
           <p className="text-2xl font-extrabold">
-            {PRODUCT.price.toLocaleString()}
+            {product.price.toLocaleString("ko-KR")}
             <span className="text-base">원</span>
           </p>
         </div>
@@ -96,7 +97,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
         {error && <p className="mt-3 text-sm text-pink">{error}</p>}
 
         <button onClick={pay} disabled={!agree || busy} className="btn-primary mt-5 w-full py-4 text-base">
-          {busy ? "냥신이 복채 세는 중..." : `복채 ${PRODUCT.price.toLocaleString()}원 내고 전부 듣기`}
+          {busy ? "냥신이 복채 세는 중..." : `복채 ${won(product.price)} 내고 전부 듣기`}
         </button>
 
         {paymentService.isTestMode && (

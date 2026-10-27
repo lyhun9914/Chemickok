@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { PRODUCTS, won } from "@/lib/config";
+import type { Mode } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { LoginSheet } from "./LoginSheet";
 import { MiniGameSheet, type MiniGame } from "./MiniGames";
@@ -14,16 +16,14 @@ const PREVIEW_TYPES = [
 ];
 
 export function Landing() {
-  const { setScreen, setStep, me, providers, updateMe } = useAppStore();
+  const { setScreen, me, providers, startInterview } = useAppStore();
   const [game, setGame] = useState<MiniGame | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
 
-  const start = () => {
+  // Saved 기본 정보 → the interview skips straight past name/birth. A product card also fixes the mode.
+  const start = (mode?: Mode) => {
     setGame(null);
-    // Saved 기본 정보 → the interview skips straight past name/birth.
-    if (me?.profile) updateMe(me.profile);
-    setStep(0);
-    setScreen("form");
+    startInterview({ mode, me: me?.profile });
   };
 
   return (
@@ -63,23 +63,52 @@ export function Landing() {
         </p>
       </div>
 
-      <button onClick={start} className="btn-primary glow shine mt-8 w-full py-4 text-[17px]">
+      <button onClick={() => start()} className="btn-primary glow shine mt-8 w-full py-4 text-[17px]">
         🕯️ 냥신과 1:1 면담 시작 (무료)
       </button>
       <p className="mt-3 text-center text-xs text-muted">⏱ 약 4분 · 회원가입 없음 · 기본 점괘 무료</p>
 
-      <section className="fade-up mt-10" style={{ animationDelay: "0.15s" }}>
-        <h2 className="mb-3 text-sm font-semibold text-muted">심심할 땐 10초 컷 🎲</h2>
+      <section className="fade-up mt-10" style={{ animationDelay: "0.1s" }}>
+        <h2 className="mb-3 text-sm font-semibold text-muted">🐾 냥신 점괘 메뉴</h2>
+        <div className="space-y-3">
+          {(Object.keys(PRODUCTS) as Mode[]).map((m) => {
+            const pr = PRODUCTS[m];
+            return (
+              <button
+                key={m}
+                onClick={() => start(m)}
+                className="flex w-full items-center gap-4 rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]"
+              >
+                <span className="text-4xl">{pr.emoji}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold">{pr.name}</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-muted">{pr.pitch}</span>
+                  <span className="mt-1.5 block text-xs">
+                    <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 font-semibold text-emerald-300">기본 무료</span>
+                    <span className="ml-1.5 font-semibold text-peach">전체 풀이 {won(pr.price)}</span>
+                  </span>
+                </span>
+                <span className="text-muted" aria-hidden>
+                  →
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="fade-up mt-8" style={{ animationDelay: "0.15s" }}>
+        <h2 className="mb-3 text-sm font-semibold text-muted">가볍게 무료로 🎲</h2>
         <div className="grid grid-cols-2 gap-3">
           <button onClick={() => setGame("daily")} className="rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]">
             <div className="text-3xl">🔮</div>
             <div className="mt-2 text-sm font-bold">오늘의 연애운</div>
-            <div className="text-xs text-muted">생일만 넣으면 끝</div>
+            <div className="text-xs text-muted">생일만 넣으면 끝 · 무료</div>
           </button>
           <button onClick={() => setGame("name")} className="rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]">
             <div className="text-3xl">✍️</div>
             <div className="mt-2 text-sm font-bold">이름 궁합</div>
-            <div className="text-xs text-muted">그 시절 획수 궁합</div>
+            <div className="text-xs text-muted">그 시절 획수 궁합 · 무료</div>
           </button>
         </div>
       </section>
@@ -111,7 +140,7 @@ export function Landing() {
         ))}
       </section>
 
-      <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={start} />
+      <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={() => start()} />
       <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />
     </main>
   );

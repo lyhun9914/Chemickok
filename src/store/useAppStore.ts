@@ -32,6 +32,8 @@ interface AppState {
   meLoaded: boolean;
   /** reopen the payment sheet after returning from the login redirect */
   resumePay: boolean;
+  /** what the interview already knows: the product picked on the landing page, and 기본 정보 */
+  preset: { mode: boolean; me: boolean };
 
   setScreen: (s: Screen) => void;
   setStep: (n: number) => void;
@@ -48,6 +50,8 @@ interface AppState {
   loadMe: () => Promise<Me | null>;
   setMe: (me: Me | null) => void;
   setResumePay: (v: boolean) => void;
+  /** start a fresh interview; `mode` from a product card, `me` from saved 기본 정보 or the previous reading */
+  startInterview: (opts?: { mode?: Mode; me?: PersonInput | null }) => void;
   /** open a saved reading from 내 점괘함 */
   openSaved: (r: { mode: Mode; names: { me: string; partner: string }; teaser: TeaserReport; report: FullReport }) => void;
 }
@@ -70,6 +74,7 @@ const initial = {
   level: "none" as const,
   error: null,
   resumePay: false,
+  preset: { mode: false, me: false },
 };
 
 export const useAppStore = create<AppState>()(
@@ -102,6 +107,17 @@ export const useAppStore = create<AppState>()(
       },
       setMe: (me) => set({ me }),
       setResumePay: (resumePay) => set({ resumePay }),
+      startInterview: (opts = {}) => {
+        const base = initialInput();
+        const me = opts.me?.name && opts.me.birthdate ? opts.me : null;
+        set({
+          input: { ...base, mode: opts.mode ?? base.mode, me: me ? { ...base.me, ...me } : base.me },
+          preset: { mode: Boolean(opts.mode), me: Boolean(me) },
+          step: 0,
+          screen: "form",
+          error: null,
+        });
+      },
       openSaved: ({ mode, names, teaser, report }) => {
         const base = initialInput();
         set({
@@ -115,11 +131,12 @@ export const useAppStore = create<AppState>()(
       },
     }),
     {
-      name: "love-chemistry-v5",
+      name: "love-chemistry-v6",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ screen, step, input, inputHash, teaser, report, level, resumePay }) => ({
+      partialize: ({ screen, step, input, inputHash, teaser, report, level, resumePay, preset }) => ({
         resumePay,
+        preset,
         screen: screen === "loading" ? "form" : screen,
         step,
         input,

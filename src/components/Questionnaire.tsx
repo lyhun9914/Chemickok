@@ -5,6 +5,7 @@ import { CUSTOM_MAX, CUSTOM_PREFIX, PARTNER_INTERVIEW, answerLabel, fill, isCust
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
 import type { Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
+import { productOf } from "@/lib/config";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { Nyang, type Mood } from "./Nyang";
@@ -16,7 +17,10 @@ type Turn =
   | { kind: "ritual"; id: "incense" | "orb" }
   | { kind: "q"; q: InterviewQuestion; part: "self" | "partner"; num: number };
 
-/** `saved`: the logged-in user's 기본 정보 is already filled in, so name/birth/MBTI aren't asked again. */
+/**
+ * `saved`: 기본 정보 is already known (logged in, or "다른 사람이랑 궁합" after a reading), so name/birth/MBTI
+ * aren't asked again. `modeKnown`: the product was picked on the landing page; 냥신 still greets in that turn.
+ */
 function turnsFor(mode: Mode, saved: boolean): Turn[] {
   const self: Turn[] = selfInterview(mode).map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
   const info: Turn[] = saved
@@ -78,13 +82,21 @@ const STATUS_REACT: Record<RelationshipStatus, string> = {
 
 const n = (text: string, mood: Mood = "talk", node?: React.ReactNode) => ({ text, mood, node });
 
-function asks(t: Turn, i: QuestionnaireInput, saved = false): ReturnType<typeof n>[] {
+interface Ctx {
+  saved: boolean;
+  modeKnown: boolean;
+}
+
+function asks(t: Turn, i: QuestionnaireInput, { saved, modeKnown }: Ctx): ReturnType<typeof n>[] {
   const p = i.partner.name || "그 사람";
   switch (t.kind) {
-    case "mode":
-      return saved
-        ? [n(`${iGuNyang(i.me.name)}. 또 왔냥? 반갑다냥 🐾`, "happy"), n("생년월일은 기억하고 있으니 바로 시작하겠다냥. 오늘은 누구 연애를 봐 줄까냥?")]
-        : [n("어서 오라냥. 여기는 냥신 상담소다냥 🐾", "smug"), n("오늘은 누구 연애를 봐 줄까냥?")];
+    case "mode": {
+      const hello = saved ? n(`${iGuNyang(i.me.name)}. 또 왔냥? 반갑다냥 🐾`, "happy") : n("어서 오라냥. 여기는 냥신 상담소다냥 🐾", "smug");
+      if (modeKnown) {
+        return [hello, n(`오늘은 '${productOf(i.mode).name}'이구냥. ${saved ? "생년월일은 기억하고 있으니 바로 시작하겠다냥." : "좋다냥, 몇 가지만 물어보겠다냥."}`)];
+      }
+      return [hello, n(saved ? "생년월일은 기억하고 있으니 바로 시작하겠다냥. 오늘은 누구 연애를 봐 줄까냥?" : "오늘은 누구 연애를 봐 줄까냥?")];
+    }
     case "name":
       return [n("좋다냥. 먼저 이름부터 대라냥."), n("실명이면 이름 획수로 타고난 기운까지 봐 준다냥. 닉네임이면… 뭐, 그것도 괜찮다냥.", "smug")];
     case "gender":
@@ -127,10 +139,10 @@ function asks(t: Turn, i: QuestionnaireInput, saved = false): ReturnType<typeof 
 }
 
 /** What the user "said" for an answered turn. */
-function answerOf(t: Turn, i: QuestionnaireInput): string {
+function answerOf(t: Turn, i: QuestionnaireInput, { modeKnown }: Ctx): string {
   switch (t.kind) {
     case "mode":
-      return MODE_OPTIONS.find((o) => o.id === i.mode)!.label;
+      return modeKnown ? "🕯️ 좋아, 시작하자" : MODE_OPTIONS.find((o) => o.id === i.mode)!.label;
     case "name":
       return i.me.name;
     case "gender":
@@ -209,17 +221,17 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
   }
 }
 
-function buildThread(turns: Turn[], step: number, input: QuestionnaireInput, saved: boolean): { msgs: Msg[]; askStart: number } {
+function buildThread(turns: Turn[], step: number, input: QuestionnaireInput, ctx: Ctx): { msgs: Msg[]; askStart: number } {
   const msgs: Msg[] = [];
   const push = (key: string, m: ReturnType<typeof n>) => msgs.push({ key, who: "nyang", ...m });
   turns.slice(0, step).forEach((t, ti) => {
-    asks(t, input, saved).forEach((m, k) => push(`${ti}a${k}`, m));
-    msgs.push({ key: `${ti}me`, who: "me", text: answerOf(t, input) });
+    asks(t, input, ctx).forEach((m, k) => push(`${ti}a${k}`, m));
+    msgs.push({ key: `${ti}me`, who: "me", text: answerOf(t, input, ctx) });
     reactsOf(t, input).forEach((m, k) => push(`${ti}r${k}`, m));
   });
   const askStart = msgs.length;
   const cur = turns[step];
-  if (cur) asks(cur, input, saved).forEach((m, k) => push(`${step}a${k}`, m));
+  if (cur) asks(cur, input, ctx).forEach((m, k) => push(`${step}a${k}`, m));
   return { msgs, askStart };
 }
 
@@ -415,11 +427,16 @@ export function Questionnaire() {
   const s = useAppStore();
   const { step, setStep, setScreen, input } = s;
   const profile = useAppStore((st) => st.me?.profile);
-  // Only skip the info questions when the interview actually holds the saved 기본 정보.
-  const saved = Boolean(profile && profile.name === input.me.name && profile.birthdate === input.me.birthdate);
+  const preset = useAppStore((st) => st.preset);
+  // Skip the info questions only when the interview actually holds the 기본 정보 (saved profile or carried over).
+  const saved = Boolean(input.me.name && input.me.birthdate) && (preset.me || Boolean(profile && profile.name === input.me.name && profile.birthdate === input.me.birthdate));
+  const modeKnown = preset.mode;
   const turns = useMemo(() => turnsFor(input.mode, saved), [input.mode, saved]);
   const cur = turns[Math.min(step, turns.length - 1)];
-  const { msgs, askStart } = useMemo(() => buildThread(turns, Math.min(step, turns.length - 1), input, saved), [turns, step, input, saved]);
+  const { msgs, askStart } = useMemo(
+    () => buildThread(turns, Math.min(step, turns.length - 1), input, { saved, modeKnown }),
+    [turns, step, input, saved, modeKnown],
+  );
 
   // Messages before `revealed` are on screen; the rest appear one by one (냥신 "types" first).
   const [revealed, setRevealed] = useState(askStart);
@@ -455,7 +472,11 @@ export function Questionnaire() {
   let dock: React.ReactNode = null;
   switch (cur.kind) {
     case "mode":
-      dock = (
+      dock = modeKnown ? (
+        <button onClick={advance} className="btn-primary glow chip-pop w-full py-4 text-[16px]">
+          🕯️ 좋아, 시작하자
+        </button>
+      ) : (
         <Chips
           items={MODE_OPTIONS.map((o) => ({ id: o.id, label: `${o.emoji} ${o.label}`, sub: o.desc }))}
           onPick={(id) => {

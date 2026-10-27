@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PRODUCT } from "@/lib/config";
+import { productOf, won } from "@/lib/config";
 import { josa } from "@/lib/josa";
 import type { UnlockResponse } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
@@ -42,7 +42,7 @@ const TYPING_MS = 750;
 
 export function ResultView() {
   const { teaser, report, level, input, inputHash, applyUnlock, reset } = useAppStore();
-  const { me: account, providers, meLoaded, setResumePay } = useAppStore();
+  const { me: account, providers, meLoaded, setResumePay, startInterview } = useAppStore();
   // Set before the login redirect; read once on this page load (the flag flips while the page is still leaving).
   const [resumeAtLoad] = useState(() => useAppStore.getState().resumePay);
   const resumed = useRef(false);
@@ -76,6 +76,7 @@ export function ResultView() {
 
   const me = input.me.name;
   const p = input.partner.name;
+  const price = productOf(input.mode).price;
 
   const beats = useMemo<Beat[]>(() => {
     if (!teaser) return [];
@@ -345,7 +346,7 @@ export function ResultView() {
                       )}
                     </div>
                     <div className="mt-5 rounded-3xl border border-peach/30 bg-peach/5 p-5">
-                      <p className="text-sm font-bold text-peach">🐾 복채 {PRODUCT.price.toLocaleString()}원이면 지금 바로 열리는 것</p>
+                      <p className="text-sm font-bold text-peach">🐾 복채 {won(price)}이면 지금 바로 열리는 것</p>
                       <ul className="mt-3 space-y-2 text-sm">
                         {teaser.locked.map((lp) => (
                           <li key={lp.id} className="flex gap-2">
@@ -362,7 +363,7 @@ export function ResultView() {
                     </div>
                     <div className="sticky bottom-4 z-10 mt-5">
                       <button onClick={() => setPayIntent(true)} className="btn-primary glow shine w-full py-4">
-                        <span className="block text-[17px]">{payLabel} · {PRODUCT.price.toLocaleString()}원</span>
+                        <span className="block text-[17px]">{payLabel} · {won(price)}</span>
                         <span className="block text-xs font-medium opacity-90">☕ 커피 한 잔보다 싼 복채다냥</span>
                       </button>
                     </div>
@@ -389,7 +390,7 @@ export function ResultView() {
             </button>
             {level !== "full" && (
               <button onClick={() => setPayIntent(true)} className="text-xs font-bold text-peach">
-                기다리기 싫다냥? 바로 전부 열기 990원 →
+                기다리기 싫다냥? 바로 전부 열기 {won(price)} →
               </button>
             )}
           </div>
@@ -399,6 +400,21 @@ export function ResultView() {
       {allShown && !typing && (
         <>
           <ShareButtons teaser={teaser} myName={me} partnerName={p} toast={toast.show} />
+          {level === "full" && (
+            <button
+              onClick={() => startInterview({ mode: "couple", me: input.me.birthdate ? input.me : account?.profile })}
+              className="mt-8 flex w-full items-center gap-3 rounded-2xl border border-pink/40 bg-pink/10 p-4 text-left active:scale-[0.98]"
+            >
+              <span className="text-3xl">💞</span>
+              <span className="flex-1">
+                <span className="block font-bold">{teaser.solo ? "그 사람이랑 궁합도 볼래냥?" : "다른 사람이랑도 궁합 볼래냥?"}</span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 풀이 {won(productOf("couple").price)}
+                </span>
+              </span>
+              <span aria-hidden>→</span>
+            </button>
+          )}
           <button
             onClick={() => (level === "full" || leaveAsked ? reset() : setLeaveAsked(true))}
             className="mt-8 w-full rounded-2xl border border-line py-3.5 text-sm text-muted"
@@ -420,7 +436,7 @@ export function ResultView() {
                   }}
                   className="btn-primary mt-5 w-full py-4"
                 >
-                  {payLabel} · 990원
+                  {payLabel} · {won(price)}
                 </button>
                 <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
                   다음에 볼게요

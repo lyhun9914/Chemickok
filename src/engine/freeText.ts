@@ -1,5 +1,6 @@
 import "server-only";
 import { PARTNER_INTERVIEW, SOLO_INTERVIEW, COUPLE_INTERVIEW, CUSTOM_MAX, customText, isCustom } from "@/lib/interview";
+import { OPTION_KEYWORDS, UNKNOWN } from "./content/customKeywords";
 import type { Decoded, Trait, Weights } from "./content/decode";
 
 // Typed-in answers are read without AI: a keyword lexicon turns the text into trait weights, the text is matched to
@@ -112,6 +113,11 @@ export function resolve(d: Decoded, qid: string, a: string | undefined): Resolve
   const partner = qid.startsWith("o");
   const tw = textWeights(text);
   const quote = quoteOf(text);
+  const pick = <T,>(list: T[]) => list[[...text].reduce((h, ch) => h + ch.charCodeAt(0), 0) % list.length];
+
+  if (UNKNOWN.test(text)) {
+    return { oid: null, label: `✏️ ${text}`, w: {}, read: `${quote} ${pick(partner ? UNKNOWN_PARTNER : UNKNOWN_SELF)}`, custom: true };
+  }
 
   // The color question maps color words straight to an element.
   let oid: string | null = null;
@@ -122,7 +128,8 @@ export function resolve(d: Decoded, qid: string, a: string | undefined): Resolve
     for (const [id, o] of Object.entries(d.options)) {
       const label = q?.options.find((x) => x.id === id)?.label ?? "";
       const hits = labelTokens(label).filter((t) => text.includes(t)).length;
-      const score = hits * 0.6 + cosine(tw, o.w);
+      const kw = OPTION_KEYWORDS[qid]?.[id]?.test(text) ? 1.2 : 0;
+      const score = kw + hits * 0.6 + cosine(tw, o.w);
       if (score > best) {
         best = score;
         oid = id;
@@ -143,15 +150,66 @@ export function resolve(d: Decoded, qid: string, a: string | undefined): Resolve
       oid,
       label: `✏️ ${text}`,
       w,
-      read: `${quote} 보기엔 없던 답인데, 냥신 눈엔 '${plain}' 쪽 마음이 보인다냥. ${rest}`,
+      read: `${quote} 보기엔 없던 답인데, 냥신 눈엔 '${plain}' 쪽 마음이 보인다냥. ${rest}${toneOf(text, partner).slice(0, 1).map((l) => ` ${l}`).join("")}`,
       custom: true,
     };
   }
 
+  // No choice fits: read the words themselves — traits from the lexicon, then how it was said.
   const traits = (Object.entries(tw) as [Trait, number][]).filter(([, v]) => v).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]));
-  const lines = traits.slice(0, 2).map(([k, v]) => TRAIT_LINE[k][v > 0 ? 0 : 1]).filter(Boolean);
-  const fallback = partner
-    ? "보기에 없는 모습이라니, {p:은/는} 쉽게 한 유형으로 묶이지 않는 사람이다냥. 그래서 너도 {p:을/를} 다 안다고 생각한 순간 새로운 모습에 놀란다냥."
-    : "보기에 없는 답을 고른 것부터가 너답다냥. 남이 정해 둔 틀보다 네 방식이 먼저인 사람이다냥. 그래서 연애에서도 '보통은 이렇게 하잖아'라는 말을 제일 싫어한다냥.";
-  return { oid: null, label: `✏️ ${text}`, w: tw, read: `${quote} ${lines.length ? lines.join(" ") : fallback}`, custom: true };
+  const traitLines = traits.slice(0, 2).map(([k, v]) => TRAIT_LINE[k][v > 0 ? 0 : 1]).filter(Boolean);
+  const toneLines = toneOf(text, partner).slice(0, 2);
+  const body = [...traitLines, ...toneLines];
+  const read = body.length
+    ? `${quote} 보기엔 없던 답이라 냥신이 따로 읽어 봤다냥. ${body.join(" ")} ${pick(partner ? CLOSE_PARTNER : CLOSE_SELF)}`
+    : `${quote} ${pick(partner ? FALLBACK_PARTNER : FALLBACK_SELF)}`;
+  return { oid: null, label: `✏️ ${text}`, w: tw, read, custom: true };
 }
+
+// ───────────── Readings for typed answers that match no choice ─────────────
+
+type Test = RegExp | ((t: string) => boolean);
+
+/** [how it was said, self reading, partner reading] */
+const TONE: [Test, string, string][] = [
+  [/싫|않|안 |못 /, "원하는 것보다 '싫은 것'을 먼저 말하는 건, 지키고 싶은 선이 분명하다는 뜻이다냥.", "{p:이/가} 싫어하는 걸 먼저 떠올린 건, 네가 {p}의 선을 꽤 정확히 알고 있다는 뜻이다냥."],
+  [/편이|편$|스타일|타입/, "'~하는 편'이라고 말하는 건 스스로를 꽤 객관적으로 본다는 거다냥. 근데 연애할 땐 그 객관성이 제일 먼저 무너진다냥.", "{p:을/를} '~하는 편'이라고 정리할 만큼 오래 지켜봤다는 거다냥. 그만큼 {p}한테 마음을 쓰고 있다냥."],
+  [/확실|절대|무조건|꼭|항상|늘/, "'확실히', '절대' 같은 말이 나오는 건 이 부분에선 타협이 없다는 뜻이다냥.", "{p:은/는} 이 부분에서만큼은 원칙이 확실한 사람이다냥. 그 원칙을 건드리면 생각보다 크게 서운해한다냥."],
+  [/그냥|별로|딱히/, "'그냥'이라는 말 뒤에는 대개 꺼내기 귀찮거나 아픈 이유가 숨어 있다냥.", "'그냥'처럼 보이는 {p}의 행동에도 이유는 있다냥. {p:은/는} 그 이유를 말로 설명하는 게 서툰 사람이다냥."],
+  [(t) => t.length >= 20, "이렇게 길게 설명한 걸 보니, 이건 너한테 꽤 중요한 얘기다냥.", "이렇게 자세히 아는 걸 보니, 너는 {p:을/를} 생각보다 훨씬 깊이 관찰하고 있다냥."],
+  [(t) => t.length <= 4, "짧게 답한 걸 보니 고민할 필요도 없는 얘기였구냥. 그만큼 네 안에서 답이 확실하다냥.", "짧게 답할 만큼 {p}의 이 모습은 너한테 익숙하다냥. 익숙한 모습일수록 변할 때 제일 먼저 알아채야 한다냥."],
+];
+
+/** How the answer was phrased (hedges, absolutes, length…) → extra lines, so similar answers still read differently. */
+function toneOf(text: string, partner: boolean): string[] {
+  return TONE.filter(([re]) => (typeof re === "function" ? re(text) : re.test(text))).map(([, self, other]) => (partner ? other : self));
+}
+
+const CLOSE_SELF = [
+  "이 답 하나로 네 연애 습관이 꽤 많이 보인다냥.",
+  "보기에 없는 답을 고를 줄 아는 사람은 연애에서도 남들 공식대로 안 움직인다냥.",
+  "냥신은 이 답을 네 점괘에 따로 표시해 뒀다냥.",
+];
+const CLOSE_PARTNER = [
+  "보기에 없는 모습이라니, {p:은/는} 쉽게 한 유형으로 묶이지 않는 사람이다냥.",
+  "이런 디테일을 기억하는 것부터가 {p}한테 마음이 크다는 증거다냥.",
+  "냥신은 {p}의 이 모습을 따로 표시해 뒀다냥.",
+];
+const FALLBACK_SELF = [
+  "보기에 없는 답을 고른 것부터가 너답다냥. 남이 정해 둔 틀보다 네 방식이 먼저인 사람이다냥. 그래서 연애에서도 '보통은 이렇게 하잖아'라는 말을 제일 싫어한다냥.",
+  "보기 대신 네 말로 답했지. 정해진 답에 너를 끼워 맞추기 싫은 거다냥. 연애에서도 남들이 하는 방식보다 '우리만의 방식'을 찾는 사람이다냥.",
+  "흔한 보기에 안 넘어가는구냥. 이런 사람은 상대를 고를 때도 조건표보다 '이상하게 끌리는 한 가지'를 보고 고른다냥.",
+];
+const FALLBACK_PARTNER = [
+  "보기에 없는 모습이라니, {p:은/는} 쉽게 한 유형으로 묶이지 않는 사람이다냥. 그래서 너도 {p:을/를} 다 안다고 생각한 순간 새로운 모습에 놀란다냥.",
+  "흔한 보기로는 설명이 안 되는 사람이구냥. {p:은/는} 남들 눈에 보이는 모습과 너한테만 보이는 모습이 꽤 다른 사람이다냥.",
+  "{p}의 이 모습은 보기 어디에도 안 맞는다냥. 그만큼 너는 {p:을/를} 틀에 끼우지 않고 있는 그대로 보고 있다는 뜻이다냥.",
+];
+const UNKNOWN_SELF = [
+  "모른다는 것도 답이다냥. 바로 답이 안 나온다는 건, 이런 순간에 네 마음이 어떻게 움직이는지 아직 들여다볼 기회가 없었다는 뜻이다냥. 다음에 비슷한 순간이 오면 네가 제일 먼저 뭘 하는지 지켜봐라냥. 거기에 네 진짜 연애 습관이 있다냥.",
+  "모르겠다는 건 피하고 싶은 질문이었다는 뜻일 수도 있다냥. 사람은 제일 아픈 데서 제일 먼저 '글쎄'라고 한다냥. 이 질문, 나중에 혼자 있을 때 한 번만 다시 떠올려 봐라냥.",
+];
+const UNKNOWN_PARTNER = [
+  "모른다는 것도 답이다냥. {p:이/가} 이 모습을 아직 너한테 보여 준 적이 없다는 뜻이다냥. 사람은 마음을 연 만큼만 보여 준다냥. 다음에 {p}의 이 부분을 눈여겨봐라냥. 그게 보이기 시작하면 둘 사이가 한 단계 가까워진 거다냥.",
+  "모르겠다고 했지. {p:은/는} 이 부분을 일부러 안 보여 주는 걸 수도, 너한테 아직 보여 줄 기회가 없었던 걸 수도 있다냥. 한 번 가볍게 물어봐라냥. {p}의 대답보다 대답할 때 표정이 더 많은 걸 말해 준다냥.",
+];

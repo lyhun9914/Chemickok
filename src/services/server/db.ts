@@ -51,8 +51,10 @@ function supabase(url: string, key: string): Db {
       headers: { ...headers, ...(init.prefer ? { Prefer: init.prefer } : {}) },
       cache: "no-store",
     });
-    if (!res.ok) throw new Error(`db ${res.status}: ${await res.text().catch(() => "")}`);
-    return (res.status === 204 ? null : await res.json()) as T;
+    const text = await res.text().catch(() => "");
+    if (!res.ok) throw new Error(`db ${res.status}: ${text}`);
+    // Writes without return=representation answer 201/204 with an empty body.
+    return (text ? JSON.parse(text) : null) as T;
   }
   const eq = (v: string) => `eq.${encodeURIComponent(v)}`;
 

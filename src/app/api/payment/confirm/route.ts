@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildReport, buildTeaser, inputHash, validateInput } from "@/engine/analyze";
-import { PRODUCT } from "@/lib/config";
+import { productOf } from "@/lib/config";
 import type { UnlockResponse } from "@/models/types";
 import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       }
       break;
     case "toss": {
-      if (!body.paymentKey || !body.orderId || body.amount !== PRODUCT.price) {
+      if (!body.paymentKey || !body.orderId || body.amount !== productOf(input.mode).price) {
         return NextResponse.json({ error: "결제 정보가 올바르지 않습니다." }, { status: 400 });
       }
       if (!body.orderId.startsWith(inputHash(input))) {
@@ -63,8 +63,13 @@ export async function POST(req: Request) {
     const hash = inputHash(input);
     const orderId = body.method === "toss" ? body.orderId! : `test-${hash}-${Date.now()}`;
     try {
-      await db.recordPayment({ orderId, userId: uid, inputHash: hash, amount: PRODUCT.price, method: body.method });
+      await db
+        .recordPayment({ orderId, userId: uid, inputHash: hash, amount: productOf(input.mode).price, method: body.method })
+        .catch((e) => console.error("recording payment failed", e));
       if (uid) {
+        // First paid reading of a user who logged in before the interview: keep their 기본 정보 too.
+        const user = await db.getUser(uid);
+        if (user && !user.profile) await db.updateProfile(uid, input.me);
         const title = input.mode === "solo" ? `${input.me.name}의 연애 팔자` : `${input.me.name} 💞 ${input.partner.name} 궁합`;
         res.readingId = await db.saveReading({ user_id: uid, mode: input.mode, title, names: { me: input.me.name, partner: input.partner.name }, teaser: buildTeaser(input), report, order_id: orderId });
       }
