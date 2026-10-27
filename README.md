@@ -76,3 +76,11 @@ src/
 
 ## Scripts
 `npm run dev` · `npm run build` · `npm start`
+
+## 회원 (로그인 · 내 점괘함)
+- Login with Kakao / Naver / Google (`src/services/server/oauth.ts`, routes under `src/app/api/auth/[provider]/`) — plain OAuth 2.0 code flow, signed `httpOnly` session cookie (`AUTH_SECRET`).
+- Login is asked **at payment** (free reading needs no account); "로그인 없이 결제" still works. After the redirect the payment sheet reopens.
+- Stored in Supabase via the server-only secret key (`src/services/server/db.ts`, schema in `supabase/migrations/0001_accounts.sql`, RLS on with no policies):
+  `users` (provider id, nickname, 기본 정보), `readings` (paid teaser + report + display names only), `payments` (5-year record, unlinked on 탈퇴).
+- 내 점괘함 (`src/components/MyPage.tsx`): saved readings, edit 기본 정보, logout, 회원 탈퇴. With a saved profile the interview skips name/birth/MBTI.
+- No auth env vars → no login buttons, nothing stored (the original stateless flow). `AUTH_DEV_LOGIN=1` locally adds a 🧪 test login with an in-memory DB.

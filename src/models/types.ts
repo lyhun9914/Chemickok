@@ -191,6 +191,8 @@ export interface AnalyzeResponse {
 export interface UnlockResponse {
   level: UnlockLevel;
   report: FullReport;
+  /** set when the reading was saved to the user's 내 점괘함 */
+  readingId?: string;
 }
 
 export type PaymentMethod = "toss" | "kakaopay";

@@ -1,10 +1,10 @@
-import type { AnalyzeResponse, QuestionnaireInput, UnlockResponse } from "@/models/types";
+import type { AnalyzeResponse, FullReport, PersonInput, QuestionnaireInput, TeaserReport, UnlockResponse } from "@/models/types";
 
-async function post<T>(url: string, body: unknown): Promise<T> {
+async function post<T>(url: string, body: unknown, method = "POST"): Promise<T> {
   const res = await fetch(url, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string }).error ?? `요청 실패 (${res.status})`);
@@ -34,4 +34,42 @@ export interface DailyFortuneResponse {
 
 export const dailyApi = {
   get: (birthdate: string) => post<DailyFortuneResponse>("/api/daily", { birthdate }),
+};
+
+// ───────────── 회원 ─────────────
+
+export type LoginProvider = "kakao" | "naver" | "google" | "dev";
+
+export interface Me {
+  id: string;
+  provider: string;
+  nickname: string;
+  profile: PersonInput | null;
+}
+
+export interface ReadingSummary {
+  id: string;
+  mode: "solo" | "couple";
+  title: string;
+  created_at: string;
+}
+
+async function get<T>(url: string): Promise<T> {
+  const res = await fetch(url, { cache: "no-store" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data as { error?: string }).error ?? `요청 실패 (${res.status})`);
+  return data as T;
+}
+
+export const accountApi = {
+  me: () => get<{ user: Me | null; providers: LoginProvider[] }>("/api/me"),
+  saveProfile: (profile: PersonInput) => post<{ profile: PersonInput }>("/api/me", { profile }, "PUT"),
+  withdraw: () => post<{ ok: true }>("/api/me", undefined, "DELETE"),
+  logout: () => post<{ ok: true }>("/api/auth/logout", undefined),
+  readings: () => get<{ readings: ReadingSummary[] }>("/api/readings"),
+  reading: (id: string) =>
+    get<{ reading: { id: string; mode: "solo" | "couple"; title: string; names: { me: string; partner: string }; teaser: TeaserReport; report: FullReport; created_at: string } }>(`/api/readings/${id}`),
+  deleteReading: (id: string) => post<{ ok: true }>(`/api/readings/${id}`, undefined, "DELETE"),
+  /** Full-page redirect to the provider; `pay` reopens the payment sheet on return. */
+  loginUrl: (p: LoginProvider, next: "pay" | "" = "") => `/api/auth/${p}/login${next ? `?next=${next}` : ""}`,
 };

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { buildReport, inputHash, validateInput } from "@/engine/analyze";
+import { buildReport, buildTeaser, inputHash, validateInput } from "@/engine/analyze";
 import { PRODUCT } from "@/lib/config";
 import type { UnlockResponse } from "@/models/types";
+import { getDb } from "@/services/server/db";
+import { sessionUserId } from "@/services/server/session";
 import { confirmTossPayment, serverTestMode } from "@/services/server/tossConfirm";
 
 interface ConfirmBody {
@@ -51,6 +53,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "지원하지 않는 결제 방식입니다." }, { status: 400 });
   }
 
-  const res: UnlockResponse = { level: "full", report: buildReport(input, "full") };
+  const report = buildReport(input, "full");
+  const res: UnlockResponse = { level: "full", report };
+
+  // Logged in: keep the payment record and file the reading in 내 점괘함. Never blocks the unlock.
+  const db = getDb();
+  const uid = sessionUserId(req);
+  if (db) {
+    const hash = inputHash(input);
+    const orderId = body.method === "toss" ? body.orderId! : `test-${hash}-${Date.now()}`;
+    try {
+      await db.recordPayment({ orderId, userId: uid, inputHash: hash, amount: PRODUCT.price, method: body.method });
+      if (uid) {
+        const title = input.mode === "solo" ? `${input.me.name}의 연애 팔자` : `${input.me.name} 💞 ${input.partner.name} 궁합`;
+        res.readingId = await db.saveReading({ user_id: uid, mode: input.mode, title, names: { me: input.me.name, partner: input.partner.name }, teaser: buildTeaser(input), report, order_id: orderId });
+      }
+    } catch (e) {
+      console.error("saving payment/reading failed", e);
+    }
+  }
   return NextResponse.json(res);
 }

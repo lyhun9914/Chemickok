@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PRODUCT } from "@/lib/config";
 import { josa } from "@/lib/josa";
 import type { UnlockResponse } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { FlipCard, Nyang, Say, type Mood } from "./Nyang";
+import { LoginSheet } from "./LoginSheet";
 import { PaymentModal } from "./PaymentModal";
 import {
   Card,
@@ -41,13 +42,37 @@ const TYPING_MS = 750;
 
 export function ResultView() {
   const { teaser, report, level, input, inputHash, applyUnlock, reset } = useAppStore();
+  const { me: account, providers, meLoaded, setResumePay } = useAppStore();
+  // Set before the login redirect; read once on this page load (the flag flips while the page is still leaving).
+  const [resumeAtLoad] = useState(() => useAppStore.getState().resumePay);
+  const resumed = useRef(false);
   const [payOpen, setPayOpen] = useState(false);
-  const [flipped, setFlipped] = useState(level !== "none");
-  // Paid / returning users see everything at once.
-  const [shown, setShown] = useState(() => (level !== "none" ? Number.MAX_SAFE_INTEGER : 1));
-  const [typing, setTyping] = useState(level === "none");
+  const [flipped, setFlipped] = useState(level !== "none" || resumeAtLoad);
+  // Paid users and users back from the login redirect see everything at once.
+  const [shown, setShown] = useState(() => (level !== "none" || resumeAtLoad ? Number.MAX_SAFE_INTEGER : 1));
+  const [typing, setTyping] = useState(level === "none" && !resumeAtLoad);
   const [leaveAsked, setLeaveAsked] = useState(false);
   const toast = useToast();
+  const [loginOpen, setLoginOpen] = useState(false);
+  // Every "pay" button sets an intent: logged-out users see the login sheet first (when accounts are on).
+  const [payIntent, setPayIntent] = useState(false);
+
+  useEffect(() => {
+    if (!payIntent) return;
+    setPayIntent(false);
+    if (!account && providers.length > 0) setLoginOpen(true);
+    else setPayOpen(true);
+  }, [payIntent, account, providers]);
+
+  // Back from the login redirect: continue to the payment sheet (or the login sheet again if it was cancelled).
+  useEffect(() => {
+    if (!resumeAtLoad || resumed.current || !meLoaded) return;
+    resumed.current = true;
+    setResumePay(false);
+    if (level === "full") return;
+    if (account) setPayOpen(true);
+    else setLoginOpen(true);
+  }, [resumeAtLoad, meLoaded, account, level, setResumePay]);
 
   const me = input.me.name;
   const p = input.partner.name;
@@ -130,7 +155,7 @@ export function ResultView() {
           ? "…근데 너, 연애할 때마다 똑같은 실수 하나 하고 있다냥. 이건 좀 이따 말해 주겠다냥 🤐"
           : `…근데 ${josa(p, "이/가")} 너한테 하고 싶은데 못 한 말이 있다냥. 냥신이 편지로 받아 적어 뒀다냥 🤐`,
         mood: "wow",
-        node: <LockedCard preview={hook} compact onClick={() => setPayOpen(true)} />,
+        node: <LockedCard preview={hook} compact onClick={() => setPayIntent(true)} />,
         next: "뭔데 궁금하게… 계속",
       });
     }
@@ -151,7 +176,7 @@ export function ResultView() {
     list.push({
       say: `네 답 ${teaser.locked.find((l) => l.id === "decode")?.count ?? ""}개 속에 숨어 있던 걸 수치로 뽑아 봤다냥. 본인은 모르는 거다냥.`.replace("  ", " "),
       mood: "smug",
-      node: <HiddenCard personal={personal} onLocked={() => setPayOpen(true)} />,
+      node: <HiddenCard personal={personal} onLocked={() => setPayIntent(true)} />,
       next: "이게 무슨 뜻인데?",
     });
     if (solo) {
@@ -244,7 +269,7 @@ export function ResultView() {
     setPayOpen(false);
     setFlipped(true);
     setShown(Number.MAX_SAFE_INTEGER);
-    toast.show(u.level === "full" ? "🐾 복채 잘 받았다냥!" : "🔓 하나는 공짜로 알려주겠다냥!");
+    toast.show(u.level === "full" ? (u.readingId ? "🐾 복채 잘 받았다냥! 내 점괘함에 보관해 뒀다냥" : "🐾 복채 잘 받았다냥!") : "🔓 하나는 공짜로 알려주겠다냥!");
     setTimeout(() => document.getElementById("paid-report")?.scrollIntoView({ behavior: "smooth" }), 250);
   };
 
@@ -315,7 +340,7 @@ export function ResultView() {
                         i === 0 && shared ? (
                           <SectionCard key={lp.id} icon={shared.icon} section={shared.section} />
                         ) : (
-                          <LockedCard key={lp.id} preview={lp} onClick={() => setPayOpen(true)} />
+                          <LockedCard key={lp.id} preview={lp} onClick={() => setPayIntent(true)} />
                         ),
                       )}
                     </div>
@@ -336,7 +361,7 @@ export function ResultView() {
                       </p>
                     </div>
                     <div className="sticky bottom-4 z-10 mt-5">
-                      <button onClick={() => setPayOpen(true)} className="btn-primary glow shine w-full py-4">
+                      <button onClick={() => setPayIntent(true)} className="btn-primary glow shine w-full py-4">
                         <span className="block text-[17px]">{payLabel} · {PRODUCT.price.toLocaleString()}원</span>
                         <span className="block text-xs font-medium opacity-90">☕ 커피 한 잔보다 싼 복채다냥</span>
                       </button>
@@ -363,7 +388,7 @@ export function ResultView() {
               한 번에 다 보기
             </button>
             {level !== "full" && (
-              <button onClick={() => setPayOpen(true)} className="text-xs font-bold text-peach">
+              <button onClick={() => setPayIntent(true)} className="text-xs font-bold text-peach">
                 기다리기 싫다냥? 바로 전부 열기 990원 →
               </button>
             )}
@@ -391,7 +416,7 @@ export function ResultView() {
                 <button
                   onClick={() => {
                     setLeaveAsked(false);
-                    setPayOpen(true);
+                    setPayIntent(true);
                   }}
                   className="btn-primary mt-5 w-full py-4"
                 >
@@ -406,6 +431,15 @@ export function ResultView() {
         </>
       )}
 
+      <LoginSheet
+        open={loginOpen}
+        forPay
+        onClose={() => setLoginOpen(false)}
+        onGuest={() => {
+          setLoginOpen(false);
+          setPayOpen(true);
+        }}
+      />
       <PaymentModal
         open={payOpen}
         input={input}

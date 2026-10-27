@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
+import { LoginSheet } from "./LoginSheet";
 import { MiniGameSheet, type MiniGame } from "./MiniGames";
 import { Nyang } from "./Nyang";
 
@@ -13,17 +14,33 @@ const PREVIEW_TYPES = [
 ];
 
 export function Landing() {
-  const { setScreen, setStep } = useAppStore();
+  const { setScreen, setStep, me, providers, updateMe } = useAppStore();
   const [game, setGame] = useState<MiniGame | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const start = () => {
     setGame(null);
+    // Saved 기본 정보 → the interview skips straight past name/birth.
+    if (me?.profile) updateMe(me.profile);
     setStep(0);
     setScreen("form");
   };
 
   return (
-    <main className="flex flex-1 flex-col px-5 pt-8">
+    <main className="flex flex-1 flex-col px-5 pt-4">
+      {providers.length > 0 && (
+        <div className="flex justify-end">
+          {me ? (
+            <button onClick={() => setScreen("my")} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold">
+              📜 내 점괘함
+            </button>
+          ) : (
+            <button onClick={() => setLoginOpen(true)} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted">
+              로그인
+            </button>
+          )}
+        </div>
+      )}
       <div className="fade-up text-center">
         <span className="inline-block rounded-full border border-pink/30 bg-pink/10 px-3 py-1 text-xs font-semibold text-pink">
           🐾 고양이 도사의 연애 점집
@@ -95,6 +112,7 @@ export function Landing() {
       </section>
 
       <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={start} />
+      <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />
     </main>
   );
 }

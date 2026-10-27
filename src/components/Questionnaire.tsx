@@ -6,6 +6,7 @@ import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
 import type { Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
+import { DateTimeSelects } from "./DateTimeSelects";
 import { Nyang, type Mood } from "./Nyang";
 
 // ───────────── Script ─────────────
@@ -15,9 +16,12 @@ type Turn =
   | { kind: "ritual"; id: "incense" | "orb" }
   | { kind: "q"; q: InterviewQuestion; part: "self" | "partner"; num: number };
 
-function turnsFor(mode: Mode): Turn[] {
+/** `saved`: the logged-in user's 기본 정보 is already filled in, so name/birth/MBTI aren't asked again. */
+function turnsFor(mode: Mode, saved: boolean): Turn[] {
   const self: Turn[] = selfInterview(mode).map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
-  const info: Turn[] = [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }, { kind: "mbti" }];
+  const info: Turn[] = saved
+    ? [{ kind: "mode" }]
+    : [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }, { kind: "mbti" }];
   if (mode === "solo") return [...info, { kind: "ritual", id: "incense" }, ...self, { kind: "end" }];
   const partner: Turn[] = PARTNER_INTERVIEW.map((q, i) => ({ kind: "q", q, part: "partner", num: i + 1 }));
   return [
@@ -74,11 +78,13 @@ const STATUS_REACT: Record<RelationshipStatus, string> = {
 
 const n = (text: string, mood: Mood = "talk", node?: React.ReactNode) => ({ text, mood, node });
 
-function asks(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
+function asks(t: Turn, i: QuestionnaireInput, saved = false): ReturnType<typeof n>[] {
   const p = i.partner.name || "그 사람";
   switch (t.kind) {
     case "mode":
-      return [n("어서 오라냥. 여기는 냥신 상담소다냥 🐾", "smug"), n("오늘은 누구 연애를 봐 줄까냥?")];
+      return saved
+        ? [n(`${iGuNyang(i.me.name)}. 또 왔냥? 반갑다냥 🐾`, "happy"), n("생년월일은 기억하고 있으니 바로 시작하겠다냥. 오늘은 누구 연애를 봐 줄까냥?")]
+        : [n("어서 오라냥. 여기는 냥신 상담소다냥 🐾", "smug"), n("오늘은 누구 연애를 봐 줄까냥?")];
     case "name":
       return [n("좋다냥. 먼저 이름부터 대라냥."), n("실명이면 이름 획수로 타고난 기운까지 봐 준다냥. 닉네임이면… 뭐, 그것도 괜찮다냥.", "smug")];
     case "gender":
@@ -203,17 +209,17 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
   }
 }
 
-function buildThread(turns: Turn[], step: number, input: QuestionnaireInput): { msgs: Msg[]; askStart: number } {
+function buildThread(turns: Turn[], step: number, input: QuestionnaireInput, saved: boolean): { msgs: Msg[]; askStart: number } {
   const msgs: Msg[] = [];
   const push = (key: string, m: ReturnType<typeof n>) => msgs.push({ key, who: "nyang", ...m });
   turns.slice(0, step).forEach((t, ti) => {
-    asks(t, input).forEach((m, k) => push(`${ti}a${k}`, m));
+    asks(t, input, saved).forEach((m, k) => push(`${ti}a${k}`, m));
     msgs.push({ key: `${ti}me`, who: "me", text: answerOf(t, input) });
     reactsOf(t, input).forEach((m, k) => push(`${ti}r${k}`, m));
   });
   const askStart = msgs.length;
   const cur = turns[step];
-  if (cur) asks(cur, input).forEach((m, k) => push(`${step}a${k}`, m));
+  if (cur) asks(cur, input, saved).forEach((m, k) => push(`${step}a${k}`, m));
   return { msgs, askStart };
 }
 
@@ -326,29 +332,6 @@ function TextDock({ initial, placeholder, hint, onSend }: { initial: string; pla
   );
 }
 
-const selectCls =
-  "min-w-0 flex-1 appearance-none rounded-2xl border border-line bg-surface-2 bg-[length:12px] bg-[right_0.75rem_center] bg-no-repeat py-3 pl-3 pr-7 text-center text-[15px] font-semibold text-ink outline-none focus:border-pink/60 invalid:text-muted";
-const caret = { backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a99cc8' stroke-width='2' fill='none'/%3E%3C/svg%3E\")" };
-
-const range = (from: number, to: number) => Array.from({ length: Math.abs(to - from) + 1 }, (_, k) => (from <= to ? from + k : from - k));
-const pad = (n: number) => String(n).padStart(2, "0");
-
-function Select({ value, placeholder, options, onChange }: { value: string; placeholder: string; options: { v: string; label: string }[]; onChange: (v: string) => void }) {
-  return (
-    <select required className={selectCls} style={caret} value={value} onChange={(e) => onChange(e.target.value)} aria-label={placeholder}>
-      <option value="" disabled>
-        {placeholder}
-      </option>
-      {options.map((o) => (
-        <option key={o.v} value={o.v}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-/** Birth date / time as native dropdowns (a scroll wheel on phones) instead of a calendar input. */
 /** Answer chips plus a "type my own answer" escape hatch. */
 function QuestionDock({ options, onAnswer }: { options: { id: string; label: string }[]; onAnswer: (a: string) => void }) {
   const [writing, setWriting] = useState(false);
@@ -408,43 +391,10 @@ function PickerDock({
   onSend: (v: string) => void;
   onUnknown?: () => void;
 }) {
-  const parts = initial ? initial.split(/[-:]/).map((x) => String(Number(x))) : [];
-  const [a, setA] = useState(parts[0] ?? "");
-  const [b, setB] = useState(parts[1] ?? "");
-  const [c, setC] = useState(parts[2] ?? "");
-
-  let selects: React.ReactNode;
-  let value = "";
-  if (type === "date") {
-    const thisYear = new Date().getFullYear();
-    const days = a && b ? new Date(Number(a), Number(b), 0).getDate() : 31;
-    const day = c && Number(c) > days ? "" : c;
-    value = a && b && day ? `${a}-${pad(Number(b))}-${pad(Number(day))}` : "";
-    selects = (
-      <>
-        <Select value={a} placeholder="년" onChange={setA} options={range(thisYear, 1940).map((y) => ({ v: String(y), label: `${y}년` }))} />
-        <Select value={b} placeholder="월" onChange={setB} options={range(1, 12).map((m) => ({ v: String(m), label: `${m}월` }))} />
-        <Select value={day} placeholder="일" onChange={setC} options={range(1, days).map((d) => ({ v: String(d), label: `${d}일` }))} />
-      </>
-    );
-  } else {
-    value = a && b ? `${pad(Number(a))}:${pad(Number(b))}` : "";
-    selects = (
-      <>
-        <Select
-          value={a}
-          placeholder="시"
-          onChange={setA}
-          options={range(0, 23).map((h) => ({ v: String(h), label: `${h < 12 ? "오전" : "오후"} ${h % 12 || 12}시` }))}
-        />
-        <Select value={b} placeholder="분" onChange={setB} options={range(0, 59).map((m) => ({ v: String(m), label: `${m}분` }))} />
-      </>
-    );
-  }
-
+  const [value, setValue] = useState(initial);
   return (
     <div className="chip-pop space-y-2">
-      <div className="flex gap-2">{selects}</div>
+      <DateTimeSelects type={type} initial={initial} onChange={setValue} />
       <button disabled={!value} onClick={() => onSend(value)} className="btn-primary w-full py-3.5">
         확인
       </button>
@@ -464,9 +414,12 @@ const delayFor = (m: Msg) => (m.who === "me" ? 140 : Math.min(420 + m.text.lengt
 export function Questionnaire() {
   const s = useAppStore();
   const { step, setStep, setScreen, input } = s;
-  const turns = useMemo(() => turnsFor(input.mode), [input.mode]);
+  const profile = useAppStore((st) => st.me?.profile);
+  // Only skip the info questions when the interview actually holds the saved 기본 정보.
+  const saved = Boolean(profile && profile.name === input.me.name && profile.birthdate === input.me.birthdate);
+  const turns = useMemo(() => turnsFor(input.mode, saved), [input.mode, saved]);
   const cur = turns[Math.min(step, turns.length - 1)];
-  const { msgs, askStart } = useMemo(() => buildThread(turns, Math.min(step, turns.length - 1), input), [turns, step, input]);
+  const { msgs, askStart } = useMemo(() => buildThread(turns, Math.min(step, turns.length - 1), input, saved), [turns, step, input, saved]);
 
   // Messages before `revealed` are on screen; the rest appear one by one (냥신 "types" first).
   const [revealed, setRevealed] = useState(askStart);
