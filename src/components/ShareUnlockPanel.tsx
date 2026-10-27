@@ -16,7 +16,7 @@ interface Props {
 export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Props) {
   const share = async () => {
     const outcome = await shareService.shareLink({
-      title: "냥신 연애 점집 🐾",
+      title: "냥신 점괘 🐾",
       description: "고양이 도사 냥신이 사주로 연애 봐주는데 소름 돋게 잘 맞아 😳 너도 해 봐!",
       url: siteUrl(),
     });

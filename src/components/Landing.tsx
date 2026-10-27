@@ -43,7 +43,7 @@ export function Landing() {
       )}
       <div className="fade-up text-center">
         <span className="inline-block rounded-full border border-pink/30 bg-pink/10 px-3 py-1 text-xs font-semibold text-pink">
-          🐾 고양이 도사의 연애 점집
+          🐾 고양이 도사의 점집 · 냥신 점괘
         </span>
         <div className="float mx-auto mt-6 w-fit">
           <Nyang mood="smug" size={150} />
