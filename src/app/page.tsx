@@ -29,7 +29,8 @@ export default function Home() {
     const q = new URLSearchParams(window.location.search);
     const login = q.get("login");
     if (login) window.history.replaceState(null, "", "/");
-    if (login && LOGIN_NOTICE[login]) setNotice(LOGIN_NOTICE[login]);
+    const reason = q.get("reason");
+    if (login && LOGIN_NOTICE[login]) setNotice(LOGIN_NOTICE[login] + (reason ? ` (원인: ${reason.slice(0, 40)})` : ""));
 
     loadMe().then(async (me) => {
       // First login: keep the 기본 정보 the user just typed in the interview.
@@ -47,7 +48,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!notice) return;
-    const t = setTimeout(() => setNotice(null), 3500);
+    const t = setTimeout(() => setNotice(null), 8000);
     return () => clearTimeout(t);
   }, [notice]);
 

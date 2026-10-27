@@ -18,9 +18,9 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/auth/[provid
   const db = getDb();
   const code = params.get("code");
   // User pressed "cancel" on the consent screen, or the state doesn't match (CSRF / expired).
-  if (!db || !isProvider(provider) || !code || !saved || saved.provider !== provider || saved.state !== params.get("state")) {
-    return finish(params.get("error") ? "login=cancel" : "login=fail");
-  }
+  if (params.get("error")) return finish("login=cancel");
+  if (!db || !isProvider(provider) || !code) return finish("login=fail&reason=setup");
+  if (!saved || saved.provider !== provider || saved.state !== params.get("state")) return finish("login=fail&reason=state");
   try {
     const redirectUri = new URL(`/api/auth/${provider}/callback`, req.url).toString();
     const profile = await fetchProfile(provider, code, saved.state, redirectUri);
@@ -30,6 +30,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/auth/[provid
     return res;
   } catch (e) {
     console.error("oauth callback failed", provider, e);
-    return finish("login=fail");
+    // A short, non-secret cause (e.g. "token-KOE010", "db-401") so failures can be diagnosed from the screen.
+    const m = /^(token|profile|db)\W+(\w+)/.exec(String((e as Error).message));
+    return finish(`login=fail&reason=${m ? `${m[1]}-${m[2]}` : "unknown"}`);
   }
 }

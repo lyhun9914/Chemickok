@@ -86,8 +86,8 @@ export async function fetchProfile(id: ProviderId, code: string, state: string, 
     body,
     cache: "no-store",
   });
-  const token = (await tokenRes.json().catch(() => ({}))) as { access_token?: string; error?: string };
-  if (!tokenRes.ok || !token.access_token) throw new Error(`token: ${token.error ?? tokenRes.status}`);
+  const token = (await tokenRes.json().catch(() => ({}))) as { access_token?: string; error?: string; error_code?: string };
+  if (!tokenRes.ok || !token.access_token) throw new Error(`token: ${token.error_code ?? token.error ?? tokenRes.status}`);
   const profileRes = await fetch(p.profileUrl, { headers: { Authorization: `Bearer ${token.access_token}` }, cache: "no-store" });
   if (!profileRes.ok) throw new Error(`profile: ${profileRes.status}`);
   const profile = p.parse((await profileRes.json()) as Record<string, unknown>);
