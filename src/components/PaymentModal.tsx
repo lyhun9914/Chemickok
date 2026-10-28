@@ -48,7 +48,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
         <div className="mt-4 flex items-end justify-between rounded-2xl bg-white/[0.04] p-4">
           <div>
             <p className="text-sm text-muted">{product.orderName}</p>
-            <p className="mt-1 text-xs text-peach">{product.price < 3000 ? "☕ 아메리카노보다 싸다냥" : "☕ 커피 한 잔 값이다냥"}</p>
+            <p className="mt-1 text-xs text-peach">{product.price < 1000 ? "🪙 천 원도 안 되는 복채다냥" : product.price < 2000 ? "☕ 커피 반 잔 값이다냥" : product.price < 3000 ? "☕ 아메리카노보다 싸다냥" : "☕ 커피 한 잔 값이다냥"}</p>
           </div>
           <p className="text-2xl font-extrabold">
             {product.price.toLocaleString("ko-KR")}

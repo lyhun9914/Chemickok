@@ -71,7 +71,7 @@ export const INCONSISTENT_COUPLE = "{p} 앞에선 딴사람이 된다냥.";
 /** MBTI / 일간 vs this answer. */
 export const MBTI_ALIGNED = [
   "딱 {mbti}다운 답이다냥. {mbti}는 연애하면 '{face}'이 된다냥.",
-  "{mbti} 공식 그대로다냥. 넌 '{face}'이다냥.",
+  "{mbti} 공식 그대로다냥. 연애에선 '{face}' 쪽으로 기운다냥.",
 ];
 export const MBTI_OPPOSITE = [
   "{mbti}치고 의외다냥. 보통은 '{expected}'인데 넌 연애 앞에서 '{face}'이 된다냥.",

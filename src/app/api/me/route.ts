@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { normalizeMbti } from "@/engine/mbti";
+import { normalizeBlood } from "@/lib/blood";
 import type { Gender, PersonInput } from "@/models/types";
 import { devLoginEnabled, getDb } from "@/services/server/db";
 import { enabledProviders } from "@/services/server/oauth";
@@ -31,6 +32,8 @@ function cleanProfile(p: Partial<PersonInput> | undefined): PersonInput | null {
     birthdate,
     birthtime: /^\d{2}:\d{2}$/.test(birthtime) ? birthtime : "",
     mbti: normalizeMbti(p?.mbti),
+    // Left out when never asked, so the next interview asks once; "" means they answered 몰라.
+    ...(p?.blood === undefined ? {} : { blood: normalizeBlood(p.blood) }),
   };
 }
 

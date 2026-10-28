@@ -9,9 +9,11 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { MyPage } from "@/components/MyPage";
 import { Questionnaire } from "@/components/Questionnaire";
 import { ResultView } from "@/components/ResultView";
+import { SoundToggle } from "@/components/SoundToggle";
 import { StoryScreen } from "@/components/StoryScreen";
 import { isFortune } from "@/lib/config";
 import { readHandoff } from "@/lib/handoff";
+import { sound } from "@/lib/sound";
 import { accountApi } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -58,6 +60,8 @@ export default function Home() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    // Room tone follows the screen: wind at the gate, the drone inside, a heartbeat while the reading is drawn.
+    sound().setScene(screen === "landing" ? "gate" : screen === "form" ? "inside" : screen === "loading" ? "loading" : "result");
     // The camera sits right at the altar while reading the result.
     if (screen === "loading" || screen === "result" || screen === "my") document.documentElement.style.setProperty("--progress", "1");
   }, [screen]);
@@ -80,6 +84,8 @@ export default function Home() {
       {screen === "my" && <MyPage />}
       {screen === "story" && <StoryScreen />}
       {(screen === "landing" || screen === "result" || screen === "my" || screen === "story") && <Footer />}
+      {/* Landing and the interview carry the toggle in their own top bar. */}
+      {screen !== "landing" && screen !== "form" && <SoundToggle floating />}
       {notice && (
         <div className="fade-up fixed inset-x-0 top-4 z-[60] mx-auto w-fit max-w-[90%] rounded-full bg-ink px-4 py-2 text-sm font-semibold text-bg shadow-lg">
           {notice}

@@ -489,3 +489,7 @@ h1 { text-shadow: 0 0 18px rgba(232, 150, 60, 0.25); }
   text-shadow: 0 0 12px rgba(221, 42, 123, 0.4);
 }
 .share-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; font-size: 15px; }
+
+/* 가로 슬라이드: 스크롤바 숨김 */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

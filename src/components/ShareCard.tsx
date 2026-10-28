@@ -1,16 +1,18 @@
 "use client";
 
 import { forwardRef } from "react";
-import type { StoryCard } from "@/models/types";
+import { isFortuneCard, type ShareableCard, type StoryCard } from "@/models/types";
 import { Nyang } from "./Nyang";
 
 /** The type card shown above the share buttons (the Instagram image itself is drawn in lib/storyImage). */
-export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName: string; partnerName: string }>(
-  function ShareCard({ teaser, myName, partnerName }, ref) {
+export const ShareCard = forwardRef<HTMLDivElement, { teaser: ShareableCard; myName: string; partnerName: string }>(
+  function ShareCard({ teaser: card, myName, partnerName }, ref) {
     const ritual = "'Song Myung', 'Nanum Myeongjo', serif";
-    const meta = [teaser.myType.code, teaser.match.myMbti, teaser.saju && `${teaser.saju.dayMaster.hangul}${teaser.saju.dayMaster.hanja}일간`]
-      .filter(Boolean)
-      .join(" · ");
+    const f = isFortuneCard(card) ? card : null;
+    const teaser = card as StoryCard;
+    const meta = f
+      ? f.meta
+      : [teaser.myType.code, teaser.match.myMbti, teaser.saju && `${teaser.saju.dayMaster.hangul}${teaser.saju.dayMaster.hanja}일간`].filter(Boolean).join(" · ");
     return (
       <div
         ref={ref}
@@ -45,7 +47,7 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName:
             </p>
           </div>
           <p className="mt-4 text-center text-[12px]" style={{ color: "#a8977e" }}>
-            {myName}의 연애 팔자
+            {f ? f.label : `${myName}의 연애 팔자`}
           </p>
           <div
             className="mx-auto mt-2 grid h-[92px] w-[92px] place-items-center rounded-full text-[54px] leading-none"
@@ -54,13 +56,13 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName:
               boxShadow: "0 0 0 2px rgba(201,162,90,0.6), 0 0 0 6px rgba(201,162,90,0.12), 0 0 30px rgba(230,120,40,0.45)",
             }}
           >
-            {teaser.myType.emoji}
+            {f ? f.emoji : teaser.myType.emoji}
           </div>
           <p className="mt-3 text-center text-[25px] leading-tight" style={{ fontFamily: ritual, color: "#f3dfae", textShadow: "0 0 14px rgba(230,140,50,0.45)" }}>
-            {teaser.myType.name}
+            {f ? f.headline : teaser.myType.name}
           </p>
           <p className="mt-1.5 text-center text-[12.5px]" style={{ color: "#c8b79a" }}>
-            “{teaser.myType.tagline}”
+            {f ? f.sub : `“${teaser.myType.tagline}”`}
           </p>
           <p className="mt-2 text-center text-[11px] tracking-[0.25em]" style={{ color: "#8f7d63" }}>
             {meta}
@@ -74,7 +76,21 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName:
               boxShadow: "inset 0 0 14px rgba(120,85,40,0.35)",
             }}
           >
-            {teaser.couple ? (
+            {f ? (
+              <>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[12px]" style={{ color: "#6b4a2a" }}>
+                    {f.slipLabel}
+                  </span>
+                  {f.slipValue && (
+                    <span className="text-[26px] leading-none" style={{ fontFamily: ritual, color: "#8e1f17" }}>
+                      {f.slipValue}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[13px] font-semibold leading-snug">{f.slipText}</p>
+              </>
+            ) : teaser.couple ? (
               <>
                 <div className="flex items-baseline justify-between">
                   <span className="text-[12px]" style={{ color: "#6b4a2a" }}>

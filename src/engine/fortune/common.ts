@@ -300,6 +300,7 @@ export function basisCard(c: Chart, extra: [string, string][] = []): FortuneCard
     ["용신", `${elementLabel(c.yongsin)}`],
     ["신살", sinsalList(c).join(" · ") || "특이 신살 없음"],
     ["대운", `${c.forward ? "순행" : "역행"} · 대운수 ${c.daeunSu}`],
+    ...(c.blood ? ([["혈액형", `${c.blood}형`]] as [string, string][]) : []),
     ...extra,
   ];
   return {

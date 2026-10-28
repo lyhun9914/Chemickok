@@ -59,6 +59,16 @@ function ProfileForm({ initial, onSaved }: { initial: PersonInput | null; onSave
           <DateTimeSelects type="time" initial={initial?.birthtime ?? ""} onChange={setBirthtime} />
         </div>
       </div>
+      <div className="text-xs text-muted">
+        혈액형 (선택)
+        <div className="mt-1 grid grid-cols-5 gap-2">
+          {(["A", "B", "O", "AB", ""] as const).map((b) => (
+            <button key={b || "none"} onClick={() => set({ blood: b })} className={`rounded-xl border py-2 text-sm ${(p.blood ?? "") === b ? "border-pink bg-pink/15 text-ink" : "border-line text-muted"}`}>
+              {b ? `${b}형` : "모름"}
+            </button>
+          ))}
+        </div>
+      </div>
       <label className="block text-xs text-muted">
         MBTI (선택)
         <select className={`${fieldCls} mt-1`} value={p.mbti ?? ""} onChange={(e) => set({ mbti: e.target.value })}>
@@ -192,6 +202,7 @@ export function MyPage() {
             <p className="text-sm leading-relaxed">
               {me.profile.name} · {{ female: "여성", male: "남성", other: "기타" }[me.profile.gender]} · {me.profile.birthdate.replaceAll("-", ".")}
               {me.profile.birthtime ? ` ${me.profile.birthtime}` : ""}
+              {me.profile.blood ? ` · ${me.profile.blood}형` : ""}
               {me.profile.mbti ? ` · ${me.profile.mbti}` : ""}
               <span className="mt-1 block text-xs text-muted">면담할 때 이 정보로 바로 시작해요.</span>
             </p>

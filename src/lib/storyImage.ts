@@ -1,4 +1,4 @@
-import type { StoryCard } from "@/models/types";
+import { isFortuneCard, type ShareableCard, type StoryCard } from "@/models/types";
 
 /**
  * The Instagram-story image (1080×1920), drawn straight onto a canvas: a lacquered talisman card in a dark,
@@ -37,6 +37,22 @@ function wrapCenter(ctx: CanvasRenderingContext2D, text: string, cx: number, y: 
   return y + Math.min(lines.length, maxLines) * lineH;
 }
 
+/** Left-aligned text on at most two lines (the hanji slip, clear of the seal). */
+function wrapLeft(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number) {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const t = cur ? `${cur} ${w}` : w;
+    if (ctx.measureText(t).width > maxW && cur) {
+      lines.push(cur);
+      cur = w;
+    } else cur = t;
+  }
+  if (cur) lines.push(cur);
+  lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, x, y + i * lineH));
+}
+
 /** 냥신 mascot: reuse the SVG already on the page. */
 async function catImage(): Promise<HTMLImageElement | null> {
   const svg = document.querySelector('svg[aria-label="냥신"]');
@@ -52,7 +68,10 @@ async function catImage(): Promise<HTMLImageElement | null> {
   }
 }
 
-export async function drawStoryImage(teaser: StoryCard, myName: string, partnerName: string): Promise<Blob> {
+export async function drawStoryImage(card: ShareableCard, myName: string, partnerName: string): Promise<Blob> {
+  // 사주·대운·재회·배우자 cards carry their own lines; love cards are drawn from the type and the match.
+  const f = isFortuneCard(card) ? card : null;
+  const teaser = card as StoryCard;
   await Promise.all([document.fonts?.load(`80px ${RITUAL}`), document.fonts?.load(`40px ${SANS}`)].map((p) => p?.catch(() => null)));
   const cv = document.createElement("canvas");
   cv.width = W;
@@ -139,7 +158,7 @@ export async function drawStoryImage(teaser: StoryCard, myName: string, partnerN
 
   ctx.font = `34px ${SANS}`;
   ctx.fillStyle = "#a8977e";
-  ctx.fillText(`${myName}의 연애 팔자`, W / 2, cy + 200);
+  ctx.fillText(f ? f.label : `${myName}의 연애 팔자`, W / 2, cy + 200);
 
   // Emoji in a brass ring with candle glow.
   const ey = cy + 400;
@@ -160,21 +179,21 @@ export async function drawStoryImage(teaser: StoryCard, myName: string, partnerN
   ctx.stroke();
   ctx.font = `150px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
   ctx.textBaseline = "middle";
-  ctx.fillText(teaser.myType.emoji, W / 2, ey + 8);
+  ctx.fillText(f ? f.emoji : teaser.myType.emoji, W / 2, ey + 8);
   ctx.textBaseline = "alphabetic";
 
   ctx.font = `92px ${RITUAL}`;
   ctx.fillStyle = "#f3dfae";
   ctx.shadowColor = "rgba(230,140,50,0.55)";
   ctx.shadowBlur = 30;
-  let y = wrapCenter(ctx, teaser.myType.name, W / 2, ey + 270, cw - 140, 104, 2);
+  let y = wrapCenter(ctx, f ? f.headline : teaser.myType.name, W / 2, ey + 270, cw - 140, 104, 2);
   ctx.shadowBlur = 0;
   ctx.font = `40px ${SANS}`;
   ctx.fillStyle = "#c8b79a";
-  y = wrapCenter(ctx, `“${teaser.myType.tagline}”`, W / 2, y + 20, cw - 160, 54, 2);
-  const meta = [teaser.myType.code, teaser.match.myMbti, teaser.saju && `${teaser.saju.dayMaster.hangul}${teaser.saju.dayMaster.hanja}일간`]
-    .filter(Boolean)
-    .join("  ·  ");
+  y = wrapCenter(ctx, f ? f.sub : `“${teaser.myType.tagline}”`, W / 2, y + 20, cw - 160, 54, 2);
+  const meta = f
+    ? f.meta
+    : [teaser.myType.code, teaser.match.myMbti, teaser.saju && `${teaser.saju.dayMaster.hangul}${teaser.saju.dayMaster.hanja}일간`].filter(Boolean).join("  ·  ");
   ctx.font = `30px ${SANS}`;
   ctx.fillStyle = "#8f7d63";
   ctx.fillText(meta, W / 2, y + 30);
@@ -182,7 +201,7 @@ export async function drawStoryImage(teaser: StoryCard, myName: string, partnerN
   // Hanji slip with the match or the couple score, and a red seal.
   const sx = cx + 70;
   const sw = cw - 140;
-  const sh = teaser.couple ? 270 : 230;
+  const sh = f ? 260 : teaser.couple ? 270 : 230;
   const sy = cy + ch - sh - 90;
   roundRect(ctx, sx, sy, sw, sh, 16);
   g = ctx.createLinearGradient(0, sy, 0, sy + sh);
@@ -191,7 +210,21 @@ export async function drawStoryImage(teaser: StoryCard, myName: string, partnerN
   ctx.fillStyle = g;
   ctx.fill();
   ctx.textAlign = "left";
-  if (teaser.couple) {
+  if (f) {
+    ctx.font = `32px ${SANS}`;
+    ctx.fillStyle = "#6b4a2a";
+    ctx.fillText(f.slipLabel, sx + 44, sy + 70);
+    if (f.slipValue) {
+      ctx.font = `76px ${RITUAL}`;
+      ctx.fillStyle = "#8e1f17";
+      ctx.textAlign = "right";
+      ctx.fillText(f.slipValue, sx + sw - 120, sy + 92);
+      ctx.textAlign = "left";
+    }
+    ctx.font = `bold 40px ${SANS}`;
+    ctx.fillStyle = "#2a1a10";
+    wrapLeft(ctx, f.slipText, sx + 44, sy + 160, sw - 190, 54);
+  } else if (teaser.couple) {
     ctx.font = `32px ${SANS}`;
     ctx.fillStyle = "#6b4a2a";
     ctx.fillText(`${myName} · ${partnerName} 궁합`, sx + 44, sy + 70);

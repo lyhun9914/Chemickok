@@ -300,6 +300,8 @@ export function selfCombos(set: AnswerSet, max = 3): string[] {
       const db = (Object.entries(b.w) as [Trait, number][]).filter(([t]) => t !== da?.[0]).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0];
       if (!da || !db) continue;
       key = `face-${da[0]}-${db[0]}`;
+      if (used.has(key)) continue;
+      // Only a line that is kept moves the tail on, so two contrasts never end the same way.
       const tail = set.couple ? pick(T.COMBO_CONTRAST_COUPLE, contrasts++) : pick(COMBO_CONTRAST_TAIL, contrasts++);
       line = `겉으로는 ${face(da[0], da[1])}, 속으로는 ${face(db[0], db[1])}이다냥. ${tail}`;
     }

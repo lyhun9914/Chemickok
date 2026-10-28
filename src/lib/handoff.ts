@@ -1,5 +1,5 @@
 import { PARTNER_INTERVIEW, selfInterview } from "@/lib/interview";
-import type { PersonInput, QuestionnaireInput, StoryCard } from "@/models/types";
+import { isFortuneCard, type FortuneStoryCard, type PersonInput, type QuestionnaireInput, type ShareableCard, type StoryCard } from "@/models/types";
 
 /**
  * Carry a finished interview to another browser (PC → phone via QR, KakaoTalk in-app → the phone's real
@@ -34,6 +34,15 @@ const packC = (c: StoryCard, me: string, partner: string): C => [
   c.match.goodAnimals,
   c.couple ? [c.couple.matchScore, c.couple.coupleTitle] : null,
 ];
+// 사주·대운·재회·배우자 card: tagged "§F" so it can't be mistaken for a love card.
+type F = ["§F", string, string, string, string, string, string, string, string, string];
+const packF = (c: FortuneStoryCard, me: string): F => ["§F", me, c.label, c.emoji, c.headline, c.sub, c.meta, c.slipLabel, c.slipValue ?? "", c.slipText];
+const unpackF = ([, me, label, emoji, headline, sub, meta, slipLabel, slipValue, slipText]: F): StoryShare => ({
+  me,
+  partner: "",
+  card: { kind: "fortune", label, emoji, headline, sub, meta, slipLabel, slipValue: slipValue || undefined, slipText },
+});
+
 const unpackC = ([me, partner, [code, name, emoji, tagline], mbti, dm, [bn, be], bestMbti, animals, couple]: C): StoryShare => ({
   me,
   partner,
@@ -46,7 +55,7 @@ const unpackC = ([me, partner, [code, name, emoji, tagline], mbti, dm, [bn, be],
 });
 
 export interface StoryShare {
-  card: StoryCard;
+  card: ShareableCard;
   me: string;
   partner: string;
   /** arrived to post on Instagram: open straight onto the tap-to-share screen */
@@ -73,7 +82,8 @@ export function handoffUrl(input: QuestionnaireInput, share: StoryShare, then?: 
     const packed: Packed = [input.mode[0], input.status, packP(input.me), packP(input.partner), self, obs];
     u.searchParams.set("r", toB64Url(JSON.stringify(packed)));
   } else {
-    u.searchParams.set("c", toB64Url(JSON.stringify(packC(share.card, share.me, share.partner))));
+    const card = share.card;
+    u.searchParams.set("c", toB64Url(JSON.stringify(isFortuneCard(card) ? packF(card, share.me) : packC(card, share.me, share.partner))));
   }
   if (then) u.searchParams.set("then", then);
   return u.toString();
@@ -86,7 +96,10 @@ export function readHandoff(search: string): Handoff | null {
   const then = q.get("then");
   try {
     const c = q.get("c");
-    if (c) return { kind: "card", share: unpackC(JSON.parse(fromB64Url(c)) as C), then };
+    if (c) {
+      const packed = JSON.parse(fromB64Url(c)) as C | F;
+      return { kind: "card", share: packed[0] === "§F" ? unpackF(packed as F) : unpackC(packed as C), then };
+    }
     const r = q.get("r");
     if (!r) return null;
     const [m, status, me, partner, self, obs] = JSON.parse(fromB64Url(r)) as Packed;

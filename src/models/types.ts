@@ -15,12 +15,15 @@ export type CoupleConcernId = "contact" | "uncertainty" | "conflict" | "boredom"
 export type SoloConcernId = "when" | "who" | "fizzle" | "pattern" | "ex" | "lazy";
 export type ConcernId = CoupleConcernId | SoloConcernId;
 
+export type BloodType = "A" | "B" | "O" | "AB";
+
 export interface PersonInput {
   name: string;
   gender: Gender;
   birthdate: string; // YYYY-MM-DD ("" = unknown, allowed for partner)
   birthtime?: string; // HH:mm (optional)
   mbti?: string; // e.g. "INFP" ("" = unknown)
+  blood?: BloodType | ""; // "" = unknown
 }
 
 export interface QuestionnaireInput {
@@ -82,6 +85,8 @@ export interface PersonalReading {
   elementReading: string | null;
   /** 이름 기운 (한글 수리오행) — null for nicknames / non-Hangul names */
   nameReading: string | null;
+  /** 혈액형으로 본 연애 기질 — null when unknown */
+  bloodReading?: string | null;
   /** 남들은 모르는 두 얼굴: outer vs inner */
   twoFaces: { outer: string; inner: string };
   signature: string;
@@ -156,6 +161,26 @@ export interface StoryCard {
   couple: { matchScore: number; coupleTitle: string } | null;
 }
 
+/** The share card / story image for a 사주·대운·재회·배우자 reading. */
+export interface FortuneStoryCard {
+  kind: "fortune";
+  /** "김지은의 사주 감정서" */
+  label: string;
+  emoji: string;
+  /** the big line, e.g. "기토(己土)" / "재회 가능성 80%" */
+  headline: string;
+  sub: string;
+  /** small line under it, e.g. the 원국 in 한자 */
+  meta: string;
+  /** the hanji slip at the bottom */
+  slipLabel: string;
+  slipValue?: string;
+  slipText: string;
+}
+
+export type ShareableCard = StoryCard | FortuneStoryCard;
+export const isFortuneCard = (c: ShareableCard): c is FortuneStoryCard => "kind" in c && c.kind === "fortune";
+
 /** One card in a 사주·운세 reading. */
 export type FortuneCard =
   | { kind: "chart" }
@@ -183,6 +208,8 @@ export interface FortuneTeaser {
   /** 냥신's line right before the paywall */
   paywall: string;
   locked: LockedPreview[];
+  /** share card; missing on readings saved before it existed */
+  story?: FortuneStoryCard;
 }
 
 export interface TeaserReport {

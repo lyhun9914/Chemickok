@@ -33,6 +33,32 @@ export interface DailyFortuneResponse {
   time: string;
 }
 
+export interface TodayFortuneResponse {
+  date: string;
+  ganji: string;
+  score: number;
+  title: string;
+  line: string;
+  cats: { key: string; label: string; score: number; line: string }[];
+  do: string;
+  dont: string;
+  color: string;
+  direction: string;
+  number: string;
+  time: string;
+}
+
+export interface ZodiacTodayResponse {
+  date: string;
+  ganji: string;
+  list: { animal: string; score: number; line: string }[];
+}
+
+export const todayApi = {
+  fortune: (birthdate: string) => post<{ fortune: TodayFortuneResponse }>("/api/today", { birthdate }).then((r) => r.fortune),
+  zodiac: () => post<{ zodiac: ZodiacTodayResponse }>("/api/today", {}).then((r) => r.zodiac),
+};
+
 export const dailyApi = {
   get: (birthdate: string) => post<DailyFortuneResponse>("/api/daily", { birthdate }),
 };

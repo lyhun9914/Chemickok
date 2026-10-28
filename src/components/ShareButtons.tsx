@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { handoffUrl, inAppBrowser, openExternally } from "@/lib/handoff";
 import { drawStoryImage } from "@/lib/storyImage";
-import type { StoryCard } from "@/models/types";
+import { isFortuneCard, type ShareableCard } from "@/models/types";
 import { isMobile, shareService, siteUrl, type ShareOutcome } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { ShareCard } from "./ShareCard";
@@ -15,7 +15,7 @@ const OUTCOME_MSG: Partial<Record<ShareOutcome, string>> = {
 };
 
 interface Props {
-  teaser: StoryCard;
+  teaser: ShareableCard;
   myName: string;
   partnerName: string;
   toast: (m: string) => void;
@@ -61,12 +61,14 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
     };
   }, [teaser, myName, partnerName, tapToShare]);
 
-  const shareText = {
-    title: `냥신이 본 내 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
-    description: teaser.couple
-      ? `우리 궁합 ${teaser.couple.matchScore}점 - ${teaser.couple.coupleTitle} 😳 소름 돋게 잘 맞음. 너도 해 봐!`
-      : `나랑 찰떡인 사람은 '${teaser.match.bestType.name}' 유형이래 😳 소름 돋게 잘 맞음. 너도 해 봐!`,
-  };
+  const shareText = isFortuneCard(teaser)
+    ? { title: `냥신 점집 🕯️ ${teaser.label}`, description: `${teaser.emoji} ${teaser.headline} — 소름 돋게 잘 맞아 😳 너도 봐 봐!` }
+    : {
+        title: `냥신이 본 내 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
+        description: teaser.couple
+          ? `우리 궁합 ${teaser.couple.matchScore}점 - ${teaser.couple.coupleTitle} 😳 소름 돋게 잘 맞음. 너도 해 봐!`
+          : `나랑 찰떡인 사람은 '${teaser.match.bestType.name}' 유형이래 😳 소름 돋게 잘 맞음. 너도 해 봐!`,
+      };
 
   const report = (p: Promise<ShareOutcome>) =>
     p.then((o) => OUTCOME_MSG[o] && toast(OUTCOME_MSG[o]!)).catch(() => toast("공유에 실패했다냥. 다시 눌러라냥"));

@@ -555,6 +555,17 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
     beats,
     paywall: P("…여기서부터가 진짜다냥. {p}의 속마음 전부, 연락해도 되는 날짜, 보내야 할 첫 문장과 절대 보내면 안 되는 문장까지 다 적어 뒀다냥. 듣고 갈래? 😼"),
     locked: sections.map((s) => locked(s.id, s.icon, s.section)),
+    story: {
+      kind: "fortune",
+      label: P(`${name} → {p} 재회 감정서`),
+      emoji: "🔁",
+      headline: `재회 가능성 ${score}%`,
+      sub: BAND(score).replace(/\s*\p{Extended_Pictographic}/gu, ""),
+      meta: c.saju.summary.pillars.map((pl) => pl.hanja).join(" "),
+      slipLabel: P("{p}의 마음 온도"),
+      slipValue: `${mind.temp}°`,
+      slipText: tempWord(mind.temp),
+    },
   };
   return { teaser, report };
 }

@@ -121,6 +121,8 @@ export interface Daeun {
 }
 
 export interface Chart {
+  /** 혈액형 from 기본 정보, when given (shown in 감정 근거) */
+  blood?: import("@/models/types").BloodType;
   saju: SajuResult;
   gender: Gender;
   birthYear: number;

@@ -31,7 +31,7 @@ export const PRODUCTS: Record<Mode, Product> = {
   couple: {
     name: "그 사람과 궁합",
     emoji: "💞",
-    price: price(process.env.NEXT_PUBLIC_PRICE_COUPLE, 1900),
+    price: price(process.env.NEXT_PUBLIC_PRICE_COUPLE, 1490),
     orderName: "냥신 점괘 · 그 사람과 궁합",
     pitch: "궁합 점수 · 그 사람 속마음 · 보내지 못한 편지 · 이별 위기",
     category: "love",
@@ -39,7 +39,7 @@ export const PRODUCTS: Record<Mode, Product> = {
   reunion: {
     name: "재회운",
     emoji: "🔁",
-    price: price(process.env.NEXT_PUBLIC_PRICE_REUNION, 2900),
+    price: price(process.env.NEXT_PUBLIC_PRICE_REUNION, 990),
     orderName: "냥신 점괘 · 재회운",
     pitch: "다시 만날 가능성 · 그 사람 마음 온도 · 연락해도 되는 날짜 · 첫 문장",
     category: "love",
@@ -47,7 +47,7 @@ export const PRODUCTS: Record<Mode, Product> = {
   spouse: {
     name: "미래 배우자운",
     emoji: "💍",
-    price: price(process.env.NEXT_PUBLIC_PRICE_SPOUSE, 2900),
+    price: price(process.env.NEXT_PUBLIC_PRICE_SPOUSE, 990),
     orderName: "냥신 점괘 · 미래 배우자운",
     pitch: "배우자 자리로 보는 성격·외모·직업 · 만나는 해와 달 · 만나는 곳",
     category: "love",
@@ -55,7 +55,7 @@ export const PRODUCTS: Record<Mode, Product> = {
   saju: {
     name: "타고난 사주 팔자",
     emoji: "📜",
-    price: price(process.env.NEXT_PUBLIC_PRICE_SAJU, 3900),
+    price: price(process.env.NEXT_PUBLIC_PRICE_SAJU, 990),
     orderName: "냥신 점괘 · 타고난 사주 팔자",
     pitch: "타고난 그릇 · 재물 · 일과 적성 · 건강 · 귀인 · 올해·내년 · 개운법",
     category: "fortune",
@@ -63,7 +63,7 @@ export const PRODUCTS: Record<Mode, Product> = {
   daeun: {
     name: "인생 대운 흐름",
     emoji: "🌊",
-    price: price(process.env.NEXT_PUBLIC_PRICE_DAEUN, 2900),
+    price: price(process.env.NEXT_PUBLIC_PRICE_DAEUN, 990),
     orderName: "냥신 점괘 · 인생 대운 흐름",
     pitch: "10년마다 바뀌는 운 · 지금 대운 · 황금기와 고비 · 교운기 · 앞으로 3년",
     category: "fortune",

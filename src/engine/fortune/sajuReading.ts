@@ -1,4 +1,5 @@
 import "server-only";
+import { BLOOD_CHART } from "@/lib/blood";
 import type { ElementKey, FortuneBeat, FortuneTeaser, FullReport, QuestionnaireInput } from "@/models/types";
 import { branchRelation } from "../saju";
 import { type Chart, type TenGod, type TenGroup, GROUP_OF, dominantGroups, elementLabel, groupElement, thisYear, yearlyLuck } from "./chart";
@@ -20,6 +21,7 @@ import {
   locked,
   scoreWord,
   sec,
+  sinsalList,
 } from "./common";
 
 // ───────────── 타고난 사주 팔자 ─────────────
@@ -315,6 +317,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
       c.age >= 60 ? GROUP_STRONG[top].replace("윗사람과 부딪친다냥", "가까운 사람과 말로 부딪친다냥") : GROUP_STRONG[top],
       GROUP_WEAK[low],
       say,
+      c.blood ? BLOOD_CHART[c.blood][c.strong ? 0 : 1] : null,
     ),
     [
       `🔹 타고난 무기: ${stem.gift.split(". ")[0].replace(/이?다냥\.?$/, "")}`,
@@ -559,6 +562,17 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
     beats,
     paywall: `…여기서부터가 감정서 본문이다냥. 네가 궁금해한 ${FOCUS_LABEL[focus]}부터, ${years[0].year}·${years[1].year}년 운과 개운법까지 다 적어 뒀다냥. 듣고 갈래? 😼`,
     locked: sections.map((s) => locked(s.id, s.icon, s.section)),
+    story: {
+      kind: "fortune",
+      label: `${name}의 사주 감정서`,
+      emoji: "📜",
+      headline: stem.name,
+      sub: `'${stem.image}'`,
+      meta: c.saju.summary.pillars.map((pl) => pl.hanja).join(" "),
+      slipLabel: "냥신이 짚은 용신",
+      slipValue: elementLabel(c.yongsin),
+      slipText: [c.strong ? "신강(身强)" : "신약(身弱)", `${top} 강`, sinsals.length ? sinsalList(c)[0] : null].filter(Boolean).join(" · "),
+    },
   };
   return { teaser, report };
 }

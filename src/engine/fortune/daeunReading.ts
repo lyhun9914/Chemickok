@@ -1,8 +1,8 @@
 import "server-only";
 import type { FortuneBeat, FortuneTeaser, FullReport, QuestionnaireInput } from "@/models/types";
 import { branchRelation } from "../saju";
-import { type Chart, type Daeun, type TenGod, GROUP_OF, elementLabel, yearlyLuck } from "./chart";
-import { GOD_SHORT, LUCK, STEM, basisCard, daNyang, josa, lines, locked, scoreWord, sec, yearText } from "./common";
+import { type Chart, type Daeun, type TenGod, GROUP_OF, elementLabel, gwiinOf, yearlyLuck } from "./chart";
+import { GOD_SHORT, LUCK, STEM, basisCard, daNyang, gwiinAnimals, josa, lines, locked, scoreWord, sec, yearText } from "./common";
 
 // ───────────── 인생 대운 흐름 ─────────────
 
@@ -118,19 +118,35 @@ const SENIOR: Record<TenGod, { theme: string; body: string; do: string; dont: st
 /** The 10-year theme for that age. */
 const T = (d: { god: TenGod; age: number }) => (d.age >= 60 ? SENIOR[d.god] : GOD_DAEUN[d.god]);
 
+/** 대운 that start before 19 read as growing up: school, family, temperament. */
+const YOUTH: Record<TenGod, string> = {
+  비견: "친구·형제와 부딪치며 자기 고집이 생기는 10년이다냥.",
+  겁재: "경쟁 속에서 크는 10년이다냥. 지기 싫은 마음이 이때 생긴다냥.",
+  식신: "잘 먹고 잘 놀며 크는 10년이다냥. 재주가 이때 싹튼다냥.",
+  상관: "말이 많고 반항기도 있는 10년이다냥. 어른들과 자주 부딪친다냥.",
+  편재: "집안 형편이 크게 오르내리는 10년이다냥. 돈 감각이 일찍 생긴다냥.",
+  정재: "규칙적이고 성실하게 크는 10년이다냥.",
+  편관: "엄한 환경에서 버티며 크는 10년이다냥. 참는 법을 일찍 배운다냥.",
+  정관: "모범생 소리 듣는 10년이다냥. 칭찬받으려 애쓴다냥.",
+  편인: "혼자 생각이 많은 10년이다냥. 남들과 다른 데 관심이 간다냥.",
+  정인: "보호받으며 공부 운이 좋은 10년이다냥.",
+};
+
 const godText = (d: Daeun) =>
-  d.age >= 60
-    ? SENIOR[d.god].body +
-      (d.score >= 70
-        ? [" 기운이 반갑게 받쳐 준다냥.", " 운이 편을 들어 주는 10년이다냥."][(d.age / 10) & 1]
+  d.age < 19
+    ? YOUTH[d.god]
+    : d.age >= 60
+      ? SENIOR[d.god].body +
+        (d.score >= 70
+          ? [" 기운이 반갑게 받쳐 준다냥.", " 운이 편을 들어 주는 10년이다냥.", " 하늘이 등을 밀어 주는 때다냥."][Math.floor(d.age / 10) % 3]
+          : d.score < 52
+            ? [" 기운이 무거우니 몸부터 챙겨라냥.", " 운이 무거우니 무리는 금물이다냥.", " 속도를 늦출수록 오래 가는 10년이다냥."][Math.floor(d.age / 10) % 3]
+            : "")
+      : d.score >= 70
+        ? GOD_DAEUN[d.god].up
         : d.score < 52
-          ? [" 기운이 무거우니 몸부터 챙겨라냥.", " 운이 무거우니 무리는 금물이다냥."][(d.age / 10) & 1]
-          : "")
-    : d.score >= 70
-      ? GOD_DAEUN[d.god].up
-      : d.score < 52
-        ? GOD_DAEUN[d.god].down
-        : GOD_DAEUN[d.god].body;
+          ? GOD_DAEUN[d.god].down
+          : GOD_DAEUN[d.god].body;
 
 /** What a 대운 is about at that age; past tense once it has been lived. */
 function stage(d: Daeun, nowAge: number): string {
@@ -211,6 +227,130 @@ function pastCheck(c: Chart, ans: string | undefined, kind: "hard" | "best"): st
     : `${josa(span[2], "이라고/라고")} 했지. 대운보다 네 노력이 더 컸던 때다냥. 진짜 대운의 꽃은 따로 있다냥.`;
 }
 
+/** 인생이 확 바뀐 때 (du7) against the 교운기 — the ages one 대운 hands over to the next — or a 충 year. */
+function turnRead(c: Chart, ans: string | undefined): { line: string; hit: boolean } | null {
+  if (!ans || ans === "?") return null;
+  if (ans === "none") {
+    const nx = c.daeun.find((d) => d.age > c.age);
+    const lived = c.daeun.some((d) => d.age > 1 && d.age <= c.age);
+    return nx
+      ? {
+          hit: false,
+          line: `아직 크게 바뀐 적이 없다고 했지. ${lived ? `지나온 교운기를 조용히 넘긴 거다냥. 그만큼 뿌리가 단단하다냥. 다음 판갈이는 ${nx.age - 1}~${nx.age}세에 온다냥.` : `첫 큰 판갈이는 ${nx.age - 1}~${nx.age}세 교운기에 온다냥.`}`,
+        }
+      : null;
+  }
+  const span = SPANS[ans];
+  if (!span || span[0] > c.age) return null;
+  const to = Math.min(span[1], c.age);
+  const i = c.daeun.findIndex((d) => d.age - 1 <= to && d.age >= span[0]);
+  if (i >= 0) {
+    const d = c.daeun[i];
+    const prev = c.daeun[i - 1];
+    return {
+      hit: true,
+      line: `${josa(span[2], "이라고/라고")} 했지. 맞다냥. ${d.age - 1}~${d.age}세가 대운이 갈아탄 교운기(交運期)였다냥. ${prev ? `${prev.ganji} 대운에서 ${d.ganji} 대운으로` : `${d.ganji} 대운으로`} 물줄기가 바뀐 때다냥.`,
+    };
+  }
+  const years = yearlyLuck(c, to - span[0] + 1, c.birthYear + span[0] - 1);
+  const shake = years.find((y) => branchRelation(c.dayBranch, y.branch) === "clash");
+  if (shake)
+    return {
+      hit: true,
+      line: `${josa(span[2], "이라고/라고")} 했지. 대운은 그대로였는데, ${shake.year}년(${shake.ganji})이 네 일지와 충(沖)이 든 해였다냥. 그 해가 판을 흔든 거다냥.`,
+    };
+  return { hit: false, line: `${josa(span[2], "이라고/라고")} 했지. 그때는 운보다 네 선택이 판을 바꾼 거다냥. 그만큼 네 힘이 셌다냥.` };
+}
+
+/** 어린 시절 (du9) against the first 대운 and the 부모 자리 (년주 · 월주). */
+function childRead(c: Chart, ans: string | undefined): string | null {
+  const d = c.daeun[0];
+  const low = d.score < 58;
+  switch (ans) {
+    case "warm":
+      return low
+        ? `넉넉했다면 그건 부모님 운 덕이다냥. 네 첫 대운(${d.ganji})은 가볍지 않았다냥. 그래서 일찍 철든 구석이 있다냥.`
+        : `맞다냥. 첫 대운(${d.ganji})이 ${d.score}점이다냥. 부모 덕이 든든한 출발이었다냥.`;
+    case "plain":
+      return `평범했다고 했지. 첫 대운(${d.ganji})도 ${scoreWord(d.score)}, 넘치지도 모자라지도 않은 출발이다냥.`;
+    case "hard":
+      return low
+        ? `첫 대운(${d.ganji})이 무거웠다냥. 어린 나이에 철이 든 이유가 여기 있다냥. 그 단단함이 지금 네 밑천이다냥.`
+        : `첫 대운은 괜찮았는데 형편이 어려웠다면, 네 운이 아니라 집안 운의 굴곡이다냥. 너는 그 안에서도 크게 다치지 않고 컸다냥.`;
+    case "tense":
+      return branchRelation(c.branches[0], c.branches[1]) === "clash"
+        ? "사주에 년주와 월주가 충(沖)이다냥. 부모 자리가 부딪치는 사주라 그 시끄러움을 고스란히 봤다냥."
+        : "어른들 일로 눈치 보며 컸지. 그래서 방 분위기를 제일 먼저 읽는 사람이 됐다냥.";
+    case "alone":
+      return c.groups.인성 <= 0.5 ? "인성(보호의 별)이 약한 사주다냥. 일찍 혼자 서는 팔자 그대로다냥." : "인성이 있는데도 혼자 컸다면, 보호받기보다 지키는 쪽을 택한 거다냥.";
+    default:
+      return null;
+  }
+}
+
+/** 지금 제일 무거운 짐 (du8): which 십성 lightens it, and what the current 대운 says about it. */
+const BURDEN: Record<string, { label: string; gods: TenGod[]; good: string; bad: string }> = {
+  money: {
+    label: "돈",
+    gods: ["정재", "편재", "식신"],
+    good: "지금 대운이 돈 길을 열어 주는 때다냥. 짐이 곧 기회다냥. 들어오는 만큼 묶어 둬라냥.",
+    bad: "지금 대운이 돈을 쥐여 주는 때는 아니다냥. 늘리기보다 새는 구멍부터 막아라냥.",
+  },
+  work: {
+    label: "일·진로",
+    gods: ["정관", "편관", "식신", "정인"],
+    good: "대운이 일을 밀어 주는 중이다냥. 지금 자리에서 이름을 걸면 오른다냥.",
+    bad: "대운이 일을 막는 때다냥. 큰 이동보다 실력 쌓기가 답이다냥.",
+  },
+  people: {
+    label: "사람·관계",
+    gods: ["정인", "식신", "정관"],
+    good: "사람 운이 들어오는 대운이다냥. 지친 관계는 정리되고 새 사람이 온다냥.",
+    bad: "사람에 치이는 대운이다냥. 다 붙잡지 말고 꼭 필요한 세 사람만 남겨라냥.",
+  },
+  health: {
+    label: "건강",
+    gods: ["정인", "식신", "비견"],
+    good: "몸이 회복되는 흐름이다냥. 지금 만든 습관이 10년 간다냥.",
+    bad: "몸이 신호를 보내는 대운이다냥. 검진을 미루지 마라냥.",
+  },
+  family: {
+    label: "가족",
+    gods: ["정인", "정관", "정재"],
+    good: "집안이 안정되는 흐름이다냥. 네가 버틴 만큼 식구가 편해진다냥.",
+    bad: "식구 일이 네 어깨에 몰리는 대운이다냥. 혼자 다 지지 말고 나눠라냥.",
+  },
+  mind: {
+    label: "마음",
+    gods: ["식신", "정인", "편인"],
+    good: "마음이 가벼워지는 흐름이다냥. 불안은 지나가는 구름이다냥.",
+    bad: "생각이 많아지는 대운이다냥. 불안의 절반은 몸이 지쳐서다냥. 잠부터 지켜라냥.",
+  },
+};
+
+/** 끌어 준 사람 (du10) against the chart's 인성 · 관성 · 비겁 · 배우자 별. */
+function helperRead(c: Chart, ans: string | undefined): string | null {
+  const g = c.groups;
+  switch (ans) {
+    case "parent":
+      return g.인성 >= 1.5
+        ? "인성(부모·보호의 별)이 받쳐 주는 사주다냥. 부모 덕은 팔자에 있던 거다냥."
+        : "사주엔 인성이 약한데 부모 덕을 봤다면, 부모님이 운보다 더 애쓰신 거다냥.";
+    case "mentor":
+      return g.관성 + g.인성 >= 3
+        ? "관성·인성이 받쳐 주는 사주라 윗사람 복이 있다냥. 앞으로도 윗사람 줄을 놓지 마라냥."
+        : "윗사람 복이 크게 타고난 사주는 아닌데 만났다면, 그 인연은 귀하다냥. 꼭 붙잡아라냥.";
+    case "partner":
+      return "짝 덕을 봤다고 했지. 배우자 자리가 너를 지키는 사주다냥. 그 사람한테 고맙다는 말, 자주 해라냥.";
+    case "friend":
+      return g.비겁 >= 2 ? "비겁(친구·동료의 별)이 강한 사주다냥. 옆 사람이 곧 재산이다냥." : "친구 덕을 봤다면 네가 먼저 잘해 준 덕이다냥. 그 인연은 오래 간다냥.";
+    case "none":
+      return "다 혼자 했다고 했지. 그래서 지금의 네가 단단한 거다냥. 그래도 귀인 자리는 비어 있지 않다냥.";
+    default:
+      return null;
+  }
+}
+
 /** What the last three years mean next to the current 대운 (good = 66점 이상). */
 function recentRead(ans: string, good: boolean): string {
   if (ans === "up") return good ? "대운이 밀어 주는 중이다냥. 흐름을 믿어라냥." : "대운은 아직 무거운데 오르고 있다면, 그건 네 힘이다냥. 무리만 하지 마라냥.";
@@ -274,9 +414,12 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
   // The graph and the overview show 8 of the 9 대운, always including the current one.
   const shownDaeun = c.currentDaeun >= 8 ? c.daeun.slice(1, 9) : c.daeun.slice(0, 8);
 
-  const head = (d: Daeun) => `${range(d)} ${d.ganji}(${d.hanja}) 대운 — ${T(d).theme}. ${godText(d)}`;
   // Each stage / 일지 line is said once across the 감정서; later sections keep only what's new.
   const said = new Set<string>();
+  const head = (d: Daeun) => {
+    said.add(godText(d));
+    return `${range(d)} ${d.ganji}(${d.hanja}) 대운 — ${T(d).theme}. ${godText(d)}`;
+  };
   const once = (l: string | null) => (l && !said.has(l) ? (said.add(l), l) : null);
   const note = (d: Daeun) => {
     const n = branchNote(c, d);
@@ -452,6 +595,71 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
 
   const want = WANT[a("du5") ?? ""];
   const wantHit = want ? [cur, ...future].find((d) => want.gods.includes(d.god)) : null;
+  const turn = turnRead(c, a("du7"));
+  const ageYear = (age: number) => c.birthYear + age - 1;
+  const livedTurns = c.daeun.filter((d) => d.age <= c.age && d.age > 1).slice(-2);
+  const nextTurns = c.daeun.filter((d) => d.age > c.age && d.age <= Math.max(80, c.age + 20)).slice(0, 2);
+  const turnSec = sec(
+    "인생의 전환점 · 교운기",
+    turn?.hit ? "판이 바뀐 해, 대운표에 그대로 있다냥" : "다음 판갈이를 미리 알아 둬라냥",
+    lines(turn?.line, "교운기에 내린 결정이 다음 10년을 정한다냥. 큰 계약·이사는 서두르지 말고 한 번 더 따져 보고 잡아라냥."),
+    [
+      ...livedTurns.map((d) => `✔️ 지나온 교운기: ${d.age - 1}~${d.age}세 (${ageYear(d.age - 1)}~${ageYear(d.age)}년)`),
+      ...nextTurns.map((d) => `🔄 다가올 교운기: ${d.age - 1}~${d.age}세 (${ageYear(d.age - 1)}~${ageYear(d.age)}년)`),
+    ],
+  );
+
+  const d0 = c.daeun[0];
+  const childSec = sec(
+    "어린 시절과 첫 대운",
+    `첫 대운 ${d0.ganji}, ${T(d0).theme}이었다냥`,
+    lines(
+      childRead(c, a("du9")),
+      said.has(godText(d0))
+        ? `첫 대운은 ${range(d0)} ${d0.ganji}(${d0.hanja}) 대운, 앞에서 짚은 그 10년이다냥.`
+        : `첫 대운은 ${range(d0)} ${d0.ganji}(${d0.hanja}) 대운이다냥. ${godText(d0)}`,
+      "어릴 때의 운은 성격의 바탕이 된다냥. 지금 네 버릇 중 몇 개는 이때 생긴 거다냥.",
+    ),
+    [
+      `🏡 첫 대운: ${range(d0)} ${d0.ganji} · ${d0.score}점 · ${scoreWord(d0.score)}`,
+      `👪 부모 자리(년·월주): ${c.saju.summary.pillars[0].hanja} · ${c.saju.summary.pillars[1].hanja}`,
+    ],
+  );
+
+  const burden = BURDEN[a("du8") ?? ""];
+  const burdenGood = Boolean(cur && (cur.score >= 62 || (burden?.gods.includes(cur.god) && cur.score >= 55)));
+  const relief = burden ? yearlyLuck(c, 6).find((y) => burden.gods.includes(y.god) && y.score >= 62) : undefined;
+  const burdenSec = burden
+    ? sec(
+        "지금의 짐 · 풀리는 해",
+        relief ? `${relief.year}년, ${burden.label} 짐이 가벼워진다냥` : `${burden.label} 짐, 조금씩 덜어 내는 흐름이다냥`,
+        lines(
+          `${josa(burden.label, "이/가")} 제일 무겁다고 했지.`,
+          burdenGood ? burden.good : burden.bad,
+          relief
+            ? `${relief.year}년(${relief.ganji})은 너한테 '${relief.god}'의 해다냥. 그해부터 숨통이 트인다냥.`
+            : "6년 안엔 큰 반전보다 조금씩 덜어 내는 흐름이다냥. 한 번에 내려놓으려 하지 마라냥.",
+        ),
+        [...(cur ? [`🎒 지금 대운: ${cur.ganji} · ${T(cur).theme}`] : []), ...(relief ? [`🌤️ 숨통 트이는 해: ${relief.year}년(${relief.ganji})`] : [])],
+      )
+    : null;
+
+  const helperDaeun = c.daeun.find(
+    (d) => d.age > c.age && d.age <= Math.max(80, c.age + 20) && (["정인", "편인", "정관"].includes(d.god) || gwiinOf(c.dayStem).includes(d.branch)),
+  );
+  const helperSec = sec(
+    "귀인의 흐름",
+    helperDaeun ? `${range(helperDaeun)}, 귀인이 들어온다냥` : c.sinsal.gwiin ? "막판에 꼭 누가 돕는 팔자다냥" : "네 실력이 곧 귀인인 팔자다냥",
+    lines(
+      helperRead(c, a("du10")),
+      c.sinsal.gwiin ? "원국에 천을귀인이 있다냥. 죽으란 법은 없는 팔자다냥." : null,
+      helperDaeun
+        ? `앞으로 ${range(helperDaeun)} ${helperDaeun.ganji} 대운에 너를 끌어 줄 사람이 온다냥. 그때 들어온 제안은 가볍게 넘기지 마라냥.`
+        : "앞으로 대운에서 크게 끌어 주는 귀인보다, 네가 쌓은 실력이 길을 연다냥.",
+    ),
+    [`🤝 귀인 띠: ${gwiinAnimals(c).join("띠 · ")}띠`, ...(helperDaeun ? [`🌟 귀인 대운: ${range(helperDaeun)} ${helperDaeun.ganji}`] : [])],
+  );
+
   const useSec = sec(
     "대운 활용법",
     `${josa(stem.name, "은/는")} ${josa(elementLabel(c.yongsin), "을/를")} 타야 산다냥`,
@@ -469,8 +677,12 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
   const sections = [
     { id: "now", icon: "▶️", section: nowSec },
     { id: "next", icon: "🔄", section: nextSec },
+    { id: "turn", icon: "🔀", section: turnSec },
     { id: "peak", icon: "🌸", section: peakSec },
     { id: "trough", icon: "⛈️", section: troughSec },
+    ...(burdenSec ? [{ id: "burden", icon: "🎒", section: burdenSec }] : []),
+    { id: "child", icon: "🏡", section: childSec },
+    { id: "helper", icon: "🤝", section: helperSec },
     { id: "all", icon: "🌊", section: allSec },
     { id: "seun", icon: "📅", section: seunSec },
     { id: "use", icon: "🧿", section: useSec },
@@ -533,7 +745,14 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
         title: "제일 잘 풀렸던 때",
         body: best,
       },
-      next: "지금은?",
+      next: turn?.hit ? "또 있어?" : "지금은?",
+    });
+  if (turn?.hit)
+    beats.push({
+      say: "인생이 바뀌었다는 그때, 대운표에 그대로 찍혀 있다냥.",
+      mood: "wow",
+      card: { kind: "text", icon: "🔀", title: "인생의 전환점", body: turn.line },
+      next: "소름… 지금은?",
     });
   if (cur) {
     beats.push({
@@ -556,9 +775,20 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
     beats,
     paywall:
       next && next.age <= 100
-        ? `…여기서부터가 진짜다냥. 네 인생 황금기가 언제인지, 조심할 때가 언제인지, ${next.age}세 교운기에 뭘 해야 하는지 다 적어 뒀다냥. 듣고 갈래? 😼`
+        ? `…여기서부터가 진짜다냥. 네 인생 황금기, 조심할 때, ${next.age}세 교운기에 할 일, 짐이 가벼워지는 해, 귀인이 오는 대운까지 다 적어 뒀다냥. 듣고 갈래? 😼`
         : "…여기서부터가 진짜다냥. 네 인생 황금기가 언제였는지, 앞으로 조심할 해와 잡을 해가 언제인지 다 적어 뒀다냥. 듣고 갈래? 😼",
     locked: sections.map((s) => locked(s.id, s.icon, s.section)),
+    story: {
+      kind: "fortune",
+      label: `${name}의 대운 감정서`,
+      emoji: "🌊",
+      headline: cur ? `${range(cur)} ${cur.ganji} 대운` : `${c.daeun[0].age}세 첫 대운 전`,
+      sub: cur ? T(cur).theme : T(c.daeun[0]).theme,
+      meta: c.saju.summary.pillars.map((pl) => pl.hanja).join(" "),
+      slipLabel: "지금 대운 점수",
+      slipValue: `${(cur ?? c.daeun[0]).score}점`,
+      slipText: `${scoreWord((cur ?? c.daeun[0]).score)} · ${c.forward ? "순행" : "역행"} · 대운수 ${c.daeunSu}`,
+    },
   };
   return { teaser, report };
 }

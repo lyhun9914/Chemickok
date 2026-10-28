@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { productOf, won } from "@/lib/config";
 import { josa } from "@/lib/josa";
+import { sound } from "@/lib/sound";
 import type { UnlockResponse } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { FlipCard, Nyang, Say, type Mood } from "./Nyang";
@@ -116,7 +117,10 @@ export function ResultView() {
       node: (
         <FlipCard
           flipped={flipped}
-          onFlip={() => setFlipped(true)}
+          onFlip={() => {
+            sound().play("chime");
+            setFlipped(true);
+          }}
           back={
             <div className="flex h-full flex-col items-center justify-center text-center text-white">
               <p className="text-xs text-white/80">{me}의 연애 유형</p>
@@ -266,6 +270,7 @@ export function ResultView() {
   if (!teaser || !inputHash) return null;
 
   const advance = () => {
+    sound().play("reveal");
     setShown((n) => n + 1);
     setTyping(true);
   };
@@ -277,6 +282,7 @@ export function ResultView() {
 
   const onUnlocked = (u: UnlockResponse) => {
     applyUnlock(u);
+    sound().play("chime");
     setPayOpen(false);
     setFlipped(true);
     setShown(Number.MAX_SAFE_INTEGER);
@@ -374,7 +380,7 @@ export function ResultView() {
                     <div className="sticky bottom-4 z-10 mt-5">
                       <button onClick={() => setPayIntent(true)} className="btn-primary glow shine w-full py-4">
                         <span className="block text-[17px]">{payLabel} · {won(price)}</span>
-                        <span className="block text-xs font-medium opacity-90">☕ 커피 한 잔보다 싼 복채다냥</span>
+                        <span className="block text-xs font-medium opacity-90">{price < 1000 ? "🪙 천 원도 안 되는 복채다냥" : "☕ 커피 한 잔보다 싼 복채다냥"}</span>
                       </button>
                     </div>
                     {level === "none" && (

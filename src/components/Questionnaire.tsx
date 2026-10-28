@@ -4,18 +4,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, koreanAge, optionsForAge, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
+import { BLOOD_CHIP, BLOOD_HINT, BLOOD_REACT, BLOOD_TYPES } from "@/lib/blood";
 import { FORTUNE_INTERVIEW } from "@/lib/fortuneQuestions";
-import type { FortuneMode, Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
+import type { BloodType, FortuneMode, Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
 import { isFortune, productOf } from "@/lib/config";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { flareCandles } from "./Backdrop";
+import { SoundToggle } from "./SoundToggle";
 import { Nyang, type Mood } from "./Nyang";
 
 // ───────────── Script ─────────────
 
 type Turn =
-  | { kind: "mode" | "name" | "gender" | "birth" | "time" | "mbti" | "pname" | "pbirth" | "pmbti" | "status" | "end" }
+  | { kind: "mode" | "name" | "gender" | "birth" | "time" | "blood" | "mbti" | "pname" | "pbirth" | "pmbti" | "status" | "end" }
   | { kind: "ritual"; id: "incense" | "orb" }
   | { kind: "q"; q: InterviewQuestion; part: "self" | "partner"; num: number };
 
@@ -26,17 +28,19 @@ const selfQs = (mode: Mode): InterviewQuestion[] => (isFortune(mode) ? FORTUNE_I
  * `saved`: 기본 정보 is already known (logged in, or "다른 사람이랑 궁합" after a reading), so name/birth/MBTI
  * aren't asked again. `modeKnown`: the product was picked on the landing page; 냥신 still greets in that turn.
  */
-function turnsFor(mode: Mode, saved: boolean): Turn[] {
+function turnsFor(mode: Mode, saved: boolean, askBlood: boolean): Turn[] {
   const self: Turn[] = selfQs(mode).map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
+  // Saved 기본 정보 from before 혈액형 existed: ask just that one.
+  const blood: Turn[] = askBlood ? [{ kind: "blood" }] : [];
   if (isFortune(mode)) {
     // The chart needs name · gender (대운 direction) · birth; no MBTI. 재회운 also asks who the ex is.
-    const info: Turn[] = saved ? [{ kind: "mode" }] : [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }];
+    const info: Turn[] = saved ? [{ kind: "mode" }, ...blood] : [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }, { kind: "blood" }];
     const ex: Turn[] = mode === "reunion" ? [{ kind: "pname" }, { kind: "pbirth" }] : [];
     return [...info, ...ex, { kind: "ritual", id: "incense" }, ...self, { kind: "end" }];
   }
   const info: Turn[] = saved
-    ? [{ kind: "mode" }]
-    : [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }, { kind: "mbti" }];
+    ? [{ kind: "mode" }, ...blood]
+    : [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }, { kind: "blood" }, { kind: "mbti" }];
   if (mode === "solo") return [...info, { kind: "ritual", id: "incense" }, ...self, { kind: "end" }];
   const partner: Turn[] = PARTNER_INTERVIEW.map((q, i) => ({ kind: "q", q, part: "partner", num: i + 1 }));
   return [
@@ -145,6 +149,8 @@ function asks(t: Turn, i: QuestionnaireInput, { saved, modeKnown }: Ctx): Return
         return [n("생년월일을 대라냥. 양력으로."), n("음력 생일이면 양력으로 바꿔서 넣어라냥. 하루만 달라도 일주가 바뀐다냥.", "smug")];
       case "time":
         return [n("태어난 시간을 알면 시주(時柱)까지, 여덟 글자를 다 본다냥. 모르면 '몰라' 눌러라냥. 여섯 글자로도 본다냥.")];
+      case "blood":
+        return [n("혈액형은? 사주랑 같이 놓고 보면 성격 결이 더 또렷해진다냥.", "smug")];
       case "pname":
         return [n("이제 그 사람 차례다냥."), n("헤어진 그 사람, 이름이 뭐냥?", "smug")];
       case "pbirth":
@@ -171,6 +177,8 @@ function asks(t: Turn, i: QuestionnaireInput, { saved, modeKnown }: Ctx): Return
       return [n("생년월일을 대라냥. 양력으로.")];
     case "time":
       return [n("태어난 시간도 알면 시주(時柱)까지 본다냥. 모르면 '몰라' 눌러라냥.")];
+    case "blood":
+      return [n("혈액형은? 별거 아닌 것 같지? 사주랑 겹쳐 보면 연애 결이 또렷해진다냥.", "smug")];
     case "mbti":
       return [n("MBTI는? 냥신은 그런 거 없어도 다 보지만… 궁합표엔 쓸모가 있다냥.", "smug")];
     case "pname":
@@ -217,6 +225,8 @@ function answerOf(t: Turn, i: QuestionnaireInput, { modeKnown }: Ctx): string {
       return fmtDate(i.me.birthdate);
     case "time":
       return i.me.birthtime ? fmtTime(i.me.birthtime) : "몰라";
+    case "blood":
+      return i.me.blood ? BLOOD_CHIP[i.me.blood] : "몰라";
     case "mbti":
       return i.me.mbti || "몰라";
     case "pname":
@@ -259,6 +269,8 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
       return [n(`${i.me.birthdate.slice(0, 4)}년생 ${animalOf(i.me.birthdate)}띠구냥. 오호… 벌써 좀 보인다냥.`, "wow")];
     case "time":
       return [i.me.birthtime ? n("시주까지 보겠다냥. 더 정확해지겠구냥.", "happy") : n("괜찮다냥. 년·월·일 세 기둥으로도 충분하다냥.")];
+    case "blood":
+      return [i.me.blood ? n(BLOOD_REACT[i.me.blood], "wow") : n("괜찮다냥. 몰라도 사주가 다 말해 준다냥.")];
     case "mbti":
       return [i.me.mbti ? n(`${i.me.mbti}… 그럴 줄 알았다냥 😼`, "smug") : n("몰라도 된다냥. 냥신 눈이 더 정확하다냥.", "smug")];
     case "pname":
@@ -289,7 +301,7 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
           : isCustom(a)
             ? [n(CUSTOM_REACTS[(a.length + t.num) % CUSTOM_REACTS.length], "wow")]
             : o
-              ? [n(o.react, o.mood ?? "smug")]
+              ? [n(fill(o.react, p), o.mood ?? "smug")]
               : [];
       if (t.part === "self" && t.num === Math.ceil(selfQs(i.mode).length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
       return out;
@@ -383,13 +395,16 @@ const inputCls =
   "min-w-0 flex-1 rounded-2xl border border-line bg-surface-2 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-muted/60 focus:border-pink/60";
 
 function Chips({ items, onPick, cols = 1 }: { items: { id: string; label: string; sub?: string }[]; onPick: (id: string) => void; cols?: number }) {
+  // Short grid chips sit centered; chips with a description line stay left-aligned. Swapped, not stacked, so the utilities don't fight.
+  const center = cols > 2 || (cols > 1 && items.every((it) => !it.sub));
+  const cls = center ? chipCls.replace("px-4 py-3 text-left text-[15px]", cols === 4 ? "px-1 py-2.5 text-center text-[14px]" : "px-3 py-3 text-center text-[15px]") : chipCls;
   return (
     <div className={cols === 1 ? "space-y-2" : `grid gap-2 ${cols === 4 ? "grid-cols-4" : cols === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
       {items.map((it, k) => (
         <button
           key={it.id}
           onClick={() => onPick(it.id)}
-          className={`${chipCls} ${cols > 1 ? "text-center" : ""} ${cols === 4 ? "px-1 py-2.5 text-[13px]" : ""}`}
+          className={cls}
           style={{ animationDelay: `${k * 55}ms` }}
         >
           {it.label}
@@ -477,7 +492,10 @@ export function Questionnaire() {
   // Skip the info questions only when the interview actually holds the 기본 정보 (saved profile or carried over).
   const saved = Boolean(input.me.name && input.me.birthdate) && (preset.me || Boolean(profile && profile.name === input.me.name && profile.birthdate === input.me.birthdate));
   const modeKnown = preset.mode;
-  const turns = useMemo(() => turnsFor(input.mode, saved), [input.mode, saved]);
+  // Saved profiles from before 혈액형 have no "blood" key at all ("" means the user said 몰라). Decided once,
+  // so answering it doesn't reshuffle the turns mid-interview.
+  const [askBlood] = useState(() => saved && input.me.blood === undefined);
+  const turns = useMemo(() => turnsFor(input.mode, saved, askBlood), [input.mode, saved, askBlood]);
   const cur = turns[Math.min(step, turns.length - 1)];
   const { msgs, askStart } = useMemo(
     () => buildThread(turns, Math.min(step, turns.length - 1), input, { saved, modeKnown }),
@@ -605,6 +623,29 @@ export function Questionnaire() {
         />
       );
       break;
+    case "blood":
+      dock = (
+        <div className="space-y-2">
+          <Chips
+            cols={4}
+            items={BLOOD_TYPES.map((b) => ({ id: b, label: `${b}형`, sub: BLOOD_HINT[b] }))}
+            onPick={(b) => {
+              s.updateMe({ blood: b as BloodType });
+              advance();
+            }}
+          />
+          <button
+            onClick={() => {
+              s.updateMe({ blood: "" });
+              advance();
+            }}
+            className="w-full rounded-2xl border border-line py-2.5 text-sm text-muted"
+          >
+            🤷 몰라
+          </button>
+        </div>
+      );
+      break;
     case "mbti":
     case "pmbti": {
       const set = cur.kind === "mbti" ? s.updateMe : s.updatePartner;
@@ -699,12 +740,10 @@ export function Questionnaire() {
             <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg bg-pink shadow-[0_0_6px_var(--pink)]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-ritual text-[16px] leading-tight">{fortune ? `냥신 점집 · ${productOf(input.mode).name} 감정` : "냥신 점집 · 촛불 앞 면담"}</p>
+            <p className="font-ritual truncate text-[16px] leading-tight">{fortune ? `${productOf(input.mode).name} 감정` : "냥신 점집 · 촛불 앞 면담"}</p>
             <p className="text-xs text-muted">{typing ? "냥신이 입력 중…" : inQ || qDone ? `질문 ${Math.min(qDone + 1, qTurns.length)} / ${qTurns.length}` : "기본 정보 확인 중"}</p>
           </div>
-          <span className="flicker text-xl" aria-hidden>
-            🕯️
-          </span>
+          <SoundToggle />
         </div>
         <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-white/10">
           <div

@@ -2,15 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PRODUCTS, productOf, won } from "@/lib/config";
-import { josa } from "@/lib/josa";
-import type { FortuneMode, UnlockResponse } from "@/models/types";
-import { shareService, siteUrl, type ShareOutcome } from "@/services/shareService";
+import { sound } from "@/lib/sound";
+import type { FortuneMode, FortuneStoryCard, UnlockResponse } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { DocumentHead, FortuneCardView } from "./FortuneCards";
 import { LoginSheet } from "./LoginSheet";
 import { Nyang, Say } from "./Nyang";
 import { PaymentModal } from "./PaymentModal";
 import { FullReportView, LockedCard, SectionCard } from "./ReportCards";
+import { ShareButtons } from "./ShareButtons";
 import { ShareUnlockPanel } from "./ShareUnlockPanel";
 import { useToast } from "./Toast";
 
@@ -80,7 +80,6 @@ const docNo = (s: string) => {
   return (h >>> 0).toString(16).slice(-6).toUpperCase().padStart(6, "0");
 };
 
-const OUTCOME_MSG: Partial<Record<ShareOutcome, string>> = { copied: "링크를 복사했다냥! 붙여넣어서 보내라냥 📋" };
 
 export function FortuneResultView() {
   const { fortune, report, level, input, inputHash, applyUnlock, reset, startInterview } = useAppStore();
@@ -94,10 +93,6 @@ export function FortuneResultView() {
   const [typing, setTyping] = useState(level === "none" && !resumeAtLoad);
   const [leaveAsked, setLeaveAsked] = useState(false);
   const toast = useToast();
-
-  useEffect(() => {
-    shareService.prepareKakao().catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (!payIntent) return;
@@ -141,6 +136,7 @@ export function FortuneResultView() {
   const price = product.price;
 
   const advance = () => {
+    sound().play("reveal");
     setShown((n) => n + 1);
     setTyping(true);
   };
@@ -150,6 +146,7 @@ export function FortuneResultView() {
   };
   const onUnlocked = (u: UnlockResponse) => {
     applyUnlock(u);
+    sound().play("chime");
     setPayOpen(false);
     setShown(Number.MAX_SAFE_INTEGER);
     toast.show(u.level === "full" ? (u.readingId ? "🐾 복채 잘 받았다냥! 내 점괘함에 보관해 뒀다냥" : "🐾 복채 잘 받았다냥!") : "🔓 하나는 공짜로 알려주겠다냥!");
@@ -159,9 +156,15 @@ export function FortuneResultView() {
   const shared = level === "share" ? report?.sections[0] : undefined;
   const lastBeat = beats[Math.min(shown, beats.length) - 1];
   const intros = Object.fromEntries(Object.entries(INTROS[mode]).map(([k, v]) => [k, P(v)]));
-  const shareText = {
-    title: `냥신 점집 🕯️ ${product.name}`,
-    description: `냥신한테 ${josa(product.name, "을/를")} 봤는데 소름 돋게 잘 맞아 😳 너도 봐 봐!`,
+  const storyCard: FortuneStoryCard = fortune.story ?? {
+    kind: "fortune",
+    label: fortune.title,
+    emoji: product.emoji,
+    headline: product.name,
+    sub: "냥신이 직접 짚은 감정서",
+    meta: fortune.saju?.pillars.map((x) => x.hanja).join(" ") ?? "",
+    slipLabel: "냥신 감정",
+    slipText: product.pitch.split(" · ").slice(0, 3).join(" · "),
   };
   const others = (Object.keys(PRODUCTS) as (keyof typeof PRODUCTS)[]).filter((m) => m !== mode && m !== "solo" && m !== "couple") as FortuneMode[];
 
@@ -234,7 +237,7 @@ export function FortuneResultView() {
                         <span className="block text-[17px]">
                           {PAY_LABEL[mode]} · {won(price)}
                         </span>
-                        <span className="block text-xs font-medium opacity-90">점집 복채의 10분의 1도 안 된다냥</span>
+                        <span className="block text-xs font-medium opacity-90">{price < 1000 ? "천 원도 안 되는 복채다냥" : "점집 복채의 10분의 1도 안 된다냥"}</span>
                       </button>
                     </div>
                     {level === "none" && <ShareUnlockPanel input={input} unlockTitle={fortune.locked[0].title} onUnlocked={onUnlocked} toast={toast.show} />}
@@ -267,35 +270,7 @@ export function FortuneResultView() {
 
       {allShown && !typing && (
         <>
-          <section className="mt-10">
-            <h2 className="mb-1 text-[20px]">📜 이 감정, 혼자 보기 아깝다냥</h2>
-            <p className="mb-4 text-sm text-muted">친구 팔자도 궁금하지? 냥신 점집을 알려 줘라냥</p>
-            <div className="space-y-3">
-              <button
-                onClick={() =>
-                  shareService
-                    .shareKakao({ ...shareText, url: siteUrl() })
-                    .then((o) => OUTCOME_MSG[o] && toast.show(OUTCOME_MSG[o]!))
-                    .catch(() => toast.show("공유에 실패했다냥. 다시 눌러라냥"))
-                }
-                className="share-plaque share-kakao w-full py-4 transition active:scale-[0.98]"
-              >
-                <span className="share-icon bg-[#fee500] text-[#191919]">💬</span>
-                카카오톡으로 점집 알려 주기
-              </button>
-              <button
-                onClick={() =>
-                  shareService
-                    .shareLink({ ...shareText, url: siteUrl() })
-                    .then((o) => OUTCOME_MSG[o] && toast.show(OUTCOME_MSG[o]!))
-                    .catch(() => toast.show("공유에 실패했다냥. 다시 눌러라냥"))
-                }
-                className="w-full rounded-2xl border border-line py-3.5 text-sm font-semibold"
-              >
-                🔗 링크로 알려 주기
-              </button>
-            </div>
-          </section>
+          <ShareButtons teaser={storyCard} myName={me} partnerName={input.partner.name} toast={toast.show} />
 
           {level === "full" && (
             <section className="mt-10">

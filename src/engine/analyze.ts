@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { copula, daNyang, josa } from "@/lib/josa";
+import { BLOOD_LOVE, normalizeBlood } from "@/lib/blood";
 import { syllableStrokes } from "@/lib/nameCompat";
 import { PARTNER_INTERVIEW, selfInterview } from "@/lib/interview";
 import { COUPLE_CONCERNS, SOLO_CONCERNS } from "@/lib/questions";
@@ -81,6 +82,7 @@ function normalize(i: QuestionnaireInput): QuestionnaireInput {
     birthdate: p?.birthdate ?? "",
     birthtime: p?.birthtime ?? "",
     mbti: normalizeMbti(p?.mbti),
+    blood: normalizeBlood(p?.blood),
   });
   const couple = i.mode === "couple";
   return {
@@ -180,6 +182,7 @@ function personalReading(c: Core): TeaserReport["personal"] {
 
   return {
     nameReading: mySaju ? punchOrNull(nameReading(input.me.name, mySaju.dm.element), 2) : null,
+    bloodReading: input.me.blood ? BLOOD_LOVE[input.me.blood] : null,
     dayMasterReading: mySaju
       ? `네 일간은 ${dayMasterLabel(mySaju.dm)}, ${daNyang(`'${mySaju.summary.dayMaster.image}'`)}. ${punch(DAY_MASTER_READING[mySaju.dm.stem], 2)}`
       : null,
@@ -262,12 +265,15 @@ function hiddenReadings(me: Profile): string[] {
     .map((g) => `${g.icon} ${g.label} ${g.pct}% · ${HIDDEN_READING[g.key as HiddenKey][hiddenLevel(g.pct)]}`);
 }
 
-function decodeSection(c: Core, intro: string): ReportSection {
+/** The one combo the free result already showed (couples: my answer × theirs); the paid sections skip it. */
+const teaserCombo = (c: Core, x?: Couple) => (x ? crossCombos(selfSet(c), partnerSet(x), 1)[0] : undefined) ?? selfCombos(selfSet(c), 1)[0] ?? null;
+
+function decodeSection(c: Core, intro: string, shown: string | null): ReportSection {
   return {
     title: "면담 기록 전체 해석 · 냥신이 그 질문을 한 이유",
     headline: `'왜 이런 걸 묻지?' 싶었던 ${selfInterview(c.input.mode).length}개, 전부 이유가 있었다냥 🔍`,
     body: intro,
-    bullets: [...selfCombos(selfSet(c)), ...decodeBullets(selfSet(c), mbtiShort)],
+    bullets: [...selfCombos(selfSet(c)).filter((l) => l !== shown), ...decodeBullets(selfSet(c), mbtiShort)],
   };
 }
 
@@ -388,6 +394,7 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
   const decode = decodeSection(
     c,
     `${name}, 면담 중에 '이걸 왜 묻지?' 싶었지? 냥신은 처음부터 네 답 하나하나에서 연애 습관을 읽고 있었다냥. 전부 풀어 주겠다냥.`,
+    teaserCombo(c),
   );
 
   const topHidden = [...HIDDEN_KEYS].sort((a, b) => me.hidden[b] - me.hidden[a])[0];
@@ -672,10 +679,10 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     title: `네가 말한 ${n.p}의 행동 ${PARTNER_INTERVIEW.length}가지, 진짜 의미`,
     headline: `사소해 보여도 ${n.p}의 마음은 습관에 새어 나온다냥 🕵️`,
     body: `${n.p} 얘기할 때 냥신이 이상한 것만 물어봤지? 사람 속마음은 말보다 습관에 먼저 나온다냥. 네가 본 ${n.p}의 모습 ${PARTNER_INTERVIEW.length}개를 하나씩 번역해 주겠다냥.`,
-    bullets: [...crossCombos(selfSet(x), partnerSet(x)), ...partnerCombos(partnerSet(x)), ...decodeBullets(partnerSet(x), mbtiShort)],
+    bullets: [...crossCombos(selfSet(x), partnerSet(x)).filter((l) => l !== teaserCombo(x, x)), ...partnerCombos(partnerSet(x)), ...decodeBullets(partnerSet(x), mbtiShort)],
   };
 
-  const decode = decodeSection(x, `이번엔 너다냥, ${n.me}. 면담 때 '이걸 왜 묻지?' 싶었던 것들, 네 답에 숨은 것까지 다 읽었다냥.`);
+  const decode = decodeSection(x, `이번엔 너다냥, ${n.me}. 면담 때 '이걸 왜 묻지?' 싶었던 것들, 네 답에 숨은 것까지 다 읽었다냥.`, teaserCombo(x, x));
   decode.bullets.unshift(...hiddenReadings(me));
 
   const expressKey = mixKey(e, "EE", "HH", "MIX");
@@ -869,7 +876,7 @@ export function buildTeaser(input: QuestionnaireInput): TeaserReport {
   }
   const x = couple(c);
   // Couples get the sharpest free pair: one of my answers next to one of theirs.
-  const personal = { ...base.personal, combo: crossCombos(selfSet(c), partnerSet(x), 1)[0] ?? base.personal.combo };
+  const personal = { ...base.personal, combo: teaserCombo(c, x) };
   return { ...base, personal, couple: coupleTeaser(x), solo: null, locked: lockedPreviews(input, buildCoupleReport(x, "full")) };
 }
 

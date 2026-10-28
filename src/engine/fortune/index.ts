@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { FORTUNE_INTERVIEW } from "@/lib/fortuneQuestions";
 import { UNKNOWN_ANSWER } from "@/lib/interview";
 import type { FortuneMode, FortuneTeaser, FullReport, Gender, PersonInput, QuestionnaireInput } from "@/models/types";
+import { normalizeBlood } from "@/lib/blood";
 import { normalizeMbti } from "../mbti";
 import { buildChart } from "./chart";
 import { daeunReading } from "./daeunReading";
@@ -26,6 +27,7 @@ function person(p?: Partial<PersonInput>): PersonInput {
     birthdate: DATE.test(bd) ? bd : "",
     birthtime: TIME.test(bt) ? bt : "",
     mbti: normalizeMbti(p?.mbti),
+    blood: normalizeBlood(p?.blood),
   };
 }
 
@@ -67,7 +69,7 @@ function read(input: QuestionnaireInput): {
   teaser: FortuneTeaser;
   report: FullReport;
 } {
-  const c = buildChart(input.me.birthdate, input.me.birthtime, input.me.gender)!;
+  const c = { ...buildChart(input.me.birthdate, input.me.birthtime, input.me.gender)!, blood: input.me.blood || undefined };
   switch (input.mode as FortuneMode) {
     case "saju":
       return sajuReading(input, c);

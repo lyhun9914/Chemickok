@@ -60,10 +60,12 @@ export function LoadingScreen() {
     Promise.all([request, minWait])
       .then(([show]) => {
         setProgress(100);
-        // Logged in without saved 기본 정보: keep what was just typed so the next interview skips it.
+        // Logged in without saved 기본 정보 (or saved before 혈액형 was asked): keep what was just typed so the next
+        // interview skips it.
         const { me, setMe } = useAppStore.getState();
-        if (me && !me.profile && input.me.birthdate) {
-          accountApi.saveProfile(input.me).then((r) => setMe({ ...me, profile: r.profile })).catch(() => null);
+        const addsBlood = me?.profile && me.profile.blood === undefined && input.me.blood !== undefined && me.profile.name === input.me.name;
+        if (me && (!me.profile || addsBlood) && input.me.birthdate) {
+          accountApi.saveProfile(addsBlood ? { ...me.profile!, blood: input.me.blood } : input.me).then((r) => setMe({ ...me, profile: r.profile })).catch(() => null);
         }
         setTimeout(show, 300);
       })

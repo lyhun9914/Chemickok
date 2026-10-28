@@ -148,6 +148,27 @@ const DAEUN: InterviewQuestion[] = [
     ],
   },
   {
+    id: "du7",
+    short: "인생이 확 바뀐 때는?",
+    ask: ["이사·이직·이별·결혼… 인생 판이 확 바뀐 때가 있었지?", "그게 언제였냥?"],
+    options: [
+      ...AGE_SPANS.map((a) => ({ ...a, react: "그때구냥… 대운표랑 맞춰 보겠다냥.", mood: "wow" as const })),
+      { id: "none", label: "🌫️ 아직 크게 바뀐 적은 없다", react: "아직이구냥. 그럼 앞으로 올 때를 알려 주겠다냥.", mood: "smug" as const },
+    ],
+  },
+  {
+    id: "du9",
+    short: "어릴 때 집안 분위기는?",
+    ask: ["첫 대운은 집안 운으로 나타난다냥.", "어릴 때 집안 분위기는 어땠냥?"],
+    options: [
+      { id: "warm", label: "🏡 화목하고 넉넉한 편이었다", react: "든든하게 컸구냥.", mood: "happy" },
+      { id: "plain", label: "🙂 평범했다", react: "무난하게 컸구냥." },
+      { id: "hard", label: "🧱 형편이 어려웠다", react: "…일찍 철이 들었겠구냥.", mood: "wow" },
+      { id: "tense", label: "⚡ 부모님 일로 시끄러웠다", react: "눈치 보며 컸구냥… 기억해 두겠다냥.", mood: "wow" },
+      { id: "alone", label: "🚶 일찍부터 혼자 컸다", react: "혼자 서는 법을 일찍 배웠구냥." },
+    ],
+  },
+  {
     id: "du3",
     short: "최근 3년은 어땠냥?",
     ask: ["최근 3년, 어땠냥?"],
@@ -157,6 +178,19 @@ const DAEUN: InterviewQuestion[] = [
       { id: "wave", label: "🎢 오르락내리락 정신없다", react: "롤러코스터구냥." },
       { id: "flat", label: "😐 제자리걸음", react: "멈춘 느낌이구냥. 그게 제일 답답하지?" },
       { id: "turn", label: "🔄 인생이 통째로 바뀌었다", react: "판이 바뀌었구냥. 대운이 바뀐 거다냥.", mood: "wow" },
+    ],
+  },
+  {
+    id: "du8",
+    short: "지금 제일 무거운 짐은?",
+    ask: ["지금 어깨에 제일 무거운 짐 하나만 골라라냥."],
+    options: [
+      { id: "money", label: "💸 돈", react: "돈이 무겁구냥. 언제 풀리는지 보자냥.", mood: "wow" },
+      { id: "work", label: "💼 일·진로", react: "갈 길이 무겁구냥." },
+      { id: "people", label: "👥 사람·관계", react: "사람 때문이구냥… 그게 제일 지친다냥.", mood: "wow" },
+      { id: "health", label: "🩺 건강", react: "몸이 먼저다냥." },
+      { id: "family", label: "🏠 가족", react: "식구 일이구냥. 내 일보다 무겁지." },
+      { id: "mind", label: "🌫️ 마음·불안", react: "마음이 무겁구냥… 이유가 대운에 있다냥.", mood: "smug" },
     ],
   },
   {
@@ -172,6 +206,18 @@ const DAEUN: InterviewQuestion[] = [
       { id: "family", label: "👨‍👩‍👧 자식·가족 일", react: "식구 일이구냥. 네 운이 식구 운이다냥." },
       { id: "retire", label: "🌇 은퇴·노후 준비", react: "다음 판을 짜는구냥. 때가 중요하다냥.", minAge: 45 },
       { id: "none", label: "🍃 딱히 없다", react: "없다… 곧 생길 거다냥.", mood: "smug" },
+    ],
+  },
+  {
+    id: "du10",
+    short: "살면서 끌어 준 사람은?",
+    ask: ["살면서 너를 끌어 준 사람이 있었냥?"],
+    options: [
+      { id: "parent", label: "👪 부모님", react: "부모 덕이 있구냥." },
+      { id: "mentor", label: "🧑‍🏫 스승·선배·상사", react: "윗사람 복이구냥.", mood: "happy" },
+      { id: "partner", label: "💞 연인·배우자", react: "짝 덕이 있구냥.", mood: "happy" },
+      { id: "friend", label: "🤝 친구·동료", react: "옆 사람 복이구냥." },
+      { id: "none", label: "🧍 없다, 다 혼자 했다", react: "…혼자 버텼구냥. 이제 올 사람을 알려 주겠다냥.", mood: "wow" },
     ],
   },
   {

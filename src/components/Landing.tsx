@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { streakNow } from "@/lib/daily";
 import { PRODUCTS, isFortune, won } from "@/lib/config";
 import type { Mode } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
@@ -8,24 +9,33 @@ import { enterThroughDoors } from "./Backdrop";
 import { LoginSheet } from "./LoginSheet";
 import { MiniGameSheet, type MiniGame } from "./MiniGames";
 import { Nyang } from "./Nyang";
+import { SoundToggle } from "./SoundToggle";
 import { Talisman } from "./Talisman";
+import { TypeCarousel } from "./TypeCarousel";
 
-const PREVIEW_TYPES = [
-  { emoji: "🚂", name: "풀악셀 폭주기관차" },
-  { emoji: "📡", name: "츤데레 질투 레이더" },
-  { emoji: "💣", name: "속으로 타는 시한폭탄" },
-  { emoji: "🌙", name: "새벽 3시 감성 소설가" },
-];
 
 const MENU: { title: string; sub: string; modes: Mode[] }[] = [
   { title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
   { title: "📜 사주 · 운세 감정", sub: "만세력으로 원국을 세워 십성 · 용신 · 신살 · 대운까지 짚는 정통 감정서", modes: ["saju", "daeun"] },
 ];
 
+const MINI: { id: MiniGame; emoji: string; name: string; sub: string; wide?: boolean }[] = [
+  { id: "today", emoji: "📅", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번", wide: true },
+  { id: "tarot", emoji: "🃏", name: "오늘의 타로", sub: "하루 한 장 · 무료" },
+  { id: "zodiac", emoji: "🐾", name: "띠별 운세", sub: "12띠 오늘 일진 · 무료" },
+  { id: "daily", emoji: "🔮", name: "오늘의 연애운", sub: "생일만 넣으면 끝 · 무료" },
+  { id: "name", emoji: "✍️", name: "이름 궁합", sub: "그 시절 획수 궁합 · 무료" },
+];
+
 export function Landing() {
   const { setScreen, me, providers, startInterview } = useAppStore();
   const [game, setGame] = useState<MiniGame | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const k = new Date(Date.now() + 9 * 3600 * 1000);
+  const todayLabel = `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일`;
+  // 출석 streak lives in this browser only; read after mount and whenever a mini game closes.
+  const [{ streak, checkedToday }, setStreak] = useState({ streak: 0, checkedToday: false });
+  useEffect(() => setStreak(streakNow()), [game]);
 
   // Saved 기본 정보 → the interview skips straight past name/birth. A product card also fixes the mode.
   const start = (mode?: Mode) => {
@@ -37,9 +47,10 @@ export function Landing() {
     <main className="enter-dark relative flex flex-1 flex-col px-5 pt-4">
       <Talisman className="absolute left-4 top-0" />
       <Talisman className="absolute right-6 top-24 opacity-70 [animation-delay:-2s]" />
-      {providers.length > 0 && (
-        <div className="flex justify-end">
-          {me ? (
+      <div className="relative z-10 flex items-center justify-end gap-2">
+        <SoundToggle />
+        {providers.length > 0 &&
+          (me ? (
             <button onClick={() => setScreen("my")} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold">
               📜 내 점괘함
             </button>
@@ -47,9 +58,8 @@ export function Landing() {
             <button onClick={() => setLoginOpen(true)} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted">
               로그인
             </button>
-          )}
-        </div>
-      )}
+          ))}
+      </div>
       <div className="fade-up text-center">
         <span className="font-ritual inline-block rounded-sm border border-violet/40 bg-[#1a0d0a] px-3 py-1 text-[13px] tracking-[0.2em] text-violet">
           神 골목 끝 점집 · 냥신 점괘 神
@@ -82,6 +92,22 @@ export function Landing() {
         📜 사주 · 대운 감정 보러 가기 ↓
       </button>
       <p className="mt-3 text-center text-[13px] text-muted">⏱ 약 3~4분 · 회원가입 없이 · 기본 점괘는 무료</p>
+
+      <button
+        onClick={() => setGame("today")}
+        className="fade-up mt-6 flex w-full items-center gap-3 rounded-2xl border border-peach/40 bg-peach/5 px-4 py-3.5 text-left active:scale-[0.98]"
+      >
+        <span className="text-2xl">📅</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-bold text-peach">오늘의 운세 · {todayLabel}</span>
+          <span className="block text-[13px] text-muted">
+            {checkedToday ? `오늘 도장 완료 · 연속 ${streak}일째 🐾` : streak ? `연속 ${streak}일째 출석 중 · 오늘 도장 받아 가라냥` : "하루 한 번, 오늘의 일진을 짚어 준다냥"}
+          </span>
+        </span>
+        <span className="text-muted" aria-hidden>
+          →
+        </span>
+      </button>
 
       {MENU.map((group, gi) => (
         <section key={group.title} id={gi ? "menu-fortune" : "menu-love"} className={`fade-up scroll-mt-4 ${gi ? "mt-8" : "mt-10"}`} style={{ animationDelay: `${0.1 + gi * 0.05}s` }}>
@@ -120,31 +146,33 @@ export function Landing() {
       ))}
 
       <section className="fade-up mt-8" style={{ animationDelay: "0.15s" }}>
-        <h2 className="mb-3 text-sm font-semibold text-muted">가볍게 한 점 🎴</h2>
+        <h2 className="text-[17px]">🎴 가볍게 한 점 · 매일 무료</h2>
+        <p className="mb-3 mt-1 text-[13.5px] text-muted">하루 한 번 들르면 출석 도장을 찍어 준다냥</p>
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => setGame("daily")} className="rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]">
-            <div className="text-3xl">🔮</div>
-            <div className="mt-2 text-sm font-bold">오늘의 연애운</div>
-            <div className="text-xs text-muted">생일만 넣으면 끝 · 무료</div>
-          </button>
-          <button onClick={() => setGame("name")} className="rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]">
-            <div className="text-3xl">✍️</div>
-            <div className="mt-2 text-sm font-bold">이름 궁합</div>
-            <div className="text-xs text-muted">그 시절 획수 궁합 · 무료</div>
-          </button>
+          {MINI.map((g) => (
+            <button
+              key={g.id}
+              onClick={() => setGame(g.id)}
+              className={`rounded-2xl border bg-surface p-4 text-left active:scale-[0.98] ${g.wide ? "col-span-2 flex items-center gap-4 border-violet/40" : "border-line"}`}
+            >
+              <div className="text-3xl">{g.emoji}</div>
+              <div className={g.wide ? "min-w-0 flex-1" : ""}>
+                <div className={`font-bold ${g.wide ? "text-[16px]" : "mt-2 text-[15px]"}`}>{g.name}</div>
+                <div className="mt-0.5 text-[13px] text-muted">{g.wide && streak ? `🐾 출석 ${streak}일째 · ${checkedToday ? "오늘 도장 완료" : "오늘 도장 받으러 가기"}` : g.sub}</div>
+              </div>
+              {g.wide && (
+                <span className="text-muted" aria-hidden>
+                  →
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </section>
 
       <section className="fade-up mt-8" style={{ animationDelay: "0.25s" }}>
         <h2 className="mb-3 text-sm font-semibold text-muted">16가지 연애 팔자 중 너는?</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {PREVIEW_TYPES.map((t) => (
-            <div key={t.name} className="rounded-2xl border border-line bg-surface p-4">
-              <div className="text-3xl">{t.emoji}</div>
-              <div className="mt-2 text-sm font-bold">{t.name}</div>
-            </div>
-          ))}
-        </div>
+        <TypeCarousel />
       </section>
 
       <section className="fade-up mb-10 mt-8 space-y-3" style={{ animationDelay: "0.35s" }}>
@@ -163,7 +191,7 @@ export function Landing() {
         ))}
       </section>
 
-      <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={() => start()} />
+      <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={start} />
       <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />
     </main>
   );

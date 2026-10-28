@@ -1,4 +1,5 @@
 import "server-only";
+import { BLOOD_MATCH } from "@/lib/blood";
 import type { ElementKey, FortuneBeat, FortuneTeaser, FullReport, QuestionnaireInput } from "@/models/types";
 import { ANIMALS, SAMHAP, branchRelation } from "../saju";
 import {
@@ -367,7 +368,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
       GROUP_OF[palaceGod] === sg ? "배우자 자리에 배우자 별이 앉은 사주다냥. 부부 금슬이 좋은 자리다냥." : null,
       a("sp1") === "remarry" ? "두 번째 결혼은 첫 결혼과 다른 결의 사람이 맞다냥. 같은 사람을 또 고르지 마라냥." : (PARENTS[a("sp6") ?? ""] ?? null),
     ),
-    [`🐾 잘 맞는 띠: ${goodSpouseAnimals(c).join("띠 · ")}띠`, `⚡ 부딪치는 띠: ${ANIMALS[(c.dayBranch + 6) % 12]}띠`],
+    [`🐾 잘 맞는 띠: ${goodSpouseAnimals(c).join("띠 · ")}띠`, `⚡ 부딪치는 띠: ${ANIMALS[(c.dayBranch + 6) % 12]}띠`, ...(c.blood ? [`🩸 잘 맞는 혈액형: ${BLOOD_MATCH[c.blood].map((b) => `${b}형`).join(" · ")}`] : [])],
   );
 
   const cautionSec = sec(
@@ -459,6 +460,17 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
     beats,
     paywall: "…여기서부터가 진짜다냥. 배우자 얼굴과 직업, 만나는 해와 계절, 어디서 만나는지, 결혼 전에 피해야 할 것까지 다 적어 뒀다냥. 듣고 갈래? 😼",
     locked: sections.map((s) => locked(s.id, s.icon, s.section)),
+    story: {
+      kind: "fortune",
+      label: `${name}의 배우자 감정서`,
+      emoji: "💍",
+      headline: `${palace.keys[0]} · ${palace.keys[1]}`,
+      sub: `${look.key}의 사람`,
+      meta: c.saju.summary.pillars.map((pl) => pl.hanja).join(" "),
+      slipLabel: "냥신이 본 배우자 자리",
+      slipValue: `${ANIMALS[c.dayBranch]}`,
+      slipText: `직업 기운 · ${look.job.split("·").slice(0, 3).join("·")}`,
+    },
   };
   return { teaser, report };
 }
