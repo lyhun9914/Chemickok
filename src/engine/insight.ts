@@ -143,20 +143,35 @@ function overallSign(person: Person, t: Trait): number {
 const face = (t: Trait, s: number) => TRAIT_FACE[t][s > 0 ? 0 : 1];
 
 /** This answer next to another answer with a strong lean on the same trait. */
-function crossLine(set: AnswerSet, it: Item, all: Item[], t: Trait, s: number): string | null {
+/** What one reading pass has already said, so fourteen readings don't keep quoting the same answer or line. */
+interface Memo {
+  cited: Map<string, number>;
+  lines: Set<string>;
+}
+
+function crossLine(set: AnswerSet, it: Item, all: Item[], t: Trait, s: number, memo: Memo): string | null {
+  const times = (o: Item) => memo.cited.get(o.qid) ?? 0;
   const other = all
-    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 0.5)
-    .sort((a, b) => Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
+    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 0.5 && times(o) < 2)
+    .sort((a, b) => times(a) - times(b) || Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
   if (!other) return null;
   const same = sign(other.w[t] ?? 0) === s;
   const head = same ? `Q${other.num} '${other.label}'도 같은 뿌리다냥.` : `근데 Q${other.num}에선 ${was(other.label)}.`;
   if (set.aboutPartner) {
     if (!(AXES as Trait[]).includes(t)) return null;
     const table = same ? T.PARTNER_ROOT : T.PARTNER_SPLIT;
-    return `${head} ${table[t as AxisKey][s > 0 ? 0 : 1]}`;
+    return withBody(head, table[t as AxisKey][s > 0 ? 0 : 1], other, memo);
   }
   // Couple mode says what the lean means for the partner; solo says what it means for you.
   const body = same && set.couple ? T.COUPLE_TAIL[t][s > 0 ? 0 : 1] : punch((same ? T.ROOT : T.SPLIT)[t][s > 0 ? 0 : 1], 1);
+  return withBody(head, body, other, memo);
+}
+
+/** Cite `other`; a body sentence already used in this pass is dropped rather than repeated. */
+function withBody(head: string, body: string, other: Item, memo: Memo): string {
+  memo.cited.set(other.qid, (memo.cited.get(other.qid) ?? 0) + 1);
+  if (memo.lines.has(body)) return head;
+  memo.lines.add(body);
   return `${head} ${body}`;
 }
 
@@ -186,7 +201,7 @@ function typeLine(set: AnswerSet, it: Item, t: Trait, s: number, short: (m: stri
 }
 
 /** The decoded reading for one answer, tied to the rest of the person. */
-function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => string): string {
+function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => string, memo: Memo): string {
   // The answer itself is shown right above, so skip the echo and keep the reading to its core.
   const parts = [core(it.r.read, 1)];
   if (it.predicted && it.unknown) {
@@ -198,22 +213,32 @@ function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => s
   if (dom && it.qid !== COLOR_Q) {
     const [t, v] = dom;
     const s = sign(v);
-    const cross = crossLine(set, it, all, t, s);
     const prof = set.aboutPartner ? null : profileLine(set, it, t, s);
     const type = set.aboutPartner ? null : typeLine(set, it, t, s, short);
-    // Rotate which context line each question gets, so a long report doesn't repeat one pattern.
-    const order = [
-      [cross, prof, type],
-      [cross, type, prof],
-      [prof, type, cross],
+    // Rotate which context line each question gets, so a long report doesn't repeat one pattern; skip any line
+    // this pass already said. The cross-link is built last so it only marks an answer as cited when it's used.
+    const order: ("cross" | string | null)[] = [
+      ["cross", prof, type],
+      ["cross", type, prof],
+      [prof, type, "cross"],
     ][it.num % 3];
-    parts.push(...order.filter((x): x is string => Boolean(x)).slice(0, 1));
+    // Template lines differ only in the trait they name, so compare by their opening sentence.
+    const opener = (l: string) => `^${punch(l, 1).replace(/'[^']*'/g, "")}`;
+    for (const c of order) {
+      const line = c === "cross" ? crossLine(set, it, all, t, s, memo) : c && !memo.lines.has(opener(c)) ? c : null;
+      if (!line) continue;
+      memo.lines.add(line);
+      if (c !== "cross") memo.lines.add(opener(line));
+      parts.push(line);
+      break;
+    }
   }
   return fill(parts.join(" "), set.p);
 }
 
 export function decodeTells(set: AnswerSet, short: (m: string) => string): Map<string, Tell> {
   const all = items(set);
+  const memo: Memo = { cited: new Map(), lines: new Set() };
   return new Map(
     all.map((it) => {
       const q = set.qs.find((x) => x.id === it.qid)!;
@@ -223,7 +248,7 @@ export function decodeTells(set: AnswerSet, short: (m: string) => string): Map<s
           question: fill(q.short, set.p),
           answer: fill(it.r.label || (optionOf(set.qs, it.qid, set.answers[it.qid])?.label ?? ""), set.p),
           why: fill(punch(set.decode[it.qid].why, 1), set.p),
-          read: enriched(set, it, all, short),
+          read: enriched(set, it, all, short, memo),
         },
       ];
     }),
@@ -319,7 +344,8 @@ export function crossCombos(me: AnswerSet, partner: AnswerSet, max = 3): string[
  * strongest one that pulled the other way. Ties the card to this exact answer combination.
  */
 export function traitEvidence(set: AnswerSet): Record<AxisKey, string> {
-  const list = items(set).filter((it) => !it.unknown && !it.r.unread);
+  // The colour pick has weights but quoting it ('빨강' 보면 직진형) reads oddly as evidence.
+  const list = items(set).filter((it) => !it.unknown && !it.r.unread && it.qid !== COLOR_Q);
   const mbti = set.person.mbti.toUpperCase();
   const q = (it: Item) => `'${it.label}'`;
   const out = {} as Record<AxisKey, string>;

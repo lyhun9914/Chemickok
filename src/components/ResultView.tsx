@@ -96,7 +96,7 @@ export function ResultView() {
         next: "그래서?",
       });
       list.push({
-        say: `네 일간은 ${saju.dayMaster.hangul}${saju.dayMaster.hanja}, '${saju.dayMaster.image}'이다냥. 어디 보자…`,
+        say: "…어디 보자. 네가 어떤 기운을 타고났는지 보인다냥.",
         mood: "wow",
         node: <DayMasterCard personal={personal} />,
         next: "헐 맞아… 계속",
@@ -144,14 +144,15 @@ export function ResultView() {
     const said = (a: string) => a.replace(/^\S+\s/, "").replaceAll('"', "");
     if (tell1) {
       list.push({
-        say: `면담 때 '${said(tell1.answer)}' 골랐지? 냥신이 왜 그걸 물었는지 알려주겠다냥.`,
+        say: `면담 때 ${josa(`'${said(tell1.answer)}'`, "을/를")} 골랐지? 냥신이 왜 그걸 물었는지 알려주겠다냥.`,
         mood: "smug",
         node: <TellCard tell={tell1} />,
         next: "어떻게 알았어…",
       });
     }
     const hook = teaser.locked.find((l) => l.id === (solo ? "pattern" : "letter"));
-    if (hook) {
+    // After paying, the locked teaser would just repeat what's unlocked below.
+    if (hook && level !== "full") {
       list.push({
         say: solo
           ? "…근데 너, 연애할 때마다 똑같은 실수 하나 하고 있다냥. 이건 좀 이따 말해 주겠다냥 🤐"
@@ -169,7 +170,7 @@ export function ResultView() {
     });
     if (tell2) {
       list.push({
-        say: `그리고 너… '${said(tell2.answer)}'라고 했지? 냥신은 이게 제일 마음에 걸린다냥.`,
+        say: `그리고 너… ${josa(`'${said(tell2.answer)}'`, "이라고/라고")} 했지? 냥신은 이게 제일 마음에 걸린다냥.`,
         mood: "wow",
         node: <TellCard tell={tell2} />,
         next: "뜨끔…",

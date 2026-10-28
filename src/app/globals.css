@@ -114,8 +114,10 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+/* Entrance animations use fill-mode backwards: a lingering final transform/filter/opacity would turn the
+   element into a stacking context and containing block, trapping fixed popups (sheets, modals) inside it. */
 .fade-up {
-  animation: fadeUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: fadeUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
@@ -229,7 +231,7 @@ h1 { text-shadow: 0 0 18px rgba(232, 150, 60, 0.25); }
 }
 
 /* 처음 들어올 때: 어둠 속에서 촛불이 켜지듯 */
-.enter-dark { animation: enterDark 1.6s ease-out both; }
+.enter-dark { animation: enterDark 1.6s ease-out backwards; }
 @keyframes enterDark {
   0% { opacity: 0; filter: brightness(0.2); }
   40% { opacity: 0.7; filter: brightness(0.5); }
@@ -299,17 +301,17 @@ h1 { text-shadow: 0 0 18px rgba(232, 150, 60, 0.25); }
 }
 
 /* ── 1:1 면담 (chat) ── */
-.bubble-in { animation: bubbleIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: 0 100%; }
+.bubble-in { animation: bubbleIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; transform-origin: 0 100%; }
 @keyframes bubbleIn {
   from { opacity: 0; transform: translateY(8px) scale(0.96); }
   to { opacity: 1; transform: none; }
 }
-.bubble-me { animation: bubbleMe 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.bubble-me { animation: bubbleMe 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
 @keyframes bubbleMe {
   from { opacity: 0; transform: translateX(24px); }
   to { opacity: 1; transform: none; }
 }
-.chip-pop { animation: chipPop 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.chip-pop { animation: chipPop 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards; }
 @keyframes chipPop {
   from { opacity: 0; transform: translateY(14px) scale(0.97); }
   to { opacity: 1; transform: none; }
@@ -369,7 +371,7 @@ h1 { text-shadow: 0 0 18px rgba(232, 150, 60, 0.25); }
 @keyframes orb { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.gauge-fill { animation: gaugeFill 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: 0 50%; }
+.gauge-fill { animation: gaugeFill 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; transform-origin: 0 50%; }
 @keyframes gaugeFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .talisman { transform-origin: 50% 0; animation: sway 6s ease-in-out infinite; will-change: transform; }

@@ -449,4 +449,15 @@
   .dolly { transform: none; transition: none; }
   .backdrop .layer-far, .backdrop .layer-mid, .backdrop .layer-near { transform: none; }
   .lantern, .obang span, .scroll-painting, .signboard, .sindae, .bells, .branch { will-change: transform; }
+  /* below the screen, let the room fall into shadow instead of showing bare wall texture */
+  .room-wall { background: linear-gradient(180deg, #120c09, #1a120d 45%, #0d0806 70%, #0a0605); }
+  .room-frame { box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.9); }
+  .candle { width: 13px; opacity: 0.85; }
+  .candle .wax { width: 13px; height: calc(64px - var(--progress, 0) * 20px); }
+  .candle-tall .wax { height: calc(92px - var(--progress, 0) * 28px); }
+  .candle .flame { width: 10px; height: 22px; margin-left: -5px; }
+  .holder { width: 27px; margin-left: -7px; height: 9px; }
+  .drip { width: 3px; }
+  .cd-2 { left: 26px; }
+  .cd-3 { right: 26px; }
 }

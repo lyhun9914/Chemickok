@@ -300,7 +300,7 @@ function Typing() {
 function MeBubble({ text }: { text: string }) {
   return (
     <div className="bubble-me flex justify-end">
-      <div className="max-w-[78%] rounded-2xl rounded-br-md bg-gradient-to-r from-pink to-violet px-4 py-2.5 text-[15px] font-semibold leading-relaxed text-white shadow-sm">
+      <div className="max-w-[78%] rounded-2xl rounded-br-md border border-violet/50 bg-gradient-to-b from-[#8e2219] to-[#5a120d] px-4 py-2.5 text-[15px] font-semibold leading-relaxed text-[#f6e3b8] shadow-sm">
         {text}
       </div>
     </div>
@@ -439,6 +439,7 @@ export function Questionnaire() {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [revealed, done]);
 
+  const [leaving, setLeaving] = useState(false);
   const advance = () => {
     flareCandles();
     setStep(step + 1);
@@ -621,7 +622,7 @@ export function Questionnaire() {
       {/* Header: the consultation room */}
       <header className="z-20 shrink-0 border-b border-line bg-bg/80 px-4 pb-3 pt-3 md:bg-bg/55 md:backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <button onClick={() => setScreen("landing")} className="py-1 pr-1 text-lg text-muted" aria-label="나가기">
+          <button onClick={() => (step > 1 ? setLeaving(true) : setScreen("landing"))} className="py-1 pr-1 text-lg text-muted" aria-label="나가기">
             ✕
           </button>
           <div className="relative">
@@ -656,6 +657,23 @@ export function Questionnaire() {
         {typing && <Typing />}
         <div ref={bottom} className="h-1" />
       </div>
+
+      {leaving && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => setLeaving(false)}>
+          <div className="chip-pop w-full max-w-[480px] rounded-t-3xl border border-line bg-surface p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <p className="font-ritual text-[19px]">면담을 그만두겠냥?</p>
+            <p className="mt-2 text-sm text-muted">지금 나가면 여기까지 답한 게 사라진다냥.</p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button onClick={() => setScreen("landing")} className="rounded-2xl border border-line py-3 text-sm text-muted">
+                그만 나갈래
+              </button>
+              <button onClick={() => setLeaving(false)} className="btn-primary py-3 text-sm">
+                계속할래
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dock */}
       <div className="dock z-10 max-h-[58dvh] shrink-0 overflow-y-auto border-t border-line bg-bg/90 px-4 pb-5 pt-4 md:bg-bg/70 md:backdrop-blur-md">

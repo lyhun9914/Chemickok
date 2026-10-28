@@ -4,7 +4,30 @@ import { useEffect, useState } from "react";
 import { nameCompat, nameCompatComment, type NameCompatResult } from "@/lib/nameCompat";
 import { dailyApi, type DailyFortuneResponse } from "@/services/apiClient";
 import { shareService, siteUrl } from "@/services/shareService";
+import { useAppStore } from "@/store/useAppStore";
+import { DateTimeSelects } from "./DateTimeSelects";
 import { Say } from "./Nyang";
+
+/** Share a link; on PC (or when the sheet is unavailable) it's copied, so say so. */
+function ShareLinkButton({ label, title, description }: { label: string; title: string; description: string }) {
+  const [note, setNote] = useState<string | null>(null);
+  return (
+    <>
+      <button
+        onClick={() =>
+          shareService
+            .shareLink({ title, description, url: siteUrl() })
+            .then((o) => o === "copied" && setNote("링크를 복사했다냥! 붙여넣어서 보내라냥 📋"))
+            .catch(() => setNote("공유를 못 했다냥. 다시 눌러라냥"))
+        }
+        className="w-full rounded-2xl border border-line py-3.5 text-sm font-semibold"
+      >
+        {label}
+      </button>
+      {note && <p className="fade-up -mt-2 text-center text-xs text-peach">{note}</p>}
+    </>
+  );
+}
 
 export type MiniGame = "daily" | "name";
 
@@ -39,7 +62,8 @@ const inputCls =
   "w-full rounded-xl border border-line bg-surface-2 px-4 py-3.5 text-[15px] text-ink outline-none placeholder:text-muted/60 focus:border-pink/60";
 
 function DailyFortune({ onStart }: { onStart: () => void }) {
-  const [birthdate, setBirthdate] = useState("");
+  const saved = useAppStore((st) => st.me?.profile?.birthdate ?? st.input.me.birthdate);
+  const [birthdate, setBirthdate] = useState(saved ?? "");
   const [result, setResult] = useState<DailyFortuneResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -61,7 +85,7 @@ function DailyFortune({ onStart }: { onStart: () => void }) {
     return (
       <div className="space-y-4">
         <Say mood="smug">생일만 대라냥. 오늘 연애운 10초 컷이다냥.</Say>
-        <input type="date" className={inputCls} value={birthdate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setBirthdate(e.target.value)} />
+        <DateTimeSelects type="date" initial={saved ?? ""} onChange={setBirthdate} />
         {error && <p className="text-sm text-pink">{error}</p>}
         <button onClick={go} disabled={!birthdate || busy} className="btn-primary w-full py-4">
           {busy ? "냥신이 하늘을 보는 중…" : "오늘의 연애운 보기 🔮"}
@@ -82,18 +106,11 @@ function DailyFortune({ onStart }: { onStart: () => void }) {
         </div>
       </div>
       <Say mood="happy">{result.line}</Say>
-      <button
-        onClick={() =>
-          shareService.shareLink({
-            title: "냥신 오늘의 연애운",
-            description: `오늘 내 연애운 ${result.score}점 - ${result.title} 🐾 너도 봐 봐!`,
-            url: siteUrl(),
-          })
-        }
-        className="w-full rounded-2xl border border-line py-3.5 text-sm font-semibold"
-      >
-        친구한테 오늘 운세 보내기 📤
-      </button>
+      <ShareLinkButton
+        label="친구한테 오늘 운세 보내기 📤"
+        title="냥신 오늘의 연애운"
+        description={`오늘 내 연애운 ${result.score}점 - ${result.title} 🕯️ 너도 봐 봐!`}
+      />
       <button onClick={onStart} className="btn-primary w-full py-4">
         내 연애 유형까지 제대로 보기 🐾
       </button>
@@ -102,7 +119,8 @@ function DailyFortune({ onStart }: { onStart: () => void }) {
 }
 
 function NameMatch({ onStart }: { onStart: () => void }) {
-  const [a, setA] = useState("");
+  const myName = useAppStore((st) => st.me?.profile?.name ?? st.input.me.name);
+  const [a, setA] = useState(myName ?? "");
   const [b, setB] = useState("");
   const [result, setResult] = useState<NameCompatResult | null>(null);
   const [rowsShown, setRowsShown] = useState(0);
@@ -161,18 +179,7 @@ function NameMatch({ onStart }: { onStart: () => void }) {
                 <span className="text-gradient">{result.score}%</span>
               </p>
               <Say mood={result.score >= 75 ? "wow" : result.score >= 40 ? "smug" : "happy"}>{nameCompatComment(result.score)}</Say>
-              <button
-                onClick={() =>
-                  shareService.shareLink({
-                    title: "냥신 이름 궁합",
-                    description: `${a} ♥ ${b} 이름 궁합 ${result.score}% 😳 너도 해 봐!`,
-                    url: siteUrl(),
-                  })
-                }
-                className="w-full rounded-2xl border border-line py-3.5 text-sm font-semibold"
-              >
-                결과 공유하기 📤
-              </button>
+              <ShareLinkButton label="결과 공유하기 📤" title="냥신 이름 궁합" description={`${a} ♥ ${b} 이름 궁합 ${result.score}% 😳 너도 해 봐!`} />
               <button onClick={() => setResult(null)} className="w-full py-2 text-sm text-muted">
                 다른 이름으로 다시 하기
               </button>
