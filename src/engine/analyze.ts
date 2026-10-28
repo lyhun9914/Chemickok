@@ -33,7 +33,8 @@ import {
   TYPES,
   traitText,
 } from "./content/free";
-import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, PARTNER_DECODE, selfDecode, type Decoded, type HiddenKey } from "./content/decode";
+import { COMBO_CONTRAST_TAIL, COMBO_SAME, TRAIT_FACE } from "./content/combo";
+import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, PARTNER_DECODE, selfDecode, type Decoded, type HiddenKey, type Trait, type Weights } from "./content/decode";
 import * as P from "./content/paid";
 import * as SOLO from "./content/solo";
 import { isValidAnswer, normalizeAnswer, resolve } from "./freeText";
@@ -185,6 +186,7 @@ function personalReading(c: Core): TeaserReport["personal"] {
       .slice(0, FREE_TELLS)
       .map((id) => tell(selfInterview(input.mode), selfDecode(input.mode), id, input.self[id], input.partner.name)),
     colorReading: colorReading(c),
+    combo: comboLines(input, 1)[0] ?? null,
     hidden: hiddenGauges(me),
     scenes,
   };
@@ -203,7 +205,7 @@ function tell(qs: InterviewQuestion[], decode: Record<string, Decoded>, qid: str
   const r = resolve(decode[qid], qid, answer)!;
   return {
     question: questionText(q, p),
-    answer: fill(r.custom ? r.label : (optionOf(qs, qid, answer)?.label ?? ""), p),
+    answer: fill(r.label || (optionOf(qs, qid, answer)?.label ?? ""), p),
     why: fill(decode[qid].why, p),
     read: fill(r.read, p),
   };
@@ -248,12 +250,59 @@ function hiddenReadings(me: Profile): string[] {
     .map((g) => `${g.icon} ${g.label} ${g.pct}% · ${HIDDEN_READING[g.key as HiddenKey][hiddenLevel(g.pct)]}`);
 }
 
+/**
+ * 답변 조합 해석: pairs of the most telling answers, read together — "both say the same thing" when they lean
+ * the same way on a trait, "two faces" when they pull apart. The same choice reads differently next to
+ * different other answers.
+ */
+function comboLines(input: QuestionnaireInput, max = 3): string[] {
+  const qs = selfInterview(input.mode);
+  const decode = selfDecode(input.mode);
+  const items = tellingOrder(decode, input.self)
+    .filter((id) => id !== COLOR_Q)
+    .map((id) => ({ id, r: resolve(decode[id], id, input.self[id]) }))
+    .filter((x) => x.r && Object.values(x.r.w).some((v) => Math.abs(v ?? 0) >= 0.5))
+    .slice(0, 4)
+    .map(({ id, r }) => ({ id, w: r!.w, label: fill(r!.label, input.partner.name).replace(/^\S+\s/, "").replaceAll('"', "") }));
+  const pairs: [number, number][] = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 3], [0, 3]];
+  const used = new Set<string>();
+  const out: string[] = [];
+  for (const [i, j] of pairs) {
+    const a = items[i], b = items[j];
+    if (!a || !b || out.length >= max) continue;
+    const traits = [...new Set([...Object.keys(a.w), ...Object.keys(b.w)])] as Trait[];
+    const shared = traits
+      .map((t) => ({ t, va: a.w[t] ?? 0, vb: b.w[t] ?? 0 }))
+      .filter((x) => x.va * x.vb > 0 && Math.min(Math.abs(x.va), Math.abs(x.vb)) >= 0.5)
+      .sort((x, y) => Math.min(Math.abs(y.va), Math.abs(y.vb)) - Math.min(Math.abs(x.va), Math.abs(x.vb)))[0];
+    let line: string;
+    let key: string;
+    if (shared) {
+      key = `same-${shared.t}-${shared.va > 0}`;
+      line = COMBO_SAME[shared.t][shared.va > 0 ? 0 : 1];
+    } else {
+      const top = (w: Weights, skip?: string) =>
+        (Object.entries(w) as [Trait, number][]).filter(([t]) => t !== skip).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0];
+      const ta = top(a.w);
+      const tb = top(b.w, ta?.[0]);
+      if (!ta || !tb) continue;
+      key = `face-${ta[0]}-${tb[0]}`;
+      const tail = COMBO_CONTRAST_TAIL[(i + j) % COMBO_CONTRAST_TAIL.length];
+      line = `겉으로는 ${TRAIT_FACE[ta[0]][ta[1] > 0 ? 0 : 1]}, 속으로는 ${TRAIT_FACE[tb[0]][tb[1] > 0 ? 0 : 1]}이다냥. ${tail}`;
+    }
+    if (used.has(key)) continue;
+    used.add(key);
+    out.push(`🔗 '${a.label}' + '${b.label}'\n${line}`);
+  }
+  return out;
+}
+
 function decodeSection(c: Core, intro: string): ReportSection {
   return {
     title: "면담 기록 전체 해석 · 냥신이 그 질문을 한 이유",
     headline: `'왜 이런 걸 묻지?' 싶었던 ${selfInterview(c.input.mode).length}개, 전부 이유가 있었다냥 🔍`,
     body: intro,
-    bullets: decodeBullets(selfInterview(c.input.mode), selfDecode(c.input.mode), c.input.self, c.input.partner.name),
+    bullets: [...comboLines(c.input), ...decodeBullets(selfInterview(c.input.mode), selfDecode(c.input.mode), c.input.self, c.input.partner.name)],
   };
 }
 

@@ -87,6 +87,8 @@ export interface PersonalReading {
   tells: Tell[];
   /** the color the user picked, read against their saju */
   colorReading: string | null;
+  /** two answers read together (the strongest pair) */
+  combo: string | null;
   /** hidden gauges (미련 / 질투 / 자기 의심); readings are paid */
   hidden: { key: string; icon: string; label: string; pct: number }[];
   scenes: string[];

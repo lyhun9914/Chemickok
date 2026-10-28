@@ -1,5 +1,5 @@
 import "server-only";
-import { PARTNER_INTERVIEW, SOLO_INTERVIEW, COUPLE_INTERVIEW, CUSTOM_MAX, customText, isCustom } from "@/lib/interview";
+import { PARTNER_INTERVIEW, SOLO_INTERVIEW, COUPLE_INTERVIEW, CUSTOM_MAX, UNKNOWN_ANSWER, UNKNOWN_LABEL, customText, isCustom } from "@/lib/interview";
 import { OPTION_KEYWORDS, UNKNOWN } from "./content/customKeywords";
 import type { Decoded, Trait, Weights } from "./content/decode";
 
@@ -90,6 +90,7 @@ export interface Resolved {
 
 export function isValidAnswer(d: Decoded, a: unknown): boolean {
   if (typeof a !== "string") return false;
+  if (a === UNKNOWN_ANSWER) return true;
   if (isCustom(a)) {
     const t = customText(a).trim();
     return t.length > 0 && t.length <= CUSTOM_MAX;
@@ -105,18 +106,21 @@ export function normalizeAnswer(a: string): string {
 export function resolve(d: Decoded, qid: string, a: string | undefined): Resolved | null {
   if (!a) return null;
   const q = ALL_QS.find((x) => x.id === qid);
+  const partner = qid.startsWith("o");
+  if (a === UNKNOWN_ANSWER) {
+    return { oid: null, label: UNKNOWN_LABEL, w: {}, read: `'잘 모르겠다'고 했지. ${unknownRead(d, partner, qid)}`, custom: false };
+  }
   if (!isCustom(a)) {
     const o = d.options[a];
     return o ? { oid: a, label: q?.options.find((x) => x.id === a)?.label ?? "", w: o.w, read: o.read, custom: false } : null;
   }
   const text = customText(a);
-  const partner = qid.startsWith("o");
   const tw = textWeights(text);
   const quote = quoteOf(text);
   const pick = <T,>(list: T[]) => list[[...text].reduce((h, ch) => h + ch.charCodeAt(0), 0) % list.length];
 
   if (UNKNOWN.test(text)) {
-    return { oid: null, label: `✏️ ${text}`, w: {}, read: `${quote} ${pick(partner ? UNKNOWN_PARTNER : UNKNOWN_SELF)}`, custom: true };
+    return { oid: null, label: `✏️ ${text}`, w: {}, read: `${quote} ${unknownRead(d, partner, qid)}`, custom: true };
   }
 
   // The color question maps color words straight to an element.
@@ -206,10 +210,17 @@ const FALLBACK_PARTNER = [
   "{p}의 이 모습은 보기 어디에도 안 맞는다냥. 그만큼 너는 {p:을/를} 틀에 끼우지 않고 있는 그대로 보고 있다는 뜻이다냥.",
 ];
 const UNKNOWN_SELF = [
-  "모른다는 것도 답이다냥. 바로 답이 안 나온다는 건, 이런 순간에 네 마음이 어떻게 움직이는지 아직 들여다볼 기회가 없었다는 뜻이다냥. 다음에 비슷한 순간이 오면 네가 제일 먼저 뭘 하는지 지켜봐라냥. 거기에 네 진짜 연애 습관이 있다냥.",
-  "모르겠다는 건 피하고 싶은 질문이었다는 뜻일 수도 있다냥. 사람은 제일 아픈 데서 제일 먼저 '글쎄'라고 한다냥. 이 질문, 나중에 혼자 있을 때 한 번만 다시 떠올려 봐라냥.",
+  "다음에 비슷한 순간이 오면 네가 제일 먼저 뭘 하는지 지켜봐라냥. 거기에 네 진짜 연애 습관이 있다냥.",
+  "사람은 제일 아픈 데서 제일 먼저 '글쎄'라고 한다냥. 이 질문, 혼자 있을 때 한 번만 다시 떠올려 봐라냥.",
 ];
 const UNKNOWN_PARTNER = [
-  "모른다는 것도 답이다냥. {p:이/가} 이 모습을 아직 너한테 보여 준 적이 없다는 뜻이다냥. 사람은 마음을 연 만큼만 보여 준다냥. 다음에 {p}의 이 부분을 눈여겨봐라냥. 그게 보이기 시작하면 둘 사이가 한 단계 가까워진 거다냥.",
-  "모르겠다고 했지. {p:은/는} 이 부분을 일부러 안 보여 주는 걸 수도, 너한테 아직 보여 줄 기회가 없었던 걸 수도 있다냥. 한 번 가볍게 물어봐라냥. {p}의 대답보다 대답할 때 표정이 더 많은 걸 말해 준다냥.",
+  "사람은 마음을 연 만큼만 보여 준다냥. 다음에 {p}의 이 부분을 눈여겨봐라냥. 그게 보이기 시작하면 둘 사이가 한 단계 가까워진 거다냥.",
+  "한 번 가볍게 물어봐라냥. {p}의 대답보다 대답할 때 표정이 더 많은 걸 말해 준다냥.",
 ];
+
+/** "모르겠다": the question's own line about what not knowing says, then a nudge to look next time. */
+function unknownRead(d: Decoded, partner: boolean, qid: string): string {
+  const tail = partner ? UNKNOWN_PARTNER : UNKNOWN_SELF;
+  const extra = tail[[...qid].reduce((h, ch) => h + ch.charCodeAt(0), 0) % tail.length];
+  return d.unknown ? `${d.unknown} ${extra}` : `모른다는 것도 답이다냥. ${extra}`;
+}

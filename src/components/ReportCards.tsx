@@ -206,6 +206,18 @@ export function TellCard({ tell }: { tell: Tell }) {
   );
 }
 
+/** "🔗 'A' + 'B'\nreading" → two answers read together. */
+export function ComboCard({ combo }: { combo: string }) {
+  const [pair, ...rest] = combo.split("\n");
+  return (
+    <Card className="border-violet/40">
+      <p className="text-xs font-semibold text-violet">🔗 네 답 두 개를 같이 보면</p>
+      <p className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm leading-relaxed text-muted">{pair.replace(/^🔗 /, "")}</p>
+      <p className="mt-3 text-[15px] leading-relaxed">{rest.join(" ")}</p>
+    </Card>
+  );
+}
+
 export function ColorCard({ reading }: { reading: string }) {
   return (
     <Card className="border-peach/30">

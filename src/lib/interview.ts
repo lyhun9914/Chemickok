@@ -32,6 +32,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "🚪 입구가 보이는 자리", react: "오호… 문 쪽을 보는구냥. 기억해 두겠다냥.", mood: "wow" },
       { id: "c", label: "🛋️ 한가운데 넓은 자리", react: "당당하구냥. 좋다냥.", mood: "happy" },
       { id: "d", label: "🔌 콘센트 있는 아무 자리", react: "실속파구냥 😼" },
+      { id: "e", label: "🪑 바 테이블(혼자 앉는 긴 자리)", react: "혼자만의 시간이 익숙하구냥." },
+      { id: "f", label: "🌿 테라스·야외 자리", react: "바람 쐬는 거 좋아하는구냥 😺", mood: "happy" },
     ],
   },
   {
@@ -43,6 +45,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "👀 누군가의 프로필·SNS", react: "…누구 프로필이냥. 아, 대답 안 해도 된다냥.", mood: "wow" },
       { id: "c", label: "📺 쇼츠·유튜브 무한 스크롤", react: "생각하기 싫은 밤이 많구냥." },
       { id: "d", label: "⏰ 알람만 맞추고 바로 끈다", react: "흥, 자기 관리 철저하구냥." },
+      { id: "e", label: "📖 웹소설·웹툰·로맨스 콘텐츠", react: "남의 연애로 대리 설렘이구냥 😹", mood: "happy" },
+      { id: "f", label: "🧾 내일 일정·할 일 목록", react: "계획파구냥." },
     ],
   },
   {
@@ -54,6 +58,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "🔍 마지막 접속·스토리 확인", react: "…확인하는구냥. 냥신도 안다냥." },
       { id: "c", label: "⏳ 나도 똑같이 늦게 답할 거다", react: "흐음, 기싸움이냥 😼" },
       { id: "d", label: "😌 바쁜가 보다 하고 잊는다", react: "오, 멘탈 단단하구냥.", mood: "happy" },
+      { id: "e", label: "📵 폰을 아예 멀리 치워 둔다", react: "애써 안 보는구냥… 신경은 쓰이지?" },
+      { id: "f", label: "👯 친구한테 '이거 왜 안 읽어?' 캡처", react: "회의 소집이구냥 😹", mood: "happy" },
     ],
   },
   {
@@ -65,6 +71,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "🦷 떨어지거나 이가 빠진다", react: "…오호. 이건 의미가 있다냥.", mood: "wow" },
       { id: "c", label: "👤 예전에 알던 사람이 나온다", react: "그 사람… 아직 꿈에 나오는구냥.", mood: "wow" },
       { id: "d", label: "💤 꿈이 잘 기억 안 난다", react: "흥, 쉽게 안 보여 주는구냥." },
+      { id: "e", label: "🏠 낯선 집이나 길을 헤맨다", react: "헤매는구냥… 의미가 있다냥.", mood: "wow" },
+      { id: "f", label: "💞 누군가와 설레는 장면", react: "오호~ 꿈에서 연애 중이구냥 😻", mood: "happy" },
     ],
   },
   {
@@ -76,6 +84,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "✍️ 썼다 지웠다를 반복한다", react: "…그 마음 안다냥." },
       { id: "c", label: "😴 일단 잔다, 내일의 내가 하겠지", react: "쿨하구냥… 진짜 쿨한 건지는 모르겠지만 😼" },
       { id: "d", label: "📱 친구한테 캡처 보내서 누가 잘못했냐 묻는다", react: "ㅋㅋ 배심원단 소집이구냥.", mood: "happy" },
+      { id: "e", label: "🎧 노래 틀고 혼자 운다", react: "…다 울고 나면 괜찮아진다냥." },
+      { id: "f", label: "🙏 먼저 '미안해' 보내고 잔다", react: "평화주의자구냥." },
     ],
   },
   {
@@ -100,6 +110,8 @@ const BASE: InterviewQuestion[] = [
       { id: "c", label: "🗂️ 갤러리 어딘가 섞여 있다", react: "무심하구냥… 진짜일까냥?" },
       { id: "d", label: "🌙 가끔 꺼내 본다", react: "가끔… 그렇구냥. 괜찮다냥." },
       { id: "e", label: "🙅 지울 사진이 없다", react: "그럼 첫 인연이 더 중요하구냥." },
+      { id: "f", label: "📦 지우진 않았는데 다시 본 적은 없다", react: "봉인해 둔 거구냥." },
+      { id: "g", label: "🎁 사진은 지웠는데 선물은 아직 있다", react: "…물건은 못 버렸구냥.", mood: "wow" },
     ],
   },
   {
@@ -122,6 +134,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "😤 날 우습게 보나?", react: "…뜨끔한 데가 있구냥.", mood: "wow" },
       { id: "c", label: "📞 일단 바로 전화한다", react: "행동파구냥." },
       { id: "d", label: "☕ 근처 구경하며 기다린다", react: "여유롭구냥 😌", mood: "happy" },
+      { id: "e", label: "📱 그 사람 접속 시간부터 확인", react: "…확인부터 하는구냥.", mood: "wow" },
+      { id: "f", label: "🚶 기다리다 그냥 집에 간다", react: "단호하구냥…" },
     ],
   },
   {
@@ -133,6 +147,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "📝 할 말을 메모장에 미리 써 둔다", react: "준비성 철저하구냥." },
       { id: "c", label: "🎬 혼자 미래를 시뮬레이션한다", react: "결혼식까지 갔냥? 😹", mood: "happy" },
       { id: "d", label: "🧊 먼저 정 떼는 연습을 한다", react: "…아팠던 적이 있구냥." },
+      { id: "e", label: "🎵 그 사람 생각나는 노래만 무한 반복", react: "감성 충만이구냥 🎧", mood: "happy" },
+      { id: "f", label: "🔮 운세·타로로 관계를 점쳐 본다", react: "…지금도 그러는 중이구냥 😼", mood: "smug" },
     ],
   },
   {
@@ -144,6 +160,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "🌀 \"너 변했어\"", react: "흐음, 그렇구냥." },
       { id: "c", label: "🙄 \"알아서 해\"", react: "무관심이 제일 싫구냥." },
       { id: "d", label: "😮‍💨 \"너랑 있으면 피곤해\"", react: "…그 말은 냥신도 아프다냥." },
+      { id: "e", label: "🫥 (말없이) 읽고 답 안 함", react: "침묵이 제일 아프구냥." },
+      { id: "f", label: "😐 \"너 원래 그런 사람이잖아\"", react: "…그 말은 깊게 박히지냥." },
     ],
   },
   {
@@ -155,6 +173,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "🗣️ 억울하면 따졌다", react: "그때도 할 말은 했구냥 😼" },
       { id: "c", label: "🙏 바로 잘못했다고 했다", react: "…착한 아이였구냥." },
       { id: "d", label: "😭 그냥 울었다", react: "그랬구냥… 토닥토닥.", mood: "happy" },
+      { id: "e", label: "😶 아무 말 없이 듣고만 있었다", react: "참는 아이였구냥…" },
+      { id: "f", label: "😜 장난치거나 애교로 넘겼다", react: "분위기 메이커였구냥 😹", mood: "happy" },
     ],
   },
   {
@@ -166,6 +186,8 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "🥀 상대가 먼저 떠났다", react: "…아팠겠구냥." },
       { id: "c", label: "🌫️ 흐지부지 연락이 끊겼다", react: "흐지부지… 이것도 패턴이다냥.", mood: "wow" },
       { id: "d", label: "🤷 제대로 끝나 본 적이 없다", react: "그럼 이번이 중요하겠구냥." },
+      { id: "e", label: "🔁 헤어졌다 다시 만나기를 반복", react: "…미련이 많구냥.", mood: "wow" },
+      { id: "f", label: "🤝 서로 합의하고 좋게 끝냈다", react: "어른스럽구냥." },
     ],
   },
   {
@@ -177,6 +199,8 @@ const BASE: InterviewQuestion[] = [
       { id: "rain", label: "🌧️ 비", react: "비가 오는구냥… 우산 씌워 주겠다냥." },
       { id: "fog", label: "🌫️ 안개", react: "안개… 뭐가 잘 안 보이는구냥." },
       { id: "storm", label: "⛈️ 폭풍 전야", react: "폭풍 전야라… 긴장되는구냥.", mood: "wow" },
+      { id: "e", label: "🌈 비 그치고 무지개", react: "회복 중이구냥 🌈", mood: "happy" },
+      { id: "f", label: "❄️ 춥고 건조함", react: "…마음이 시리구냥." },
     ],
   },
 ];
@@ -191,6 +215,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "📏 단답 + 마침표.", react: "마침표… 무섭구냥 😹", mood: "happy" },
       { id: "c", label: "🐢 답은 늦는데 길다", react: "신중한 타입이구냥." },
       { id: "d", label: "⚡ 칼답", react: "칼답이면 마음 있는 거다냥 😼" },
+      { id: "e", label: "❓ 질문으로 끝나서 대화를 이어 간다", react: "대화를 이어 가고 싶구냥 😺", mood: "happy" },
+      { id: "f", label: "🎙️ 카톡보다 음성 메시지·전화", react: "목소리파구냥." },
     ],
   },
   {
@@ -202,6 +228,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "📛 그냥 이름", react: "담백하구냥." },
       { id: "c", label: "😏 '야' 아니면 장난 별명", react: "장난꾸러기구냥 😼" },
       { id: "d", label: "🤐 호칭 없이 그냥 말한다", react: "흐음… 그렇구냥.", mood: "wow" },
+      { id: "e", label: "🙋 '오빠·누나' 같은 관계 호칭", react: "관계 호칭이구냥." },
+      { id: "f", label: "🔀 기분 따라 호칭이 바뀐다", react: "호칭이 기분 온도계구냥 😹", mood: "happy" },
     ],
   },
   {
@@ -213,6 +241,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "🫥 연락이 뜸해진다 (잠수)", react: "잠수… 메모했다냥.", mood: "wow" },
       { id: "c", label: "🙇 이유도 모르고 일단 사과한다", react: "…그렇구냥." },
       { id: "d", label: "🧠 조목조목 따진다", react: "논리파구냥." },
+      { id: "e", label: "🚶 '잠깐 바람 좀 쐬고 올게'", react: "시간이 필요한 타입이구냥." },
+      { id: "f", label: "😢 울거나 말을 잇지 못한다", react: "…마음이 여린 사람이구냥.", mood: "wow" },
     ],
   },
   {
@@ -224,6 +254,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "📱 아무렇지 않게 보여 준다", react: "투명하구냥." },
       { id: "c", label: "💑 잠금화면이 우리 사진", react: "오호~ 😻", mood: "happy" },
       { id: "d", label: "🔕 알림을 다 꺼 놨다", react: "자기만의 속도가 있구냥." },
+      { id: "e", label: "🔋 항상 충전기에 꽂혀 있다", react: "폰보다 지금이 중요한 사람이구냥." },
+      { id: "f", label: "✋ 항상 손에 쥐고 있다", react: "폰이 손의 일부구냥 😹", mood: "happy" },
     ],
   },
   {
@@ -235,6 +267,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "🙋 내가 다 정한다", react: "네가 핸들을 잡는구냥." },
       { id: "c", label: "🤝 그때그때 번갈아", react: "균형파구냥." },
       { id: "d", label: "🔁 정하는 사람 없이 늘 같은 곳", react: "익숙함이구냥…" },
+      { id: "e", label: "🍽️ 밥은 {p}, 카페·후식은 내가", react: "역할 분담이구냥 😺", mood: "happy" },
+      { id: "f", label: "📍 정하다가 결국 아무 데나 간다", react: "결정 장애 커플이구냥 😹", mood: "happy" },
     ],
   },
   {
@@ -246,6 +280,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "🕳️ 혼자 동굴에 들어간다", react: "동굴형이구냥." },
       { id: "c", label: "😄 아무 일 없는 척 더 웃는다", react: "…이게 제일 위험하다냥.", mood: "wow" },
       { id: "d", label: "😠 짜증이 늘어난다", react: "흐음, 그렇구냥." },
+      { id: "e", label: "🛌 잠을 엄청 많이 잔다", react: "잠으로 버티는구냥." },
+      { id: "f", label: "🏃 갑자기 운동이나 일에 몰두한다", react: "몸으로 푸는 타입이구냥." },
     ],
   },
   {
@@ -257,6 +293,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "🗓️ 일주일 안쪽", react: "적당하구냥." },
       { id: "c", label: "🤔 기억이 잘 안 난다", react: "…흠.", mood: "wow" },
       { id: "d", label: "🚫 그런 말 하는 사람이 아니다", react: "그런 사람도 있다냥." },
+      { id: "e", label: "🍷 술 마셨을 때만 한다", react: "취중진담이구냥 🍷", mood: "wow" },
+      { id: "f", label: "📸 말 대신 사진·이모티콘을 보낸다", react: "돌려 말하는구냥 😺" },
     ],
   },
   {
@@ -268,6 +306,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "🤫 아예 얘기를 안 꺼낸다", react: "조심스럽구냥." },
       { id: "c", label: "🧐 은근히 내 반응을 본다", react: "떠보는구냥 😼", mood: "wow" },
       { id: "d", label: "😒 내가 그런 얘기 하면 표정이 굳는다", react: "질투쟁이구냥 😹", mood: "happy" },
+      { id: "e", label: "👫 동성 친구 얘기만 한다", react: "선을 지키는구냥." },
+      { id: "f", label: "😅 얘기하다 눈치 보며 말을 돌린다", react: "…눈치 보는구냥.", mood: "wow" },
     ],
   },
   {
@@ -279,6 +319,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "😐 평소랑 똑같다", react: "흔들림 없구냥." },
       { id: "c", label: "🌙 갑자기 진지한 속얘기를 한다", react: "…속이 깊구냥.", mood: "wow" },
       { id: "d", label: "😴 그냥 잔다", react: "귀엽구냥 😹", mood: "happy" },
+      { id: "e", label: "🤐 술을 조절해서 취한 모습을 잘 안 보인다", react: "자기 관리파구냥." },
+      { id: "f", label: "📞 여기저기 전화를 건다", react: "전화 폭주구냥 😹", mood: "happy" },
     ],
   },
   {
@@ -290,6 +332,8 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
       { id: "b", label: "🫥 티 안 나게 가끔 (손·뒷모습)", react: "은근하구냥." },
       { id: "c", label: "🚫 전혀 안 올린다", react: "흠…", mood: "wow" },
       { id: "d", label: "🔒 비공개 계정에만 올린다", react: "…비밀 계정이구냥 😼", mood: "wow" },
+      { id: "e", label: "📌 프로필·배경 사진에만 있다", react: "대표 사진이구냥 😻", mood: "happy" },
+      { id: "f", label: "💬 내 게시물에 댓글·좋아요만 단다", react: "응원파구냥." },
     ],
   },
 ];
@@ -305,6 +349,8 @@ const SOLO_ONLY: InterviewQuestion[] = [
       { id: "b", label: "👀 눈빛·분위기", react: "분위기파구냥 😼" },
       { id: "c", label: "📷 사진 배경·찍은 장소", react: "…탐정이구냥.", mood: "wow" },
       { id: "d", label: "🙈 안 보고 그냥 나간다", react: "흥, 대담하구냥." },
+      { id: "e", label: "🧑‍🤝‍🧑 같이 찍은 친구들 분위기", react: "주변을 보는구냥 😼", mood: "smug" },
+      { id: "f", label: "📝 프로필 소개 문구", react: "글을 보는구냥." },
     ],
   },
   {
@@ -316,6 +362,8 @@ const SOLO_ONLY: InterviewQuestion[] = [
       { id: "b", label: "😂 단톡에서 더 웃긴 말을 한다", react: "관심 끌기 작전이구냥 😹", mood: "happy" },
       { id: "c", label: "📵 조용히 단톡 알림을 끈다", react: "…상처받았구냥." },
       { id: "d", label: "🤷 그런가 보다 한다", react: "멘탈 갑이구냥." },
+      { id: "e", label: "📊 그 사람이 남한테 단 답장을 분석한다", react: "분석가구냥 😼", mood: "smug" },
+      { id: "f", label: "⏰ 하루 기다렸다가 다시 말 건다", react: "인내심 있구냥." },
     ],
   },
   {
@@ -327,6 +375,8 @@ const SOLO_ONLY: InterviewQuestion[] = [
       { id: "b", label: "📞 누구라도 불러낸다", react: "외로움을 못 참는구냥." },
       { id: "c", label: "☕ 혼자 핫플에 간다", react: "혼자서도 잘 노는구냥.", mood: "happy" },
       { id: "d", label: "📱 누가 연락 주길 기다리며 폰만 본다", react: "…기다리는구냥.", mood: "wow" },
+      { id: "e", label: "📚 운동이나 공부 같은 자기계발", react: "부지런하구냥." },
+      { id: "f", label: "🍃 그냥 나가서 정처 없이 걷는다", react: "자유로운 영혼이구냥 🍃", mood: "happy" },
     ],
   },
   {
@@ -338,6 +388,8 @@ const SOLO_ONLY: InterviewQuestion[] = [
       { id: "b", label: "🙄 \"에이, 설마\"", react: "안 믿는구냥…" },
       { id: "c", label: "😐 아무렇지 않은 척, 집에 가서 곱씹는다", react: "겉바속촉이구냥 😼" },
       { id: "d", label: "😮‍💨 솔직히 좀 부담스럽다", react: "흐음, 그렇구냥." },
+      { id: "e", label: "🔍 누군지 혼자 추리한다", react: "탐정 모드구냥 😼", mood: "smug" },
+      { id: "f", label: "😊 고맙지만 일단 지켜본다", react: "신중하구냥." },
     ],
   },
 ];
@@ -353,6 +405,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "⏳ 일부러 조금 텀을 둔다", react: "밀당이구냥 😼" },
       { id: "c", label: "🌀 생각날 때 몰아서", react: "자유로운 영혼이구냥." },
       { id: "d", label: "📝 할 말 정리해서 길게", react: "정성파구냥." },
+      { id: "e", label: "🙈 바로 읽지만 답은 좀 이따", react: "읽고 생각하는구냥." },
+      { id: "f", label: "📞 카톡 대신 전화한다", react: "목소리파구냥 😺", mood: "happy" },
     ],
   },
   {
@@ -364,6 +418,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "🔍 친구들 스토리부터 뒤져 본다", react: "…다 봤다냥 😼", mood: "wow" },
       { id: "c", label: "😴 \"재밌게 놀아\" 하고 먼저 잔다", react: "쿨하구냥.", mood: "happy" },
       { id: "d", label: "🤐 나도 연락 안 한다, 먼저 하나 보자", react: "기싸움이구냥…" },
+      { id: "e", label: "📝 '잘 들어가면 연락해' 한 줄 남기고 잔다", react: "어른스럽구냥." },
+      { id: "f", label: "🚕 데리러 간다고 한다", react: "직접 출동이구냥 🚕", mood: "wow" },
     ],
   },
   {
@@ -375,6 +431,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "🧠 모른 척, 이름만 기억해 둔다", react: "…기억해 두는구냥.", mood: "wow" },
       { id: "c", label: "🤷 별생각 없다", react: "믿음이 단단하구냥.", mood: "happy" },
       { id: "d", label: "😶 표정이 굳고 말수가 준다", react: "티 나는구냥 😹" },
+      { id: "e", label: "😏 장난처럼 '누구야~?' 하고 웃는다", react: "고단수구냥 😼", mood: "smug" },
+      { id: "f", label: "📱 나중에 SNS에서 그 이름을 찾아본다", react: "…수사 개시구냥.", mood: "wow" },
     ],
   },
   {
@@ -386,6 +444,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "✍️ 썼다 지웠다를 반복한다", react: "…그 마음 안다냥." },
       { id: "c", label: "😴 일단 잔다, 내일의 내가 하겠지", react: "쿨하구냥… 진짜 쿨한 건지는 모르겠지만 😼" },
       { id: "d", label: "📱 친구한테 캡처 보내서 누가 잘못했냐 묻는다", react: "ㅋㅋ 배심원단 소집이구냥.", mood: "happy" },
+      { id: "e", label: "🎧 노래 틀고 혼자 운다", react: "…다 울고 나면 괜찮아진다냥." },
+      { id: "f", label: "🙏 먼저 '미안해' 보내고 잔다", react: "평화주의자구냥." },
     ],
   },
   {
@@ -397,6 +457,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "🎁 성의 없는 기프티콘", react: "성의가 중요하구냥." },
       { id: "c", label: "🧠 내가 지나가듯 한 말을 기억 못 할 때", react: "…기억해 주길 바라는구냥.", mood: "wow" },
       { id: "d", label: "🙂 딱히 서운할 건 없다", react: "통이 크구냥." },
+      { id: "e", label: "📸 사진 하나 안 남길 때", react: "기록파구냥 📸" },
+      { id: "f", label: "⌛ 늦게 오거나 일찍 가야 한다고 할 때", react: "시간이 곧 마음이구냥." },
     ],
   },
   {
@@ -408,6 +470,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "😢 그때 서운했던 일", react: "쌓아 둔 게 있구냥." },
       { id: "c", label: "🔮 우리 미래에 대한 얘기", react: "진지하구냥.", mood: "wow" },
       { id: "d", label: "🙆 할 말은 다 하는 편이다", react: "시원하구냥." },
+      { id: "e", label: "😓 사실 요즘 좀 지쳤다는 말", react: "…솔직하구냥.", mood: "wow" },
+      { id: "f", label: "🙏 그때 내가 미안했다는 말", react: "마음에 걸린 게 있구냥." },
     ],
   },
   {
@@ -419,6 +483,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "🙉 듣고 싶지 않다", react: "…그렇구냥." },
       { id: "c", label: "🙂 과거는 과거다", react: "어른스럽구냥.", mood: "happy" },
       { id: "d", label: "😔 나랑 비교할까 봐 신경 쓰인다", react: "…괜찮다냥." },
+      { id: "e", label: "😂 웃으면서 내 과거 얘기로 맞받아친다", react: "맞불 작전이구냥 😹", mood: "happy" },
+      { id: "f", label: "🤐 겉으론 듣고 속으로 계속 생각난다", react: "…곱씹는구냥.", mood: "wow" },
     ],
   },
   {
@@ -430,6 +496,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "✈️ 내년 여행 정도", react: "현실적이구냥." },
       { id: "c", label: "😰 생각하면 불안해서 안 한다", react: "…불안하구냥.", mood: "wow" },
       { id: "d", label: "🌊 그런 건 안 그린다", react: "지금이 중요하구냥." },
+      { id: "e", label: "🏠 같이 살 집 구조까지 상상해 봤다", react: "구체적이구냥 😻", mood: "happy" },
+      { id: "f", label: "🤔 그려 보려 해도 잘 안 그려진다", react: "…흠, 그렇구냥.", mood: "wow" },
     ],
   },
   {
@@ -441,6 +509,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "🫂 일단 안아 주고 들어 준다", react: "따뜻하구냥.", mood: "happy" },
       { id: "c", label: "😟 \"혹시 나 때문이야?\"", react: "…그 생각부터 드는구냥.", mood: "wow" },
       { id: "d", label: "🚪 혼자 생각할 시간을 준다", react: "배려구냥." },
+      { id: "e", label: "🍗 말없이 맛있는 거 사 들고 간다", react: "행동파 위로구냥 🍗", mood: "happy" },
+      { id: "f", label: "🗣️ 나도 힘든 얘기를 같이 꺼낸다", react: "같이 털어놓는구냥." },
     ],
   },
   {
@@ -452,6 +522,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "😤 날 우습게 보나?", react: "…뜨끔한 데가 있구냥.", mood: "wow" },
       { id: "c", label: "📞 일단 바로 전화한다", react: "행동파구냥." },
       { id: "d", label: "☕ 근처 구경하며 기다린다", react: "여유롭구냥 😌", mood: "happy" },
+      { id: "e", label: "📱 그 사람 접속 시간부터 확인", react: "…확인부터 하는구냥.", mood: "wow" },
+      { id: "f", label: "🚶 기다리다 그냥 집에 간다", react: "단호하구냥…" },
     ],
   },
   {
@@ -463,6 +535,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "🌀 \"너 변했어\"", react: "흐음, 그렇구냥." },
       { id: "c", label: "🙄 \"알아서 해\"", react: "무관심이 제일 싫구냥." },
       { id: "d", label: "😮‍💨 \"너랑 있으면 피곤해\"", react: "…그 말은 냥신도 아프다냥." },
+      { id: "e", label: "🫥 (말없이) 읽고 답 안 함", react: "침묵이 제일 아프구냥." },
+      { id: "f", label: "😐 \"너 원래 그런 사람이잖아\"", react: "…그 말은 깊게 박히지냥." },
     ],
   },
   {
@@ -474,6 +548,8 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "rain", label: "🌧️ 비", react: "비가 오는구냥… 우산 씌워 주겠다냥." },
       { id: "fog", label: "🌫️ 안개", react: "안개… 그 사람 마음이 잘 안 보이는구냥." },
       { id: "storm", label: "⛈️ 폭풍 전야", react: "폭풍 전야라… 긴장되는구냥.", mood: "wow" },
+      { id: "e", label: "🌈 비 그치고 무지개", react: "오, 고비를 넘었구냥 🌈", mood: "happy" },
+      { id: "f", label: "❄️ 춥고 건조함", react: "…둘 사이가 시리구냥." },
     ],
   },
 ];
@@ -512,7 +588,12 @@ export const CUSTOM_MAX = 60;
 export const isCustom = (a: string | undefined): a is string => Boolean(a?.startsWith(CUSTOM_PREFIX));
 export const customText = (a: string) => a.slice(CUSTOM_PREFIX.length);
 
+/** The "잘 모르겠어" button stores this instead of an option id. */
+export const UNKNOWN_ANSWER = "?";
+export const UNKNOWN_LABEL = "🤷 잘 모르겠어";
+
 /** How a stored answer reads back in the chat and the reading. */
 export function answerLabel(qs: InterviewQuestion[], qid: string, a: string | undefined): string {
+  if (a === UNKNOWN_ANSWER) return UNKNOWN_LABEL;
   return isCustom(a) ? `✏️ ${customText(a)}` : (optionOf(qs, qid, a)?.label ?? "");
 }

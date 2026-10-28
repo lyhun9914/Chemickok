@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CUSTOM_MAX, CUSTOM_PREFIX, PARTNER_INTERVIEW, answerLabel, fill, isCustom, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
+import { CUSTOM_MAX, CUSTOM_PREFIX, PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
 import type { Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
@@ -172,6 +172,8 @@ function answerOf(t: Turn, i: QuestionnaireInput, { modeKnown }: Ctx): string {
   }
 }
 
+const UNKNOWN_REACTS = ["모르는 것도 답이다냥. 따로 적어 두겠다냥.", "흠, 모르겠다… 그것도 의미가 있다냥.", "괜찮다냥. 냥신이 그 빈칸까지 읽겠다냥."];
+
 const CUSTOM_REACTS = [
   "오호… 보기에 없는 답이구냥. 이런 게 진짜 정보다냥 😼",
   "흠… 직접 썼구냥. 냥신이 한 글자씩 꼼꼼히 읽겠다냥.",
@@ -212,7 +214,14 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
       const qs = t.part === "self" ? selfInterview(i.mode) : PARTNER_INTERVIEW;
       const a = (t.part === "self" ? i.self : i.partnerObs)[t.q.id];
       const o = optionOf(qs, t.q.id, a);
-      const out = isCustom(a) ? [n(CUSTOM_REACTS[(a.length + t.num) % CUSTOM_REACTS.length], "wow")] : o ? [n(o.react, o.mood ?? "smug")] : [];
+      const out =
+        a === UNKNOWN_ANSWER
+          ? [n(UNKNOWN_REACTS[t.num % UNKNOWN_REACTS.length], "talk")]
+          : isCustom(a)
+            ? [n(CUSTOM_REACTS[(a.length + t.num) % CUSTOM_REACTS.length], "wow")]
+            : o
+              ? [n(o.react, o.mood ?? "smug")]
+              : [];
       if (t.part === "self" && t.num === Math.ceil(selfInterview(i.mode).length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
       return out;
     }
@@ -381,13 +390,20 @@ function QuestionDock({ options, onAnswer }: { options: { id: string; label: str
   return (
     <div className="space-y-2">
       <Chips items={options} onPick={onAnswer} />
-      <button
-        onClick={() => setWriting(true)}
-        className="chip-pop w-full rounded-2xl border border-dashed border-peach/50 px-4 py-3 text-left text-[15px] font-medium text-peach active:scale-[0.98]"
-        style={{ animationDelay: `${options.length * 55}ms` }}
-      >
-        ✏️ 맞는 게 없다냥, 직접 입력할래
-      </button>
+      <div className="chip-pop grid grid-cols-2 gap-2" style={{ animationDelay: `${options.length * 55}ms` }}>
+        <button
+          onClick={() => setWriting(true)}
+          className="rounded-2xl border border-dashed border-peach/50 px-3 py-3 text-[14px] font-medium text-peach active:scale-[0.98]"
+        >
+          ✏️ 직접 입력할래
+        </button>
+        <button
+          onClick={() => onAnswer(UNKNOWN_ANSWER)}
+          className="rounded-2xl border border-dashed border-white/20 px-3 py-3 text-[14px] font-medium text-muted active:scale-[0.98]"
+        >
+          {UNKNOWN_LABEL}
+        </button>
+      </div>
     </div>
   );
 }

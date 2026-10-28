@@ -11,6 +11,7 @@ import { PaymentModal } from "./PaymentModal";
 import {
   Card,
   ColorCard,
+  ComboCard,
   DayMasterCard,
   FullReportView,
   LockedCard,
@@ -172,6 +173,14 @@ export function ResultView() {
         mood: "wow",
         node: <TellCard tell={tell2} />,
         next: "뜨끔…",
+      });
+    }
+    if (personal.combo) {
+      list.push({
+        say: "근데 진짜 소름은 네 답 두 개를 같이 볼 때다냥.",
+        mood: "smug",
+        node: <ComboCard combo={personal.combo} />,
+        next: "…이것도 맞아",
       });
     }
     list.push({
