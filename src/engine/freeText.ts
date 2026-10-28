@@ -86,6 +86,10 @@ export interface Resolved {
   w: Weights;
   read: string;
   custom: boolean;
+  /** "잘 모르겠어", pressed or typed */
+  unknown?: boolean;
+  /** typed text that matched no choice and no keyword */
+  unread?: boolean;
 }
 
 export function isValidAnswer(d: Decoded, a: unknown): boolean {
@@ -108,7 +112,7 @@ export function resolve(d: Decoded, qid: string, a: string | undefined): Resolve
   const q = ALL_QS.find((x) => x.id === qid);
   const partner = qid.startsWith("o");
   if (a === UNKNOWN_ANSWER) {
-    return { oid: null, label: UNKNOWN_LABEL, w: {}, read: `'잘 모르겠다'고 했지. ${unknownRead(d, partner, qid)}`, custom: false };
+    return { oid: null, label: UNKNOWN_LABEL, w: {}, read: `'잘 모르겠다'고 했지. ${unknownRead(d, partner, qid)}`, custom: false, unknown: true };
   }
   if (!isCustom(a)) {
     const o = d.options[a];
@@ -120,7 +124,7 @@ export function resolve(d: Decoded, qid: string, a: string | undefined): Resolve
   const pick = <T,>(list: T[]) => list[[...text].reduce((h, ch) => h + ch.charCodeAt(0), 0) % list.length];
 
   if (UNKNOWN.test(text)) {
-    return { oid: null, label: `✏️ ${text}`, w: {}, read: `${quote} ${unknownRead(d, partner, qid)}`, custom: true };
+    return { oid: null, label: `✏️ ${text}`, w: {}, read: `${quote} ${unknownRead(d, partner, qid)}`, custom: true, unknown: true };
   }
 
   // The color question maps color words straight to an element.
@@ -167,7 +171,7 @@ export function resolve(d: Decoded, qid: string, a: string | undefined): Resolve
   const read = body.length
     ? `${quote} 보기엔 없던 답이라 냥신이 따로 읽어 봤다냥. ${body.join(" ")} ${pick(partner ? CLOSE_PARTNER : CLOSE_SELF)}`
     : `${quote} ${pick(partner ? FALLBACK_PARTNER : FALLBACK_SELF)}`;
-  return { oid: null, label: `✏️ ${text}`, w: tw, read, custom: true };
+  return { oid: null, label: `✏️ ${text}`, w: tw, read, custom: true, unread: !Object.keys(tw).length };
 }
 
 // ───────────── Readings for typed answers that match no choice ─────────────

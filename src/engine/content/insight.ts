@@ -109,6 +109,9 @@ export const SAJU_OPPOSITE = [
 
 /** 잘 모르겠어 → the choice the rest of the answers point to. */
 export const PREDICT = "다른 답들을 모아 보면 넌 아마 '{label}' 쪽일 거다냥. {read}";
+/** Typed text that matched nothing: lean on what the other answers say about this scene. */
+export const BRIDGE = "보기에 없는 답이라 다른 답들로 같이 읽어 봤다냥. 이 장면에서 넌 '{label}' 쪽 마음에 가장 가깝다냥.";
+export const BRIDGE_PARTNER = "보기에 없는 모습이라 네가 말해 준 {p}의 다른 모습들로 같이 읽어 봤다냥. 이 장면의 {p:은/는} '{label}' 쪽에 가장 가깝다냥.";
 export const PREDICT_PARTNER = "네가 말해 준 {p}의 다른 모습들을 보면, 아마 '{label}' 쪽일 거다냥. {read}";
 
 // ───────────── 답변 조합 (pairs) ─────────────

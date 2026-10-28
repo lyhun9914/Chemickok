@@ -85,8 +85,9 @@ function items(set: AnswerSet): Item[] {
   return set.qs.flatMap((q, i) => {
     const r = resolve(set.decode[q.id], q.id, set.answers[q.id]);
     if (!r) return [];
-    const unknown = r.oid === null && !r.custom;
-    const guess = unknown ? predict(set, q.id) : null;
+    const unknown = Boolean(r.unknown);
+    // 잘 모르겠어 → read the likely choice; typed text with nothing to go on → borrow that choice's lean.
+    const guess = unknown || r.unread ? predict(set, q.id) : null;
     return [
       {
         qid: q.id,
@@ -136,7 +137,7 @@ const face = (t: Trait, s: number) => TRAIT_FACE[t][s > 0 ? 0 : 1];
 /** This answer next to another answer with a strong lean on the same trait. */
 function crossLine(set: AnswerSet, it: Item, all: Item[], t: Trait, s: number): string | null {
   const other = all
-    .filter((o) => o.qid !== it.qid && !o.unknown && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 0.5)
+    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 0.5)
     .sort((a, b) => Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
   if (!other) return null;
   const same = sign(other.w[t] ?? 0) === s;
@@ -179,8 +180,10 @@ function typeLine(set: AnswerSet, it: Item, t: Trait, s: number, short: (m: stri
 /** The decoded reading for one answer, tied to the rest of the person. */
 function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => string): string {
   const parts = [it.r.read];
-  if (it.predicted) {
+  if (it.predicted && it.unknown) {
     parts.push(sub(set.aboutPartner ? T.PREDICT_PARTNER : T.PREDICT, { label: it.predicted.label, read: it.predicted.read }));
+  } else if (it.predicted) {
+    parts.push(sub(set.aboutPartner ? T.BRIDGE_PARTNER : T.BRIDGE, { label: it.predicted.label }));
   }
   const dom = dominant(it.w);
   if (dom && it.qid !== COLOR_Q) {
