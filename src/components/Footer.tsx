@@ -7,7 +7,7 @@ import { LegalModal, type LegalDoc } from "./LegalModal";
 export function Footer() {
   const [doc, setDoc] = useState<LegalDoc | null>(null);
   return (
-    <footer className="mt-auto border-t border-line px-5 pb-10 pt-6 text-[11px] leading-relaxed text-muted/80">
+    <footer className="mt-auto border-t border-line px-5 pb-10 pt-6 text-[12px] leading-relaxed text-muted/80">
       <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-muted">
         <button onClick={() => setDoc("terms")} className="underline-offset-2 hover:underline">
           이용약관

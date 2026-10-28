@@ -61,26 +61,32 @@ export function Landing() {
           …들어왔으면 문부터 닫아라냥. 촛불 꺼진다냥. 네가 올 줄은 알고 있었다냥.
         </div>
         <h1 className="mt-6 text-[27px] font-extrabold leading-tight tracking-tight">
-          네 연애가 매번 꼬이는 이유,
+          네 인연, 네 팔자, 네 앞날까지
           <br />
           <span className="text-gradient">냥신은 이미 보고 있다냥</span>
         </h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-muted">
-          숨겨 둔 속마음, 말 못 한 미련, 인연이 오는 날까지
+        <p className="mt-3 text-[15.5px] leading-relaxed text-muted">
+          연애 · 궁합 · 재회 · 배우자 · 사주 · 대운
           <br />
-          사주 여덟 글자 × MBTI × 연애 성향으로 다 읽힌다냥
+          생년월일로 원국을 세우고, 면담으로 맞춰 본다냥
         </p>
       </div>
 
       <button onClick={() => start()} className="btn-primary glow shine mt-8 w-full py-4 text-[17px]">
-        🕯️ 점집 안으로 들어가기 (무료)
+        🕯️ 연애 점괘 바로 보기 (무료)
       </button>
-      <p className="mt-3 text-center text-xs text-muted">⏱ 약 4분 · 회원가입 없음 · 기본 점괘 무료 · 거짓말은 통하지 않는다냥</p>
+      <button
+        onClick={() => document.getElementById("menu-fortune")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        className="mt-3 w-full rounded-2xl border border-violet/40 bg-surface/70 py-3.5 text-[15px] font-semibold text-peach active:scale-[0.98]"
+      >
+        📜 사주 · 대운 감정 보러 가기 ↓
+      </button>
+      <p className="mt-3 text-center text-[13px] text-muted">⏱ 약 3~4분 · 회원가입 없이 · 기본 점괘는 무료</p>
 
       {MENU.map((group, gi) => (
-        <section key={group.title} className={`fade-up ${gi ? "mt-8" : "mt-10"}`} style={{ animationDelay: `${0.1 + gi * 0.05}s` }}>
+        <section key={group.title} id={gi ? "menu-fortune" : "menu-love"} className={`fade-up scroll-mt-4 ${gi ? "mt-8" : "mt-10"}`} style={{ animationDelay: `${0.1 + gi * 0.05}s` }}>
           <h2 className="text-[17px]">{group.title}</h2>
-          <p className="mb-3 mt-0.5 text-xs text-muted">{group.sub}</p>
+          <p className="mb-3 mt-1 text-[13.5px] leading-relaxed text-muted">{group.sub}</p>
           <div className="space-y-3">
             {(Object.keys(PRODUCTS) as Mode[])
               .filter((m) => group.modes.includes(m))
@@ -94,8 +100,8 @@ export function Landing() {
                   >
                     <span className="text-4xl">{pr.emoji}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-bold">{pr.name}</span>
-                      <span className="mt-0.5 block text-xs leading-relaxed text-muted">{pr.pitch}</span>
+                      <span className="block text-[17px] font-bold">{pr.name}</span>
+                      <span className="mt-1 block text-[13.5px] leading-relaxed text-muted">{pr.pitch}</span>
                       <span className="mt-1.5 block text-xs">
                         <span className="rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
                         <span className="ml-1.5 font-semibold text-peach">

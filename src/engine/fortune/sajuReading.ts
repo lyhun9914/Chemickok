@@ -54,6 +54,13 @@ const SIBLING: Record<string, Record<"high" | "mid" | "low", string>> = {
   },
 };
 
+/** 형제 answer skipped: read the 비겁 (형제·동료 자리) alone. */
+const SIBLING_UNKNOWN: Record<"high" | "mid" | "low", string> = {
+  high: "형제·친구 같은 '내 편' 기운이 강하다냥. 대신 그 사람들 일로 돈과 시간이 샌다냥.",
+  mid: "형제 자리는 무난하다냥. 큰 덕도 큰 짐도 없이 각자 산다냥.",
+  low: "형제 덕보다 네 힘으로 서는 팔자다냥. 일찍 혼자 서는 법을 배웠다냥.",
+};
+
 const PEOPLE_SAY: Record<string, [string, string]> = {
   // [신강, 신약]
   stubborn: ["고집 맞다냥. 사주가 신강이라 꺾이질 않는다냥.", "고집이 아니라 버팀이다냥. 신약 사주는 무너질까 봐 더 세게 버틴다냥."],
@@ -85,6 +92,8 @@ const EVENT_GODS: Record<string, TenGod[]> = {
   breakup: ["상관", "겁재", "편관"],
   meet: ["정재", "편재", "정관", "편관", "식신"],
   sick: ["편관", "상관", "겁재"],
+  loss: ["겁재", "편재", "비견", "상관"],
+  family: ["편관", "편인", "겁재", "상관"],
   calm: ["비견", "정인", "식신", "정재"],
 };
 const EVENT_LABEL: Record<string, string> = {
@@ -93,6 +102,8 @@ const EVENT_LABEL: Record<string, string> = {
   breakup: "사람과 끝났다",
   meet: "좋은 인연을 만났다",
   sick: "아팠다",
+  loss: "큰돈이 나갔다",
+  family: "집안에 큰일이 있었다",
   calm: "별일 없었다",
 };
 
@@ -139,12 +150,13 @@ function healthLines(c: Chart, ans: string | undefined): string[] {
   if (ans && ans !== "none" && ans !== "?") {
     const el = ans as ElementKey;
     if (el === weak) out.push(`역시다냥. 사주에서 ${josa(elementLabel(weak), "이/가")} 제일 약하다냥. ${josa(ORGANS[weak], "이/가")} 네 약한 고리다냥.`);
-    else if (el === over) out.push(`${elementLabel(over)} 기운이 넘쳐서 그렇다냥. 넘치는 기운은 몸에서 열과 뭉침으로 나온다냥.`);
+    else if (el === over)
+      out.push(`${elementLabel(over)} 기운이 넘쳐서 그렇다냥. 넘치는 기운은 몸에서 열과 뭉침으로 나온다냥. 그리고 사주가 따로 경고하는 자리는 ${daNyang(ORGANS[weak])}.`);
     else out.push(`지금은 거기가 신경 쓰인다고 했지. 근데 사주가 경고하는 자리는 따로 있다냥. ${daNyang(ORGANS[weak])}.`);
   } else {
     out.push(`사주가 미리 짚어 두는 자리는 ${daNyang(ORGANS[weak])}. 지금 멀쩡해도 무리하면 거기부터 온다냥.`);
   }
-  if (over !== weak) out.push(`${josa(elementLabel(over), "이/가")} 넘쳐서 ${ORGANS[over]}도 혹사당하는 중이다냥.`);
+  if (over !== weak && ans !== over) out.push(`${josa(elementLabel(over), "이/가")} 넘쳐서 ${ORGANS[over]}도 무리하기 쉽다냥.`);
   return out;
 }
 
@@ -166,6 +178,10 @@ function moneyLine(c: Chart, ans: string | undefined): string {
       return c.groups.인성 >= 2.5
         ? "모아도 안심이 안 되지? 생각이 많은 사주라 그렇다냥. 통장 숫자보다 마음이 문제다냥."
         : "모으는 건 잘한다냥. 근데 아끼다 놓친 기회가 한 번 있었다냥.";
+    case "debt": {
+      const ease = yearlyLuck(c, 10).find((y) => GROUP_OF[y.god] === "재성" || y.score >= 72);
+      return `빚 갚는 데 다 나간다고 했지. ${jae === "low" ? "재성이 약해서 돈이 머물 자리가 좁다냥. 이자 큰 것부터 끊어라냥." : "버는 힘은 있다냥. 순서만 잡으면 줄어든다냥."} ${ease ? `${ease.year}년부터 숨통이 트인다냥.` : "한 번에 말고 쪼개서 갚아라냥."}`;
+    }
     case "leak":
       return c.gods.includes("겁재") ? "겁재가 있어서 남 따라 쓰는 돈이 크다냥. 같이 노는 사람이 바뀌면 돈이 남는다냥." : "구독·배달·충동구매다냥. 작은 게 모여 큰 구멍이 된다냥.";
     default:
@@ -194,6 +210,7 @@ function jobLine(c: Chart, ans: string | undefined): string {
   if (ans === "study") return `지금 고르는 길이 평생 간다냥. 사주는 ${field} 쪽이다냥.`;
   if (ans === "home") return `집을 지키는 지금도 네 그릇은 ${daNyang(field)}. 작게라도 네 이름으로 하는 일을 시작해라냥.`;
   if (ans === "rest") return `갈림길이구냥. 다음 자리는 ${field} 쪽이다냥.`;
+  if (ans === "retired") return `은퇴했다고 했지. 그래도 네 그릇은 ${daNyang(field)}. 작게라도 손을 놓지 않는 게 노후 보약이다냥.`;
   return `사주에 맞는 일은 ${daNyang(field)}.`;
 }
 
@@ -202,6 +219,13 @@ function yearEventLine(c: Chart, ans: string | undefined): string | null {
   const [y] = yearlyLuck(c, 1);
   const clash = branchRelation(c.dayBranch, y.branch) === "clash";
   const hit = EVENT_GODS[ans]?.includes(y.god) || (clash && ans !== "calm" && ans !== "meet");
+  // A new person in a year when the 배우자 별 itself came in: say so.
+  const sp = spouseGroup(c);
+  if (ans === "meet" && sp && GROUP_OF[y.god] === sp) return `올해 좋은 인연을 만났다고 했지. 올해 ${y.ganji}년은 너한테 배우자 별이 직접 들어온 해다냥. 우연이 아니다냥.`;
+  if (ans === "calm" && !hit) {
+    const left = 12 - (new Date(Date.now() + 9 * 3600 * 1000).getUTCMonth() + 1);
+    return `별일 없었다고 했지. 근데 올해 ${y.ganji}년은 너한테 '${y.god}(${GOD_SHORT[y.god]})'의 해다냥. ${left >= 1 ? `남은 ${left}달 안에 그 기운이 한 번은 움직인다냥.` : "그 기운은 내년 초까지 이어진다냥."}`;
+  }
   return hit
     ? `올해 ${EVENT_LABEL[ans]}고 했지. 올해 ${y.ganji}년은 너한테 '${y.god}'의 해다냥. ${GOD_SHORT[y.god]}의 기운이 그대로 들어맞은 거다냥.`
     : `올해 ${EVENT_LABEL[ans]}고 했지. 올해는 너한테 '${y.god}(${GOD_SHORT[y.god]})'의 해였다냥. 그 일도 결국 그 기운의 모양으로 온 거다냥.`;
@@ -212,12 +236,28 @@ function seasonLine(c: Chart, ans: string | undefined): string | null {
   if (!d || !ans || !SEASON[ans]) return null;
   const good = d.score >= 66;
   const next = c.daeun[c.currentDaeun + 1];
-  const s = SEASON[ans];
-  if (s.warm && good) return `지금이 ${josa(s.label, "이라고/라고")} 했지. 맞다냥. ${d.age}세부터 든 ${d.ganji} 대운이 좋다냥. 지금 벌인 일은 열매가 된다냥.`;
-  if (!s.warm && !good)
-    return `지금이 ${josa(s.label, "이라고/라고")} 했지. 대운이 그대로 보여 준다냥. ${next ? `${next.age}세 ${next.ganji} 대운부터 풀린다냥.` : "조금만 더 버텨라냥."}`;
-  if (!s.warm && good) return `${josa(s.label, "이라고/라고")} 느끼는데, 대운은 좋다냥. 운은 이미 왔는데 네가 아직 문을 안 연 거다냥.`;
-  return `${s.label}처럼 바쁜데, 대운은 쉬어 가라는 때다냥. 지금 무리하면 몸이 먼저 탈 난다냥.`;
+  const nextBetter = next && next.score > d.score + 4;
+  switch (ans) {
+    case "spring":
+      return good
+        ? `막 시작하는 느낌이라고 했지. 맞다냥. ${d.age}세부터 든 ${d.ganji} 대운이 좋다냥. 지금 뿌린 씨가 열매가 된다냥.`
+        : "막 시작하는 느낌인데, 대운은 아직 준비하라는 때다냥. 서두르면 싹이 얼어붙는다냥. 뿌리부터 내려라냥.";
+    case "summer":
+      return good
+        ? "한창이라고 했지. 맞다냥. 대운이 받쳐 주는 한여름이다냥. 지금 벌인 일은 열매가 된다냥."
+        : "한창 바쁜데, 대운은 쉬어 가라는 때다냥. 지금 무리하면 몸이 먼저 탈 난다냥.";
+    case "autumn":
+      return good
+        ? "거두는 중이라고 했지. 맞다냥. 대운도 받쳐 준다냥. 이제는 거둔 걸 지키는 게 일이다냥."
+        : "거두는 중이라고 했지. 대운이 무거워 거둘 게 줄어드는 때다냥. 새로 벌이지 말고 지켜라냥.";
+    case "winter":
+      if (good) return "버티는 중이라고 했는데, 대운은 좋다냥. 운은 이미 왔는데 네가 아직 문을 안 연 거다냥.";
+      return `버티는 중이라고 했지. 대운이 그대로 보여 준다냥. ${nextBetter ? `${next.age}세 ${next.ganji} 대운부터 풀린다냥.` : "지금은 몸과 마음을 지키는 게 답이다냥."}`;
+    default:
+      return good
+        ? "다 바뀌는 중이라고 했지. 대운이 받쳐 주는 변화다냥. 바뀐 쪽이 맞는 길이다냥."
+        : `다 바뀌는 중이라고 했지. 대운이 무거운 때의 변화라 흔들리는 거다냥. ${nextBetter ? `${next.age}세에 대운이 바뀌면 자리가 잡힌다냥.` : "중요한 결정은 반년만 미뤄라냥."}`;
+  }
 }
 
 function subScores(c: Chart) {
@@ -261,19 +301,32 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
   const sp = spouseGroup(c);
   const focus = a("sj1") && a("sj1") !== "?" ? a("sj1") : "life";
   const sib = a("sj3");
-  const sibLine = sib && SIBLING[sib] ? SIBLING[sib][level(c.groups.비겁)] : GROUP_STRONG[top];
+  const sibLine = sib && SIBLING[sib] ? SIBLING[sib][level(c.groups.비겁)] : SIBLING_UNKNOWN[level(c.groups.비겁)];
   const say = a("sj6") && PEOPLE_SAY[a("sj6")] ? PEOPLE_SAY[a("sj6")][c.strong ? 0 : 1] : null;
 
   // ── 유료 감정서 ──
-  const nature = sec("타고난 성격 · 겉과 속", `${stem.name}, ${stem.image}의 팔자다냥`, lines(stem.core, stem.gift, stem.shadow, GROUP_STRONG[top], GROUP_WEAK[low], say), [
-    `🔹 타고난 무기: ${stem.gift.split(". ")[0].replace(/이?다냥\.?$/, "")}`,
-    `🔸 약한 고리: ${GROUP_WEAK[low].split(".")[0]}`,
-    c.strong ? "⚖️ 신강 사주: 밀어붙이는 힘은 넘친다냥. 힘을 쓸 곳을 정해 줘야 산다냥." : "⚖️ 신약 사주: 혼자보다 판을 같이 짤 사람이 있을 때 강해진다냥.",
-  ]);
+  const nature = sec(
+    "타고난 성격 · 겉과 속",
+    `${stem.name}, ${stem.image}의 팔자다냥`,
+    lines(
+      stem.core,
+      stem.gift,
+      stem.shadow,
+      c.age >= 60 ? GROUP_STRONG[top].replace("윗사람과 부딪친다냥", "가까운 사람과 말로 부딪친다냥") : GROUP_STRONG[top],
+      GROUP_WEAK[low],
+      say,
+    ),
+    [
+      `🔹 타고난 무기: ${stem.gift.split(". ")[0].replace(/이?다냥\.?$/, "")}`,
+      `🔸 약한 고리: ${GROUP_WEAK[low].split(".")[0]}`,
+      c.strong ? "⚖️ 신강 사주: 밀어붙이는 힘은 넘친다냥. 힘을 쓸 곳을 정해 줘야 산다냥." : "⚖️ 신약 사주: 혼자보다 판을 같이 짤 사람이 있을 때 강해진다냥.",
+    ],
+  );
 
   const jaeEl = groupElement(c.dm, "재성");
   const moneyYears = yearlyLuck(c, 10)
-    .filter((y) => GROUP_OF[y.god] === "재성" || (GROUP_OF[y.god] === "식상" && y.score >= 70))
+    // A 재성 year only counts as money when the chart welcomes it (otherwise it comes and goes).
+    .filter((y) => (GROUP_OF[y.god] === "재성" && y.score >= 58) || (GROUP_OF[y.god] === "식상" && y.score >= 70))
     .slice(0, 3);
   const money = sec(
     "재물운 · 돈이 들어오고 새는 길",
@@ -284,8 +337,14 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
       `네 재물 기운은 ${daNyang(elementLabel(jaeEl))}. ${c.yongsin === jaeEl ? "용신이 곧 재물이라, 돈 쫓는 게 곧 운을 쫓는 거다냥." : "돈보다 실력과 이름을 먼저 키우면 돈이 따라온다냥."}`,
     ),
     [
-      moneyYears.length ? `📈 돈이 붙는 해: ${moneyYears.map((y) => `${y.year}년(${y.ganji}·${y.god})`).join(", ")}` : "📈 돈이 붙는 해: 10년 안엔 큰 파도보다 잔잔한 흐름이다냥.",
-      c.gods.includes("겁재") || c.groups.비겁 >= 2.5 ? "🚫 피할 것: 보증·동업·돈 빌려주기" : "🚫 피할 것: 남 말 듣고 하는 투자",
+      moneyYears.length
+        ? `📈 돈이 붙는 해: ${moneyYears.map((y) => `${y.year}년(${y.ganji}·${y.god})`).join(", ")}`
+        : "📈 돈이 붙는 해: 10년 안엔 큰 파도보다 잔잔한 흐름이다냥. 모으는 쪽이 이긴다냥.",
+      c.age < 20
+        ? "🚫 피할 것: 친구 따라 쓰는 돈·빌려주는 돈"
+        : c.gods.includes("겁재") || c.groups.비겁 >= 2.5
+          ? "🚫 피할 것: 보증·동업·돈 빌려주기"
+          : "🚫 피할 것: 남 말 듣고 하는 투자",
       `🔑 돈 들어오는 방향: ${LUCK[jaeEl].direction} · 색: ${LUCK[jaeEl].color}`,
     ],
   );
@@ -313,23 +372,47 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
 
   const spCount = sp ? c.groups[sp] : 1;
   const loveYear = yearlyLuck(c, 10).find((y) => (sp && GROUP_OF[y.god] === sp) || branchRelation(c.dayBranch, y.branch) === "harmony");
+  // From the mid-40s the same 자리 reads as the marriage itself, not when someone will show up.
+  const settled = c.age >= 45;
   const love = sec(
-    "연애·결혼운",
-    spCount === 0 ? "늦게 오지만 확 오는 인연이다냥" : spCount >= 3 ? "인연이 많아서 고르기 어려운 팔자다냥" : "때 되면 들어오는 인연이다냥",
+    settled ? "부부·인연운" : "연애·결혼운",
+    settled
+      ? spCount === 0
+        ? "따로 또 같이가 맞는 부부 자리다냥"
+        : spCount >= 3
+          ? "사람 일이 많은 부부 자리다냥"
+          : "오래 가는 부부 자리다냥"
+      : spCount === 0
+        ? "늦게 오지만 확 오는 인연이다냥"
+        : spCount >= 3
+          ? "인연이 많아서 고르기 어려운 팔자다냥"
+          : "때 되면 들어오는 인연이다냥",
     lines(
       stem.love,
-      spCount === 0
-        ? "배우자 별이 원국에 없다냥. 늦게 만나거나, 운에서 들어올 때 확 만난다냥."
-        : spCount >= 3
-          ? "배우자 별이 많다냥. 인연이 많은 만큼, 진짜는 한 번 놓쳤다 다시 보인다냥."
-          : "배우자 별이 제자리에 있다냥. 억지로 찾지 않아도 들어온다냥.",
+      settled
+        ? spCount === 0
+          ? "배우자 별이 약한 사주다냥. 부부가 각자 할 일이 많을수록 사이가 좋다냥."
+          : spCount >= 3
+            ? "배우자 별이 많은 사주다냥. 말 한마디가 부부 사이를 지킨다냥."
+            : "배우자 별이 제자리에 있다냥. 큰 탈 없이 오래 가는 자리다냥."
+        : spCount === 0
+          ? "배우자 별이 원국에 없다냥. 늦게 만나거나, 운에서 들어올 때 확 만난다냥."
+          : spCount >= 3
+            ? "배우자 별이 많다냥. 인연이 많은 만큼, 진짜는 한 번 놓쳤다 다시 보인다냥."
+            : "배우자 별이 제자리에 있다냥. 억지로 찾지 않아도 들어온다냥.",
       c.sinsal.dohwa ? "도화살까지 있어서 가만있어도 눈길을 끈다냥." : null,
       c.sinsal.hongyeom ? "홍염살이 있어서 은근히 끌리는 매력이 있다냥." : null,
-      `배우자 자리(일지)에 ${josa(animalOfBranch(c.dayBranch), "이/가")} 앉아 있다냥. 배우자는 ${["눈치 빠르고 생활력 강한", "묵묵하고 성실한", "추진력 있고 자존심 센", "부드럽고 다정한", "그릇 크고 욕심 있는", "똑똑하고 속정 깊은", "밝고 활동적인", "온순하고 가정적인", "재주 많고 말솜씨 좋은", "깔끔하고 기준 높은", "의리 있고 책임감 강한", "마음 넓고 정 많은"][c.dayBranch]} 사람이다냥.`,
+      `배우자 자리(일지)에 ${josa(animalOfBranch(c.dayBranch), "이/가")} 앉아 있다냥. ${settled ? "네 짝은" : "배우자는"} ${["눈치 빠르고 생활력 강한", "묵묵하고 성실한", "추진력 있고 자존심 센", "부드럽고 다정한", "그릇 크고 욕심 있는", "똑똑하고 속정 깊은", "밝고 활동적인", "온순하고 가정적인", "재주 많고 말솜씨 좋은", "깔끔하고 기준 높은", "의리 있고 책임감 강한", "마음 넓고 정 많은"][c.dayBranch]} 사람이다냥.`,
     ),
     [
-      loveYear ? `💍 인연 기운이 강한 해: ${loveYear.year}년(${loveYear.ganji})` : "💍 10년 안의 인연 해: 운에서 들어오는 해를 잡아라냥",
-      "자세한 배우자 얼굴·시기는 '미래 배우자운'에서 따로 본다냥.",
+      settled
+        ? loveYear
+          ? `💞 부부 사이가 깊어지는 해: ${loveYear.year}년(${loveYear.ganji})`
+          : "💞 부부 사이는 해마다의 말 한마디가 지킨다냥"
+        : loveYear
+          ? `💍 인연 기운이 강한 해: ${loveYear.year}년(${loveYear.ganji})`
+          : "💍 10년 안의 인연 해: 운에서 들어오는 해를 잡아라냥",
+      settled ? "혼자라면, 이 해가 새 인연이 드는 해이기도 하다냥." : "자세한 배우자 얼굴·시기는 '미래 배우자운'에서 따로 본다냥.",
     ],
   );
 
@@ -370,8 +453,8 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
             : `${years[0].year}·${years[1].year}년은 다지는 2년이다냥`,
     lines(
       yearEventLine(c, a("sj7")),
-      `${years[0].year} ${years[0].ganji}년 (${years[0].god}): ${yearText(years[0])}`,
-      `${years[1].year} ${years[1].ganji}년 (${years[1].god}): ${yearText(years[1])}`,
+      `${years[0].year} ${years[0].ganji}년 (${years[0].god}): ${yearText(years[0], 0, c.age)}`,
+      `${years[1].year} ${years[1].ganji}년 (${years[1].god}): ${yearText(years[1], 1, c.age)}`,
       seasonLine(c, a("sj8")),
     ),
     [`📊 ${years[0].year}년 ${years[0].score}점 · ${scoreWord(years[0].score)}`, `📊 ${years[1].year}년 ${years[1].score}점 · ${scoreWord(years[1].score)}`],

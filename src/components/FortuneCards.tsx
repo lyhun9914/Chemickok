@@ -5,7 +5,7 @@ import { Card, NyangSays, SajuChart, ScoreRing } from "./ReportCards";
 function BasisCard({ rows, note }: { rows: [string, string][]; note?: string }) {
   return (
     <div className="fade-up relative overflow-hidden rounded-2xl hanji p-5 text-[#2b1d16] shadow-[0_12px_40px_-16px_rgba(0,0,0,0.8)]">
-      <p className="text-[11px] tracking-[0.35em] text-[#8a5a3a]">鑑 定 根 據</p>
+      <p className="text-[12px] tracking-[0.35em] text-[#8a5a3a]">鑑 定 根 據</p>
       <p className="font-ritual mt-0.5 text-[17px]">감정 근거</p>
       <dl className="mt-3 divide-y divide-[#2b1d16]/15 border-y border-[#2b1d16]/25 text-[13.5px]">
         {rows.map(([k, v]) => (
@@ -15,7 +15,7 @@ function BasisCard({ rows, note }: { rows: [string, string][]; note?: string }) 
           </div>
         ))}
       </dl>
-      {note && <p className="mt-2 text-[11.5px] text-[#8a5a3a]">※ {note}</p>}
+      {note && <p className="mt-2 text-[12.5px] text-[#8a5a3a]">※ {note}</p>}
       <span className="seal absolute right-4 top-4" aria-hidden>
         鑑定
       </span>
@@ -31,7 +31,7 @@ function TimelineCard({ title, items }: Extract<FortuneCard, { kind: "timeline" 
       <div className="mt-4 flex h-40 items-end gap-1.5">
         {items.map((it) => (
           <div key={it.age} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
-            <span className={`mb-1 text-[10px] font-bold ${it.current ? "text-peach" : "text-muted"}`}>{it.score}</span>
+            <span className={`mb-1 text-[11px] font-bold ${it.current ? "text-peach" : "text-muted"}`}>{it.score}</span>
             <div
               className={`bar-rise w-full rounded-t-md ${it.current ? "bg-gradient-to-t from-pink to-peach shadow-[0_0_12px_var(--pink)]" : "bg-white/15"}`}
               style={{ height: `${Math.max(8, it.score)}%` }}
@@ -47,11 +47,11 @@ function TimelineCard({ title, items }: Extract<FortuneCard, { kind: "timeline" 
               <br />
               {it.hanja[1]}
             </p>
-            <p className={`mt-1 text-[9.5px] leading-tight ${it.current ? "font-bold text-peach" : "text-muted"}`}>{it.age.split("~")[0]}세</p>
+            <p className={`mt-1 text-[10.5px] leading-tight ${it.current ? "font-bold text-peach" : "text-muted"}`}>{it.age.split("~")[0]}세</p>
           </div>
         ))}
       </div>
-      {items.some((it) => it.current) && <p className="mt-3 text-center text-[11px] text-peach">● 빛나는 칸이 지금 네 대운이다냥</p>}
+      {items.some((it) => it.current) && <p className="mt-3 text-center text-[12px] text-peach">● 빛나는 칸이 지금 네 대운이다냥</p>}
     </Card>
   );
 }
@@ -130,7 +130,7 @@ export function DocumentHead({ title, saju, no }: { title: string; saju: SajuSum
   ];
   return (
     <div className="fade-up relative overflow-hidden rounded-2xl hanji p-5 text-[#2b1d16]">
-      <p className="text-[11px] tracking-[0.5em] text-[#8a5a3a]">鑑 定 書</p>
+      <p className="text-[12px] tracking-[0.5em] text-[#8a5a3a]">鑑 定 書</p>
       <p className="font-ritual mt-1 pr-16 text-[21px] leading-snug">{title}</p>
       <dl className="mt-3 space-y-1 text-[12.5px]">
         {rows.map(([k, v]) => (

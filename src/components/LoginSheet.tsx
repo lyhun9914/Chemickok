@@ -88,7 +88,7 @@ export function LoginSheet({ open, onClose, forPay, onGuest }: { open: boolean; 
           {providers.map((p) => (
             <div key={p} className="relative">
               {last === p && (
-                <span className="absolute -top-2.5 left-4 z-10 rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-semibold text-bg">최근에 이 방식으로 로그인했어요</span>
+                <span className="absolute -top-2.5 left-4 z-10 rounded-full bg-ink px-2.5 py-0.5 text-[12px] font-semibold text-bg">최근에 이 방식으로 로그인했어요</span>
               )}
               <button onClick={() => go(p)} className={`flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-[15px] font-bold active:scale-[0.98] ${BUTTONS[p].cls}`}>
                 <span className="flex w-6 justify-center">{BUTTONS[p].icon}</span>
@@ -104,7 +104,7 @@ export function LoginSheet({ open, onClose, forPay, onGuest }: { open: boolean; 
             로그인 없이 결제할래 (결과가 보관되지 않아요)
           </button>
         )}
-        <p className="mt-4 text-center text-[11px] leading-relaxed text-muted/80">
+        <p className="mt-4 text-center text-[12px] leading-relaxed text-muted/80">
           로그인하면 이용약관과 개인정보처리방침에 동의하는 것으로 봅니다.
         </p>
       </div>

@@ -152,7 +152,7 @@ interface Memo {
 function crossLine(set: AnswerSet, it: Item, all: Item[], t: Trait, s: number, memo: Memo): string | null {
   const times = (o: Item) => memo.cited.get(o.qid) ?? 0;
   const other = all
-    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 0.5 && times(o) < 2)
+    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 0.5 && times(o) < 1)
     .sort((a, b) => times(a) - times(b) || Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
   if (!other) return null;
   const same = sign(other.w[t] ?? 0) === s;
@@ -175,12 +175,15 @@ function withBody(head: string, body: string, other: Item, memo: Memo): string {
   return `${head} ${body}`;
 }
 
-function profileLine(set: AnswerSet, it: Item, t: Trait, s: number): string | null {
+function profileLine(set: AnswerSet, it: Item, t: Trait, s: number, memo: Memo): string | null {
   const o = overallSign(set.person, t);
   if (!o) return null;
   if (o === s) return sub(pick(T.CONSISTENT, it.num), { face: face(t, s) });
   const line = sub(pick(T.INCONSISTENT, it.num), { face: face(t, s), overall: face(t, o) });
-  return set.couple ? `${line} ${T.INCONSISTENT_COUPLE}` : line;
+  // "{p} 앞에선 딴사람이 된다냥" lands once per reading, not after every inconsistent answer.
+  if (!set.couple || memo.lines.has(T.INCONSISTENT_COUPLE)) return line;
+  memo.lines.add(T.INCONSISTENT_COUPLE);
+  return `${line} ${T.INCONSISTENT_COUPLE}`;
 }
 
 function typeLine(set: AnswerSet, it: Item, t: Trait, s: number, short: (m: string) => string): string | null {
@@ -213,7 +216,7 @@ function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => s
   if (dom && it.qid !== COLOR_Q) {
     const [t, v] = dom;
     const s = sign(v);
-    const prof = set.aboutPartner ? null : profileLine(set, it, t, s);
+    const prof = set.aboutPartner ? null : profileLine(set, it, t, s, memo);
     const type = set.aboutPartner ? null : typeLine(set, it, t, s, short);
     // Rotate which context line each question gets, so a long report doesn't repeat one pattern; skip any line
     // this pass already said. The cross-link is built last so it only marks an answer as cited when it's used.
@@ -278,6 +281,7 @@ export function selfCombos(set: AnswerSet, max = 3): string[] {
   const pairs: [number, number][] = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 3], [0, 3]];
   const used = new Set<string>();
   const out: string[] = [];
+  let contrasts = 0;
   for (const [i, j] of pairs) {
     const a = top[i], b = top[j];
     if (!a || !b || out.length >= max) continue;
@@ -296,7 +300,7 @@ export function selfCombos(set: AnswerSet, max = 3): string[] {
       const db = (Object.entries(b.w) as [Trait, number][]).filter(([t]) => t !== da?.[0]).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0];
       if (!da || !db) continue;
       key = `face-${da[0]}-${db[0]}`;
-      const tail = set.couple ? pick(T.COMBO_CONTRAST_COUPLE, i + j) : pick(COMBO_CONTRAST_TAIL, i + j);
+      const tail = set.couple ? pick(T.COMBO_CONTRAST_COUPLE, contrasts++) : pick(COMBO_CONTRAST_TAIL, contrasts++);
       line = `겉으로는 ${face(da[0], da[1])}, 속으로는 ${face(db[0], db[1])}이다냥. ${tail}`;
     }
     if (used.has(key)) continue;
@@ -330,6 +334,8 @@ export function crossCombos(me: AnswerSet, partner: AnswerSet, max = 3): string[
     .filter((x) => x.a && x.b)
     .map((x) => ({ ...x, score: Math.abs(x.a!.r.w[x.axis] ?? 0) + Math.abs(x.b!.r.w[x.axis] ?? 0) }))
     .sort((x, y) => y.score - x.score)
+    // One axis per answer pair: the same two answers never get quoted twice.
+    .filter((x, i, list) => list.findIndex((y) => y.a === x.a && y.b === x.b) === i)
     .slice(0, max)
     .map(({ axis, a, b }) => {
       const sa = sign(a!.r.w[axis] ?? 0);

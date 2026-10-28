@@ -101,7 +101,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
         </button>
 
         {paymentService.isTestMode && (
-          <p className="mt-3 rounded-lg border border-dashed border-peach/40 p-2 text-center text-[11px] text-peach">
+          <p className="mt-3 rounded-lg border border-dashed border-peach/40 p-2 text-center text-[12px] text-peach">
             🧪 TEST MODE — 실제 결제 없이 즉시 잠금 해제됩니다
           </p>
         )}

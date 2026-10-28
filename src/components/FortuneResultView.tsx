@@ -209,7 +209,7 @@ export function FortuneResultView() {
                         i === 0 && shared ? (
                           <SectionCard key={lp.id} icon={shared.icon} section={shared.section} />
                         ) : (
-                          <LockedCard key={lp.id} preview={lp} onClick={() => setPayIntent(true)} />
+                          <LockedCard key={lp.id} preview={lp} compact onClick={() => setPayIntent(true)} />
                         ),
                       )}
                     </div>

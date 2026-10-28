@@ -12,7 +12,21 @@ export interface InterviewOption {
   label: string;
   react: string;
   mood?: Mood;
+  /** shown only to people at least / at most this old (한국 나이), e.g. "30대" to someone who has lived it */
+  minAge?: number;
+  maxAge?: number;
 }
+
+/** 한국 나이 (KST), the way the readings count it. */
+export function koreanAge(birthdate: string): number | null {
+  const y = Number(birthdate.slice(0, 4));
+  if (!y) return null;
+  return new Date(Date.now() + 9 * 3600 * 1000).getUTCFullYear() - y + 1;
+}
+
+/** Options that make sense at this age (all of them when the age is unknown). */
+export const optionsForAge = (options: InterviewOption[], age: number | null) =>
+  age === null ? options : options.filter((o) => (o.minAge ?? 0) <= age && age <= (o.maxAge ?? 999));
 
 export interface InterviewQuestion {
   id: string;
@@ -262,7 +276,7 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
   {
     id: "o5",
     short: "데이트 장소는 주로 누가 정하냥?",
-    ask: ["데이트 장소는 주로 누가 정하냥?"],
+    ask: ["둘이 만날 때, 장소는 주로 누가 정하냥?"],
     options: [
       { id: "a", label: "🧭 {p:이/가} 다 정한다", react: "리드하는 타입이구냥." },
       { id: "b", label: "🙋 내가 다 정한다", react: "네가 핸들을 잡는구냥." },
@@ -413,7 +427,7 @@ const COUPLE_ONLY: InterviewQuestion[] = [
   {
     id: "c2",
     short: "{p:이/가} 술자리, 밤 12시인데 연락이 없을 때?",
-    ask: ["{p:이/가} 친구들이랑 술자리에 갔다냥.", "밤 12시인데 연락이 없다냥. 너는?"],
+    ask: ["{p:이/가} 친구들이랑 술자리에 갔다고 치자냥.", "밤 12시인데 연락이 없다냥. 너는?"],
     options: [
       { id: "a", label: "📞 전화해 본다", react: "확인해야 마음이 놓이는구냥." },
       { id: "b", label: "🔍 친구들 스토리부터 뒤져 본다", react: "…다 봤다냥 😼", mood: "wow" },
@@ -426,7 +440,7 @@ const COUPLE_ONLY: InterviewQuestion[] = [
   {
     id: "c3",
     short: "{p}의 폰에 처음 보는 이름의 알림이 떴을 때?",
-    ask: ["별거 아닌 것 같지? 중요하다냥.", "{p}의 폰에 알림이 떴는데 처음 보는 이름이다냥. 너는?"],
+    ask: ["별거 아닌 것 같지? 중요하다냥.", "같이 있는데 {p}의 폰에 알림이 떴다냥. 처음 보는 이름이다냥. 너는?"],
     options: [
       { id: "a", label: "🗣️ \"누구야?\" 바로 묻는다", react: "직구구냥." },
       { id: "b", label: "🧠 모른 척, 이름만 기억해 둔다", react: "…기억해 두는구냥.", mood: "wow" },
@@ -439,7 +453,7 @@ const COUPLE_ONLY: InterviewQuestion[] = [
   {
     id: "c4",
     short: "{p:과/와} 크게 다툰 날 밤, 첫 행동은?",
-    ask: ["{p:과/와} 크게 다툰 날 밤이다냥.", "잠들기 전, 네 첫 행동은?"],
+    ask: ["{p:과/와} 크게 다퉜다고 치자냥.", "그날 밤 잠들기 전, 네 첫 행동은?"],
     options: [
       { id: "a", label: "📝 장문의 카톡을 쓴다", react: "할 말은 해야 하는구냥." },
       { id: "b", label: "✍️ 썼다 지웠다를 반복한다", react: "…그 마음 안다냥." },
@@ -452,7 +466,7 @@ const COUPLE_ONLY: InterviewQuestion[] = [
   {
     id: "c5",
     short: "{p:과/와}의 기념일, 제일 서운할 것 같은 건?",
-    ask: ["{p:과/와}의 기념일이다냥.", "이 중에 제일 서운할 것 같은 건?"],
+    ask: ["{p:과/와} 기념일을 보낸다고 치자냥.", "이 중에 제일 서운할 것 같은 건?"],
     options: [
       { id: "a", label: "📭 아무것도 없을 때", react: "그건 서운하지냥." },
       { id: "b", label: "🎁 성의 없는 기프티콘", react: "성의가 중요하구냥." },

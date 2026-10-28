@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
+import { PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, koreanAge, optionsForAge, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
 import { FORTUNE_INTERVIEW } from "@/lib/fortuneQuestions";
@@ -667,7 +667,7 @@ export function Questionnaire() {
       const self = cur.part === "self";
       dock = (
         <QuestionDock
-          options={q.options.map((o) => ({ id: o.id, label: fill(o.label, p) }))}
+          options={optionsForAge(q.options, koreanAge(input.me.birthdate)).map((o) => ({ id: o.id, label: fill(o.label, p) }))}
           onAnswer={(a) => {
             if (self) s.setSelf(q.id, a);
             else s.setPartnerObs(q.id, a);

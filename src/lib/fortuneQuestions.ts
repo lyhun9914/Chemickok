@@ -26,12 +26,13 @@ const SAJU: InterviewQuestion[] = [
     short: "지금 무슨 일 하냥?",
     ask: ["지금 무슨 일 하냥? 사주가 맞는 옷을 입고 있는지 보려는 거다냥."],
     options: [
-      { id: "office", label: "🏢 회사·조직에 다닌다", react: "조직 생활이구냥. 흠…" },
-      { id: "biz", label: "🧾 내 사업·장사", react: "자기 장사구냥. 배짱이 있구냥.", mood: "wow" },
-      { id: "free", label: "🎨 프리랜서·예술·전문직", react: "자기 재주로 먹고사는구냥.", mood: "happy" },
+      { id: "office", label: "🏢 회사·조직에 다닌다", react: "조직 생활이구냥. 흠…", minAge: 18 },
+      { id: "biz", label: "🧾 내 사업·장사", react: "자기 장사구냥. 배짱이 있구냥.", mood: "wow", minAge: 18 },
+      { id: "free", label: "🎨 프리랜서·예술·전문직", react: "자기 재주로 먹고사는구냥.", mood: "happy", minAge: 18 },
       { id: "study", label: "📚 학생·취업 준비", react: "아직 판을 짜는 중이구냥. 지금이 중요하다냥." },
-      { id: "home", label: "🏠 집안일·육아", react: "집을 지키는 일이구냥. 그게 제일 고된 거다냥." },
-      { id: "rest", label: "🔄 쉬는 중·옮기는 중", react: "갈림길이구냥. 그래서 왔구냥.", mood: "wow" },
+      { id: "home", label: "🏠 집안일·육아", react: "집을 지키는 일이구냥. 그게 제일 고된 거다냥.", minAge: 20 },
+      { id: "rest", label: "🔄 쉬는 중·옮기는 중", react: "갈림길이구냥. 그래서 왔구냥.", mood: "wow", minAge: 18 },
+      { id: "retired", label: "🌇 은퇴하고 노후를 보내는 중", react: "한 고비를 다 넘겼구냥. 이제부터가 진짜 네 시간이다냥.", mood: "happy", minAge: 50 },
     ],
   },
   {
@@ -52,7 +53,7 @@ const SAJU: InterviewQuestion[] = [
     ask: ["요즘 몸에서 제일 신경 쓰이는 데가 어디냥?"],
     options: [
       { id: "wood", label: "👀 눈 피로·목·어깨 뭉침", react: "뭉친 게 많구냥. 참는 게 버릇이다냥." },
-      { id: "fire", label: "❤️ 가슴 두근거림·열·혈압", react: "속에 불이 있구냥. 화를 삼키지?", mood: "wow" },
+      { id: "fire", label: "❤️ 두근거림·잠 설침·혈압", react: "속에 불이 있구냥. 화를 삼키지?", mood: "wow" },
       { id: "earth", label: "🍚 소화·위장", react: "걱정을 배로 하는구냥." },
       { id: "metal", label: "🫁 기관지·비염·피부", react: "예민하구냥. 공기부터 다르게 느끼는 사람이다냥." },
       { id: "water", label: "🦴 허리·관절·몸이 잘 붓는다", react: "아래가 약하구냥. 오래 버틴 몸이다냥." },
@@ -66,9 +67,10 @@ const SAJU: InterviewQuestion[] = [
     options: [
       { id: "self", label: "🛍️ 나한테 쓴다 (옷·먹는 것·취미)", react: "자기한테 쓰는구냥. 나쁘지 않다냥.", mood: "happy" },
       { id: "others", label: "👨‍👩‍👧 가족이나 남한테 나간다", react: "베푸는 팔자구냥… 그래서 안 모이지?", mood: "wow" },
-      { id: "invest", label: "📈 투자·사업에 넣는다", react: "굴리는구냥. 판이 크다냥." },
+      { id: "invest", label: "📈 투자·사업에 넣는다", react: "굴리는구냥. 판이 크다냥.", minAge: 20 },
       { id: "save", label: "🏦 일단 모은다", react: "모으는구냥. 그런데 왜 불안하냥?", mood: "smug" },
-      { id: "leak", label: "🕳️ 모르게 다 샌다", react: "새는구냥… 구멍이 어딘지 보인다냥.", mood: "wow" },
+      { id: "debt", label: "🧾 빚·대출 갚는 데 다 나간다", react: "갚느라 숨이 차구냥… 언제 끝나는지 보인다냥.", mood: "wow", minAge: 20 },
+      { id: "leak", label: "🕳️ 어디로 가는지 모르게 샌다", react: "새는구냥… 구멍이 어딘지 보인다냥.", mood: "wow" },
     ],
   },
   {
@@ -90,10 +92,12 @@ const SAJU: InterviewQuestion[] = [
     ask: ["올해 큰일 있었냥? 냥신이 맞혀 볼까 하다가 그냥 묻는다냥 😼"],
     options: [
       { id: "move", label: "🚚 이사했다", react: "자리를 옮겼구냥. 그럴 해였다냥.", mood: "wow" },
-      { id: "job", label: "💼 일이 바뀌었다 (이직·퇴사·창업)", react: "일이 흔들렸구냥.", mood: "wow" },
+      { id: "job", label: "💼 일이 바뀌었다 (이직·퇴사·창업)", react: "일이 흔들렸구냥.", mood: "wow", minAge: 18 },
       { id: "breakup", label: "💔 사람과 끝났다", react: "…끝난 인연이 있었구냥." },
       { id: "meet", label: "💍 좋은 인연을 만났다", react: "들어온 인연이 있구냥.", mood: "happy" },
+      { id: "loss", label: "💸 큰돈이 나갔다·손해를 봤다", react: "돈이 빠져나갔구냥. 그럴 해였다냥.", mood: "wow", minAge: 18 },
       { id: "sick", label: "🩹 아팠거나 다쳤다", react: "몸이 먼저 알았구냥." },
+      { id: "family", label: "🕯️ 집안에 큰일이 있었다", react: "…집안 일이구냥. 네가 제일 많이 짊어졌겠다냥.", mood: "wow" },
       { id: "calm", label: "🌫️ 별일 없었다", react: "조용한 해였구냥. 폭풍 전엔 늘 조용하다냥.", mood: "smug" },
     ],
   },
@@ -111,12 +115,17 @@ const SAJU: InterviewQuestion[] = [
   },
 ];
 
+/** Only the ages someone has actually lived through are offered (the client filters by 한국 나이). */
 const AGE_SPANS = [
-  { id: "teen", label: "🧒 10대" },
-  { id: "early20", label: "🎓 20대 초반" },
-  { id: "late20", label: "💼 20대 후반" },
-  { id: "30s", label: "🏠 30대" },
-  { id: "40s", label: "🌗 40대 이후" },
+  { id: "child", label: "🧸 어린 시절", minAge: 8 },
+  { id: "teen", label: "🎒 10대", minAge: 13 },
+  { id: "early20", label: "🎓 20대 초반", minAge: 21, maxAge: 34 },
+  { id: "late20", label: "💼 20대 후반", minAge: 26, maxAge: 34 },
+  { id: "20s", label: "🎓 20대", minAge: 35 },
+  { id: "30s", label: "🏠 30대", minAge: 31 },
+  { id: "40s", label: "🌗 40대", minAge: 41 },
+  { id: "50s", label: "🍂 50대", minAge: 51 },
+  { id: "60s", label: "🌙 60대 이후", minAge: 61 },
 ];
 
 const DAEUN: InterviewQuestion[] = [
@@ -155,11 +164,13 @@ const DAEUN: InterviewQuestion[] = [
     short: "지금 앞에 놓인 큰 결정은?",
     ask: ["지금 앞에 큰 결정이 하나 있지? 뭐냥?"],
     options: [
-      { id: "job", label: "💼 이직·창업", react: "일이구냥. 시기가 중요하다냥." },
-      { id: "home", label: "🏠 이사·집 문제", react: "자리를 옮기는 거구냥." },
-      { id: "love", label: "💍 결혼·이별", react: "사람이구냥… 신중해야 한다냥.", mood: "wow" },
-      { id: "money", label: "💰 투자·큰돈", react: "큰돈이구냥. 때를 잘 봐야 한다냥.", mood: "smug" },
-      { id: "study", label: "🎓 공부·자격증·유학", react: "배우는 거구냥. 좋다냥.", mood: "happy" },
+      { id: "job", label: "💼 취업·이직·창업", react: "일이구냥. 시기가 중요하다냥.", minAge: 17 },
+      { id: "home", label: "🏠 이사·집 문제", react: "자리를 옮기는 거구냥.", minAge: 18 },
+      { id: "love", label: "💍 결혼·이별", react: "사람이구냥… 신중해야 한다냥.", mood: "wow", minAge: 18 },
+      { id: "money", label: "💰 투자·큰돈", react: "큰돈이구냥. 때를 잘 봐야 한다냥.", mood: "smug", minAge: 20 },
+      { id: "study", label: "🎓 진학·공부·자격증·유학", react: "배우는 거구냥. 좋다냥.", mood: "happy" },
+      { id: "family", label: "👨‍👩‍👧 자식·가족 일", react: "식구 일이구냥. 네 운이 식구 운이다냥." },
+      { id: "retire", label: "🌇 은퇴·노후 준비", react: "다음 판을 짜는구냥. 때가 중요하다냥.", minAge: 45 },
       { id: "none", label: "🍃 딱히 없다", react: "없다… 곧 생길 거다냥.", mood: "smug" },
     ],
   },
@@ -224,7 +235,8 @@ const REUNION: InterviewQuestion[] = [
       { id: "cool", label: "🧊 마음이 식어서", react: "식었구냥… 누가 먼저 식었는지 보이냥?", mood: "wow" },
       { id: "third", label: "👤 다른 사람이 생겨서", react: "…제3자구냥.", mood: "wow" },
       { id: "real", label: "🏠 현실 문제 (거리·돈·집안)", react: "마음은 있는데 상황이 막았구냥." },
-      { id: "talk", label: "📵 연락·표현 문제", react: "말이 안 통했구냥. 그건 고칠 수 있다냥.", mood: "smug" },
+      { id: "talk", label: "📵 연락·표현 문제 (서운함이 쌓여서)", react: "말이 안 통했구냥. 그건 고칠 수 있다냥.", mood: "smug" },
+      { id: "mine", label: "🙇 내 실수·잘못 때문에", react: "네 탓이라고 생각하는구냥… 그래서 더 못 놓는 거다냥.", mood: "wow" },
       { id: "nowhy", label: "🤐 이유를 제대로 못 들었다", react: "이유도 없이… 그게 제일 아프다냥.", mood: "wow" },
     ],
   },
@@ -258,10 +270,10 @@ const REUNION: InterviewQuestion[] = [
     ask: ["얼마나 만났냥?"],
     options: [
       { id: "short", label: "🌱 3개월이 안 된다", react: "짧았구냥. 그래서 더 아쉽지?" },
-      { id: "year", label: "🌿 1년이 안 된다", react: "정이 막 들 때였구냥." },
+      { id: "year", label: "🌿 3개월에서 1년", react: "정이 막 들 때였구냥." },
       { id: "mid", label: "🌳 1년에서 3년", react: "깊게 엉킨 사이구냥." },
       { id: "long", label: "🏔️ 3년이 넘는다", react: "청춘을 같이 보냈구냥…", mood: "wow" },
-      { id: "again", label: "🔁 헤어졌다 다시 만난 적이 있다", react: "돌아온 적이 있구냥. 패턴이 있다냥.", mood: "smug" },
+      { id: "again", label: "🔁 (기간 상관없이) 헤어졌다 다시 만난 적 있다", react: "돌아온 적이 있구냥. 패턴이 있다냥.", mood: "smug" },
     ],
   },
   {
@@ -295,12 +307,12 @@ const SPOUSE: InterviewQuestion[] = [
     short: "지금 연애 상태는?",
     ask: ["배우자 자리를 보려면 지금 상태부터 알아야 한다냥.", "지금 연애 상태는?"],
     options: [
-      { id: "single", label: "🙋 솔로", react: "비어 있구냥. 자리가 비어야 들어온다냥.", mood: "smug" },
+      { id: "single", label: "🙋 솔로 (한동안 연애 쉬는 중)", react: "비어 있구냥. 자리가 비어야 들어온다냥.", mood: "smug" },
       { id: "some", label: "💭 썸 타는 중", react: "누가 있구냥… 그 사람인지 보자냥.", mood: "wow" },
       { id: "dating", label: "💑 연애 중", react: "지금 그 사람이 맞는지 궁금하구냥.", mood: "smug" },
-      { id: "talk", label: "💍 결혼 얘기 오가는 중", react: "결정을 앞뒀구냥. 신중히 보겠다냥.", mood: "wow" },
-      { id: "after", label: "💔 이별 후", react: "끝나고 왔구냥. 다음 사람이 궁금하구냥." },
-      { id: "remarry", label: "🕊️ 결혼했었다 (재혼 운이 궁금)", react: "두 번째 인연이구냥. 그것도 사주에 있다냥." },
+      { id: "talk", label: "💍 결혼 얘기 오가는 중", react: "결정을 앞뒀구냥. 신중히 보겠다냥.", mood: "wow", minAge: 20 },
+      { id: "after", label: "💔 최근에 이별했다", react: "끝나고 왔구냥. 다음 사람이 궁금하구냥." },
+      { id: "remarry", label: "🕊️ 결혼했었다 (재혼 운이 궁금)", react: "두 번째 인연이구냥. 그것도 사주에 있다냥.", minAge: 24 },
     ],
   },
   {
@@ -310,7 +322,7 @@ const SPOUSE: InterviewQuestion[] = [
     options: [
       { id: "asap", label: "⏩ 빠를수록 좋다", react: "급하구냥 😼", mood: "smug" },
       { id: "soon", label: "📅 2~3년 안에", react: "계획이 있구냥." },
-      { id: "later", label: "🕰️ 서른 중후반쯤", react: "천천히구냥." },
+      { id: "later", label: "🕰️ 몇 년 뒤, 자리 잡고 나서", react: "천천히구냥. 준비된 사람이 좋은 짝을 만난다냥." },
       { id: "flow", label: "🌀 인연 오면 그때", react: "흐름에 맡기는구냥." },
       { id: "no", label: "🙅 별로 생각 없다", react: "생각 없는데 왔구냥? 궁금은 하구냥 😼", mood: "smug" },
     ],

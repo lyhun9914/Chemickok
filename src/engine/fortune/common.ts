@@ -241,9 +241,32 @@ export const GOD_YEAR: Record<TenGod, string> = {
 };
 
 /** The year's theme read against this chart: the same 십성 helps one chart and burdens another. */
-export function yearText(y: { god: TenGod; score: number }): string {
-  const tail = y.score >= 70 ? " 네 사주엔 반가운 기운이라 결과가 좋게 남는다냥." : y.score < 52 ? " 근데 네 사주엔 무거운 기운이라, 얻는 만큼 대가가 따른다냥." : "";
-  return GOD_YEAR[y.god] + tail;
+const GOOD_TAIL = ["네 사주엔 반가운 기운이라 결과가 좋게 남는다냥.", "이 해도 너한텐 반가운 기운이다냥. 밀어붙여도 된다냥.", "역시 반가운 해다냥. 미뤄 둔 걸 꺼내라냥."];
+const HEAVY_TAIL = [
+  "근데 네 사주엔 무거운 기운이라, 얻는 만큼 대가가 따른다냥.",
+  "이 해도 너한텐 무거운 기운이다냥. 큰 결정은 한 번 더 재라냥.",
+  "역시 무거운 해다냥. 지키는 게 버는 거다냥.",
+];
+
+/** The same year for someone past 65: 몸 · 식구 · 재산, not promotions and weddings. */
+const GOD_YEAR_SENIOR: Record<TenGod, string> = {
+  비견: "친구·형제 일로 바빠지는 해다냥. 돈 거래만은 피해라냥.",
+  겁재: "주변으로 돈이 새기 쉬운 해다냥. 지갑은 꼭 닫아라냥.",
+  식신: "먹을 복과 편한 일상이 드는 해다냥. 몸이 가볍다냥.",
+  상관: "말로 서운함이 생기는 해다냥. 자식한테 한마디 줄여라냥.",
+  편재: "목돈이 움직이는 해다냥. 재산 정리는 이때 해 둬라냥.",
+  정재: "살림이 차곡차곡 안정되는 해다냥.",
+  편관: "몸을 조심할 해다냥. 검진을 미루지 마라냥.",
+  정관: "집안에서 어른 대접받는 해다냥. 경사가 있다냥.",
+  편인: "생각이 많아지는 해다냥. 혼자 있지 말고 사람을 만나라냥.",
+  정인: "자식과 주변의 도움이 드는 해다냥. 문서 일이 잘 풀린다냥.",
+};
+
+/** The year's theme read against this chart: the same 십성 helps one chart and burdens another. `i` varies the wording down a list of years. */
+export function yearText(y: { god: TenGod; score: number }, i = 0, age = 0): string {
+  const base = age >= 65 ? GOD_YEAR_SENIOR[y.god] : GOD_YEAR[y.god];
+  const tail = y.score >= 70 ? GOOD_TAIL[i % 3] : y.score < 52 ? HEAVY_TAIL[i % 3] : "";
+  return tail ? `${base} ${tail}` : base;
 }
 
 // ───────────── helpers ─────────────
@@ -297,13 +320,15 @@ export const sec = (title: string, headline: string, body: string, bullets: stri
 /** Locked preview: the section's real opening, cut mid-sentence. */
 export function locked(id: string, icon: string, s: ReportSection): LockedPreview {
   const first = s.body.split("\n").find((l) => l.length > 12) ?? s.body;
-  const cut = `${(first.length > 26 ? first.slice(0, 24).trim() : first).replace(/[.!?,·]+$/, "")}…`;
+  // Cut mid-thought but never mid-word: back up to the last space before ~26 characters.
+  const head = first.length > 28 ? first.slice(0, first.lastIndexOf(" ", 26) > 12 ? first.lastIndexOf(" ", 26) : 26) : first;
+  const cut = `${head.trim().replace(/[.!?,·]+$/, "")}…`;
   const count = s.body.split("\n").filter(Boolean).length + s.bullets.length;
   return {
     id,
     icon,
     title: s.title,
-    tease: `${cut} 근데 진짜는 따로 있다냥.`,
+    tease: cut,
     count,
   };
 }

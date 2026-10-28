@@ -237,7 +237,7 @@ export function ResultView() {
                 <p className="text-xs text-muted">{p}</p>
                 <p className="mt-1 text-2xl">{couple.partnerType.emoji}</p>
                 <p className="mt-1 text-sm font-bold leading-snug">{couple.partnerType.name}</p>
-                {couple.partnerDayMaster && <p className="mt-1 text-[11px] text-muted">{couple.partnerDayMaster} 일간</p>}
+                {couple.partnerDayMaster && <p className="mt-1 text-[12px] text-muted">{couple.partnerDayMaster} 일간</p>}
               </div>
             </div>
             {couple.mbti && <MbtiPairLine pair={couple.mbti} />}

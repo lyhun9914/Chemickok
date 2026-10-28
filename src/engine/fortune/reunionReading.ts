@@ -31,7 +31,7 @@ const FACTORS: Record<string, Record<string, Factor>> = {
   },
   rq2: {
     w1: {
-      v: 2,
+      v: -2,
       bad: "아직 감정이 뜨거워서 지금 움직이면 싸움이 다시 붙는다냥.",
     },
     m1: { v: 6, good: "한 달 안쪽은 서로 제일 흔들리는 때다냥." },
@@ -47,6 +47,7 @@ const FACTORS: Record<string, Record<string, Factor>> = {
   },
   rq3: {
     fight: { v: 4, good: "반복된 싸움은 방식의 문제라 고칠 수 있다냥." },
+    mine: { v: 2, good: "원인이 네 쪽에 분명히 있다냥. 원인이 분명한 이별은 고친 걸 보여 주면 다시 열린다냥." },
     cool: { v: -8, bad: "식은 마음은 다시 데우기가 제일 어렵다냥." },
     third: {
       v: -14,
@@ -187,6 +188,7 @@ const FIRST_LINE: Record<string, string> = {
   real: '"요즘은 상황 좀 괜찮아?" — 이별 이유였던 그 현실부터 물어라냥.',
   talk: '"그때 내가 말을 너무 안 했던 것 같아." — 네가 먼저 인정하는 게 열쇠다냥.',
   nowhy: '"이유라도 알고 싶어서. 부담 갖지 말고 답해 줘."',
+  mine: '"그때 내가 잘못했어. 변명 안 할게." — 사과는 짧게, 딱 한 번만 해라냥.',
 };
 const SECOND_LINE: Record<string, string> = {
   they: '"연락 줘서 고마워. 나도 가끔 생각났어." — 받아 줄 때 확실히 받아 줘라냥.',
@@ -202,6 +204,7 @@ const AFTER: Record<string, string> = {
   real: "현실 문제는 마음으로 못 이긴다냥. 다시 만나기 전에 그 문제의 답부터 같이 정해라냥.",
   talk: "표현이 문제였다냥. 서운한 건 그날 말하기, 좋은 것도 그날 말하기.",
   nowhy: "다시 만나면 그때 왜 떠났는지부터 꼭 들어라냥. 그걸 모르면 같은 데서 또 끝난다냥.",
+  mine: "같은 실수 한 번이면 이번엔 진짜 끝이다냥. 바뀐 걸 말 말고 행동으로 세 번 보여라냥.",
 };
 
 const EL_HINT: Record<ElementKey, string> = {
@@ -215,10 +218,10 @@ const EL_HINT: Record<ElementKey, string> = {
 const WEEK = "일월화수목금토";
 
 /** Good days to reach out in the next ~45 days: 천간합 or 육합 with my day pillar (and theirs, if known). */
-function contactDays(me: Chart, them: Chart | null): string[] {
+function contactDays(me: Chart, them: Chart | null, from = 3): string[] {
   const kst = new Date(Date.now() + 9 * 3600 * 1000);
   const out: { label: string; rank: number; t: number }[] = [];
-  for (let k = 3; k < 48; k++) {
+  for (let k = from; k < from + 45; k++) {
     const d = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate() + k));
     const idx = dayCycleIndex(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
     const s = idx % 10;
@@ -247,9 +250,9 @@ function contactDays(me: Chart, them: Chart | null): string[] {
 }
 
 /** The best 월운 among this solar month and the next three, as "이번 달(무술월)" / "11월 7일부터(기해월)". */
-function bestMonth(me: Chart): string {
+function bestMonth(me: Chart, from = 0): string {
   const now = new Date(Date.now() + 9 * 3600 * 1000);
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + from);
   const y = thisYear();
   const months = [...monthlyPillars(y - 1), ...monthlyPillars(y), ...monthlyPillars(y + 1)]
     .map((x) => {
@@ -270,7 +273,7 @@ function bestMonth(me: Chart): string {
   const best = scored.sort((p, q) => q.s - p.s || p.start - q.start)[0];
   if (!best) return "다음 달";
   const gz = `${STEMS_HANGUL[best.stem]}${BRANCHES_HANGUL[best.branch]}월`;
-  return best.current ? `이번 달(${gz})` : `${best.month}월 ${best.day}일부터(${gz})`;
+  return best.current ? (from === 0 ? `이번 달(${gz})` : `${best.month}월(${gz})`) : `${best.month}월 ${best.day}일부터(${gz})`;
 }
 
 export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: FortuneTeaser; report: FullReport } {
@@ -335,6 +338,15 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
       a("rq1") === "them" ? P("떠난 쪽도 아프다냥. {p:은/는} 지금 '내가 잘한 걸까'를 몇 번이고 되묻는 중이다냥.") : null,
       a("rq3") === "cool" ? P("식은 게 정말 마음인지, 지친 건지 {p}도 헷갈려 한다냥.") : null,
       a("rq3") === "real" ? P("{p:은/는} 너를 싫어서가 아니라 상황 때문에 놓았다냥. 그 상황이 아직 그대로인지가 관건이다냥.") : null,
+      a("rq1") === "ghost" ? P("{p:은/는} 끝을 말할 용기가 없어서 숨은 거다냥. 미안함이 커서 먼저 못 온다냥.") : null,
+      a("rq1") === "both" ? P("{p:은/는} 좋게 끝냈다고 말하겠지만, 좋은 기억은 그대로 갖고 있다냥.") : null,
+      a("rq1") === "fade" ? P("{p}도 끝난 건지 아닌지 헷갈려 한다냥. 그래서 정리도 못 했다냥.") : null,
+      a("rq3") === "fight" ? P("{p:은/는} 싸움에 지친 거지, 너한테 지친 게 아니다냥.") : null,
+      a("rq3") === "talk" ? P("{p:은/는} 서운했던 말 한마디를 아직 기억한다냥. 그 얘기를 네가 먼저 꺼내 주길 기다린다냥.") : null,
+      a("rq3") === "third" ? P("{p} 마음 한쪽은 이미 다른 데 가 있다냥. 그쪽이 정리돼야 너를 돌아본다냥.") : null,
+      a("rq3") === "mine" ? P("{p:은/는} 네 잘못보다, 그 뒤에 네가 어떻게 하는지를 보고 있다냥.") : null,
+      a("rq3") === "nowhy" ? P("{p}도 이유를 정리 못 한 채 떠났다냥. 그래서 설명을 못 한 거다냥.") : null,
+      a("rq5") === "quiet" ? P("{p:이/가} 아무것도 안 올리는 건 누가 볼까 봐 조심하는 거다냥. 너를 의식하는 거다냥.") : null,
     ),
     [`🌡️ 마음 온도 ${mind.temp}도 · ${tempWord(mind.temp)}`],
   );
@@ -350,7 +362,9 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
     [...good.map((g) => `✅ ${g}`), ...bad.map((b) => `⚠️ ${b}`)],
   );
 
-  const days = contactDays(c, them);
+  // Waiting advice and dates must agree: after a fresh breakup or an unanswered message, the dates start after the wait.
+  const waitDays = a("rq2") === "w1" ? 21 : a("rq4") === "noreply" ? 30 : a("rq4") === "they" ? 1 : 3;
+  const days = contactDays(c, them, waitDays);
   const waitRule =
     a("rq2") === "w1"
       ? "아직 일주일도 안 됐다냥. 최소 3주는 참아라냥. 지금 연락하면 같은 싸움이 붙는다냥."
@@ -366,8 +380,12 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
     days.length ? `${days[0]}이 첫 번째 문이다냥` : "다음 달이 문이다냥",
     lines(
       waitRule,
-      days.length && !waitRule.startsWith("연락할 거면") ? "아래 날짜는 그 신호가 온 다음에 써라냥." : null,
-      `달로 보면 ${josa(bestMonth(c), "이/가")} 기운이 맞다냥.`,
+      !days.length || waitRule.startsWith("연락할 거면")
+        ? null
+        : waitDays > 3
+          ? "아래 날짜는 그 시간이 지난 뒤 네 기운이 열리는 날이다냥."
+          : "아래 날짜는 그 신호가 온 다음에 써라냥.",
+      days.length ? `이 날짜를 다 놓치면 ${josa(bestMonth(c, waitDays + 45), "이/가")} 다음 문이다냥.` : `달로 보면 ${josa(bestMonth(c, waitDays), "이/가")} 기운이 맞다냥.`,
       "시간은 저녁 8~10시. 퇴근하고 마음이 풀린 시간이다냥.",
     ),
     days.length ? days.map((d) => `📅 ${d}`) : ["📅 이번 달은 네 기운이 닫혀 있다냥. 다음 달 초를 노려라냥."],

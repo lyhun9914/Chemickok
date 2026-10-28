@@ -117,7 +117,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
           <span className="share-icon bg-gradient-to-tr from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">📸</span>
           {isMobileSafe() && !ready ? "점괘 카드 그리는 중…" : "인스타 스토리에 점괘 걸기"}
         </button>
-        <p className="text-center text-[11px] text-muted">폰: 공유 창에서 Instagram → 스토리 · PC: QR을 폰으로 찍어 이어서 올리기</p>
+        <p className="text-center text-[12px] text-muted">폰: 공유 창에서 Instagram → 스토리 · PC: QR을 폰으로 찍어 이어서 올리기</p>
       </div>
 
       {cover && (

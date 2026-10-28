@@ -46,7 +46,7 @@ export function DateTimeSelects({ type, initial, onChange }: { type: "date" | "t
   if (type === "date") {
     return (
       <div className="flex gap-2">
-        <Select value={a} placeholder="년" onChange={setA} options={range(new Date().getFullYear(), 1940).map((y) => ({ v: String(y), label: `${y}년` }))} />
+        <Select value={a} placeholder="년" onChange={setA} options={range(new Date().getFullYear(), 1930).map((y) => ({ v: String(y), label: `${y}년` }))} />
         <Select value={b} placeholder="월" onChange={setB} options={range(1, 12).map((m) => ({ v: String(m), label: `${m}월` }))} />
         <Select value={day} placeholder="일" onChange={setC} options={range(1, days).map((d) => ({ v: String(d), label: `${d}일` }))} />
       </div>

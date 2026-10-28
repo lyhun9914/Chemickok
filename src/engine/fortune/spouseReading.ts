@@ -187,7 +187,7 @@ function marriageYears(c: Chart) {
       s -= (y.year - thisYear()) * 0.2;
       return { ...y, age, s };
     })
-    .filter((y) => y.age >= 20 && y.age <= 60)
+    .filter((y) => y.age >= 20 && y.age <= 85)
     .sort((a, b) => b.s - a.s || a.year - b.year);
 }
 
@@ -320,9 +320,9 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
       case "soon":
         return diff <= 3 ? `2~3년 안이라고 했지. 맞다냥. ${top.year}년이 딱 그 안이다냥.` : `2~3년 안을 원하는데, 진짜 인연 기운은 ${top.year}년에 제일 세다냥.`;
       case "later":
-        return top.age >= 34 && top.age <= 39
-          ? `서른 중후반이라고 했지. 맞다냥. ${top.year}년(${top.age}세)이 그 안이다냥.`
-          : `서른 중후반을 생각하는데, 운은 ${top.year}년(${top.age}세)을 가리킨다냥.`;
+        return diff >= 2
+          ? `자리 잡고 나서라고 했지. 맞다냥. ${top.year}년(${top.age}세)이 그때다냥. 그 전에 네 자리부터 다져라냥.`
+          : `천천히 하고 싶다고 했지. 근데 운은 ${top.year}년, 생각보다 빨리 온다냥. 준비는 지금부터다냥.`;
       case "flow":
         return `인연 오면 그때라고 했지. 그 인연, ${top.year}년에 온다냥.`;
       case "no":
@@ -341,7 +341,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
         ? `${top.year}년은 ${top.ganji}년이다냥. ${GROUP_OF[top.god] === sg ? "배우자 별이 직접 들어오는 해다냥." : "배우자 자리와 합이 드는 해다냥."} 계절로는 ${seasonFor(c, top.year)}이 문이 열린다냥.`
         : null,
     ),
-    years.map((y, i) => `${["🥇", "🥈", "🥉"][i]} ${y.year}년(${y.age}세) ${y.ganji} · ${seasonFor(c, y.year)}`),
+    years.map((y, i) => `${["🥇", "🥈", "🥉"][i]} ${y.year}년(${y.age}세) ${y.ganji}${i === 0 ? ` · ${seasonFor(c, y.year)}` : ""}`),
   );
 
   const placeAns = a("sp7");
@@ -362,7 +362,11 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
   const marriedSec = sec(
     "결혼 생활",
     `일지 ${palaceGod}의 결혼이다냥`,
-    lines(MARRIED[palaceGod], GROUP_OF[palaceGod] === sg ? "배우자 자리에 배우자 별이 앉은 사주다냥. 부부 금슬이 좋은 자리다냥." : null, PARENTS[a("sp6") ?? ""] ?? null),
+    lines(
+      MARRIED[palaceGod],
+      GROUP_OF[palaceGod] === sg ? "배우자 자리에 배우자 별이 앉은 사주다냥. 부부 금슬이 좋은 자리다냥." : null,
+      a("sp1") === "remarry" ? "두 번째 결혼은 첫 결혼과 다른 결의 사람이 맞다냥. 같은 사람을 또 고르지 마라냥." : (PARENTS[a("sp6") ?? ""] ?? null),
+    ),
     [`🐾 잘 맞는 띠: ${goodSpouseAnimals(c).join("띠 · ")}띠`, `⚡ 부딪치는 띠: ${ANIMALS[(c.dayBranch + 6) % 12]}띠`],
   );
 

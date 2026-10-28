@@ -32,10 +32,10 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName:
           }}
         >
           {/* corner talismans */}
-          <span className="absolute left-2 top-2 text-[11px]" style={{ color: "#c9a25a", fontFamily: ritual }}>
+          <span className="absolute left-2 top-2 text-[12px]" style={{ color: "#c9a25a", fontFamily: ritual }}>
             神
           </span>
-          <span className="absolute right-2 top-2 text-[11px]" style={{ color: "#c9a25a", fontFamily: ritual }}>
+          <span className="absolute right-2 top-2 text-[12px]" style={{ color: "#c9a25a", fontFamily: ritual }}>
             占
           </span>
           <div className="flex items-center justify-center gap-2">
@@ -62,7 +62,7 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName:
           <p className="mt-1.5 text-center text-[12.5px]" style={{ color: "#c8b79a" }}>
             “{teaser.myType.tagline}”
           </p>
-          <p className="mt-2 text-center text-[10px] tracking-[0.25em]" style={{ color: "#8f7d63" }}>
+          <p className="mt-2 text-center text-[11px] tracking-[0.25em]" style={{ color: "#8f7d63" }}>
             {meta}
           </p>
 
@@ -77,7 +77,7 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName:
             {teaser.couple ? (
               <>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-[11px]" style={{ color: "#6b4a2a" }}>
+                  <span className="text-[12px]" style={{ color: "#6b4a2a" }}>
                     {myName} · {partnerName} 궁합
                   </span>
                   <span className="text-[28px] leading-none" style={{ fontFamily: ritual, color: "#8e1f17" }}>
@@ -88,13 +88,13 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName:
               </>
             ) : (
               <>
-                <p className="text-[11px]" style={{ color: "#6b4a2a" }}>
+                <p className="text-[12px]" style={{ color: "#6b4a2a" }}>
                   냥신이 점지한 인연
                 </p>
                 <p className="mt-0.5 text-[15px] leading-snug" style={{ fontFamily: ritual }}>
                   {teaser.match.bestType.emoji} {teaser.match.bestType.name}
                 </p>
-                <p className="mt-0.5 text-[11px]" style={{ color: "#6b4a2a" }}>
+                <p className="mt-0.5 text-[12px]" style={{ color: "#6b4a2a" }}>
                   {[teaser.match.bestMbti.join("·"), teaser.match.goodAnimals.slice(0, 2).map((a) => `${a}띠`).join("·")]
                     .filter(Boolean)
                     .join(" | ")}
@@ -110,7 +110,7 @@ export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName:
               <br />之印
             </span>
           </div>
-          <p className="mt-3 text-center text-[10px] tracking-[0.2em]" style={{ color: "#8f7d63" }}>
+          <p className="mt-3 text-center text-[11px] tracking-[0.2em]" style={{ color: "#8f7d63" }}>
             골목 끝 점집 · 냥신 점괘
           </p>
         </div>

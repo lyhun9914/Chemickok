@@ -8,7 +8,7 @@
   --surface-2: #1f1611;
   --line: rgba(201, 162, 90, 0.16);
   --text: #ece2cf;
-  --muted: #9a8a76;
+  --muted: #b0a089;
   --pink: #d4503f;
   --violet: #c9a25a;
   --peach: #f0cf8a;
@@ -28,6 +28,9 @@
   --color-peach: var(--peach);
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-ritual: "Song Myung", "Nanum Myeongjo", serif;
+  /* 작은 글씨도 어르신 눈에 편하게: 12px → 13px */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.5;
 }
 
 html {

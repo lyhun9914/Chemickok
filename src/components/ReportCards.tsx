@@ -82,7 +82,7 @@ export function AxisBars({ axes }: { axes: AxisResult[] }) {
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <p className={`mt-1 text-[11px] ${leftWins ? "text-left text-pink" : "text-right text-violet"}`}>{pct}%</p>
+            <p className={`mt-1 text-[12px] ${leftWins ? "text-left text-pink" : "text-right text-violet"}`}>{pct}%</p>
           </div>
         );
       })}
@@ -110,7 +110,7 @@ export function SajuChart({ saju }: { saju: SajuSummary }) {
             key={p.label}
             className={`rounded-2xl border p-2.5 text-center ${p.label === "일주" ? "border-pink/60 bg-pink/10" : "border-line bg-white/[0.03]"}`}
           >
-            <div className="text-[11px] text-muted">{p.label}</div>
+            <div className="text-[12px] text-muted">{p.label}</div>
             <div className="mt-1 font-serif text-2xl leading-tight tracking-widest">{p.hanja}</div>
             <div className="text-xs text-muted">{p.hangul}</div>
           </div>
@@ -270,7 +270,7 @@ export function NyangSays({ text, mood = "talk", max = 99 }: { text: string; moo
       <Nyang mood={mood} size={30} className="mt-0.5 shrink-0" />
       <div className="min-w-0 space-y-1.5">
         {lines.map((l, i) => (
-          <p key={i} className="hanji w-fit rounded-2xl rounded-tl-md px-3.5 py-2 text-[14.5px] leading-snug">
+          <p key={i} className="hanji w-fit rounded-2xl rounded-tl-md px-3.5 py-2 text-[15px] leading-snug">
             {l}
           </p>
         ))}
@@ -286,7 +286,7 @@ function AnswerExchange({ text }: { text: string }) {
   const read = rest.filter((l) => l.startsWith("🔮")).map((l) => l.slice(2).trim()).join(" ");
   return (
     <div className="space-y-2">
-      {head && <p className="text-[11px] text-muted">{head}</p>}
+      {head && <p className="text-[12px] text-muted">{head}</p>}
       {answer && (
         <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-md border border-pink/40 bg-pink/15 px-3.5 py-2 text-[14px] font-semibold">
           {answer}
@@ -312,7 +312,7 @@ export function SectionCard({ icon, section, delay = 0 }: { icon: string; sectio
   return (
     <Card delay={delay}>
       <div className="mb-2 text-2xl">{icon}</div>
-      <h3 className="text-xs font-semibold tracking-wide text-muted">{section.title}</h3>
+      <h3 className="text-[13px] font-semibold tracking-wide text-peach/80">{section.title}</h3>
       <p className="font-ritual mt-1 text-[19px] leading-snug">{section.headline}</p>
       {section.body && (
         <div className="mt-4">
@@ -326,7 +326,7 @@ export function SectionCard({ icon, section, delay = 0 }: { icon: string; sectio
           ) : b.startsWith("🔗") ? (
             <PairExchange key={b} text={b} />
           ) : (
-            <p key={b} className="whitespace-pre-line rounded-xl border border-line bg-white/[0.03] px-3 py-2 text-sm leading-relaxed">
+            <p key={b} className="whitespace-pre-line rounded-xl border border-line bg-white/[0.03] px-3.5 py-2.5 text-[15px] leading-relaxed">
               {b}
             </p>
           ),
@@ -340,7 +340,7 @@ function LuckCard({ luck }: { luck: LuckSection }) {
   return (
     <Card delay={0.25}>
       <div className="mb-2 text-2xl">🔮</div>
-      <h3 className="text-xs font-semibold tracking-wide text-muted">{luck.title}</h3>
+      <h3 className="text-[13px] font-semibold tracking-wide text-peach/80">{luck.title}</h3>
       <p className="mt-1 text-[17px] font-bold leading-snug">{luck.headline}</p>
       <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink/90">{luck.body}</p>
       {luck.luckyDays.length > 0 && (
@@ -497,14 +497,23 @@ export function LockedCard({ preview, onClick, compact = false }: { preview: Loc
     >
       <div className="flex items-start gap-2">
         <span className="text-xl">{preview.icon}</span>
-        <h3 className="text-[15px] font-bold leading-snug">{preview.title}</h3>
+        <h3 className="text-[16px] font-bold leading-snug">{preview.title}</h3>
       </div>
-      <p className="mt-3 text-[15px] leading-relaxed">
-        <span className="text-ink/90">{preview.tease}</span>{" "}
-        <span className="locked-text text-muted" aria-hidden>
-          {DUMMY}
-        </span>
-      </p>
+      {compact ? (
+        <>
+          <p className="mt-2.5 text-[15px] leading-relaxed text-ink/90">{preview.tease}</p>
+          <p className="locked-text mt-1 line-clamp-1 text-[15px] text-muted" aria-hidden>
+            {DUMMY}
+          </p>
+        </>
+      ) : (
+        <p className="mt-3 text-[15px] leading-relaxed">
+          <span className="text-ink/90">{preview.tease}</span>{" "}
+          <span className="locked-text text-muted" aria-hidden>
+            {DUMMY}
+          </span>
+        </p>
+      )}
       {!compact && (
         <p className="locked-text mt-1 text-sm leading-relaxed text-muted" aria-hidden>
           {DUMMY}
