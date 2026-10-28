@@ -61,17 +61,18 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
 
   return (
     <section className="mt-10">
-      <h2 className="mb-1 text-lg font-bold">📤 내 유형 카드 자랑하기</h2>
-      <p className="mb-4 text-sm text-muted">친구들은 무슨 유형일까? 카드를 공유해 보세요</p>
+      <h2 className="mb-1 text-[20px]">📜 이 점괘, 혼자 보기 아깝다냥</h2>
+      <p className="mb-4 text-sm text-muted">친구 팔자도 궁금하지? 점괘 한 장 건네 봐라냥</p>
       <ShareCard ref={cardRef} teaser={teaser} myName={myName} partnerName={partnerName} />
 
       <div className="mt-5 space-y-3">
         <button
           disabled={busy}
           onClick={() => run(() => shareService.shareKakao({ ...shareText, url: siteUrl() }))}
-          className="w-full rounded-2xl bg-[#fee500] py-4 font-bold text-[#191919] transition active:scale-[0.98] disabled:opacity-50"
+          className="share-plaque share-kakao w-full py-4 transition active:scale-[0.98] disabled:opacity-50"
         >
-          💬 카카오톡으로 내 결과 공유하기
+          <span className="share-icon bg-[#fee500] text-[#191919]">💬</span>
+          카카오톡으로 점괘 전하기
         </button>
         <button
           disabled={busy}
@@ -86,9 +87,10 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
               });
             })
           }
-          className="w-full rounded-2xl bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#8134af] py-4 font-bold text-white transition active:scale-[0.98] disabled:opacity-50"
+          className="share-plaque share-insta w-full py-4 transition active:scale-[0.98] disabled:opacity-50"
         >
-          📸 인스타그램 스토리에 결과 공유하기
+          <span className="share-icon bg-gradient-to-tr from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">📸</span>
+          인스타 스토리에 점괘 걸기
         </button>
         <p className="text-center text-[11px] text-muted">폰: 공유 창에서 Instagram → 스토리 · PC: 카드 이미지 저장</p>
       </div>

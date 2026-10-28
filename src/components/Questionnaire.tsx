@@ -8,6 +8,7 @@ import type { Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/mod
 import { productOf } from "@/lib/config";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
+import { flareCandles } from "./Backdrop";
 import { Nyang, type Mood } from "./Nyang";
 
 // ───────────── Script ─────────────
@@ -438,7 +439,14 @@ export function Questionnaire() {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [revealed, done]);
 
-  const advance = () => setStep(step + 1);
+  const advance = () => {
+    flareCandles();
+    setStep(step + 1);
+  };
+  // Each step pulls the camera a little closer to the altar (see Backdrop).
+  useEffect(() => {
+    document.documentElement.style.setProperty("--progress", String(Math.min(1, (step + 1) / turns.length)));
+  }, [step, turns.length]);
   const p = input.partner.name || "그 사람";
 
   const qTurns = turns.filter((t) => t.kind === "q");
@@ -611,7 +619,7 @@ export function Questionnaire() {
   return (
     <main className="flex h-dvh flex-col overflow-hidden">
       {/* Header: the consultation room */}
-      <header className="z-20 shrink-0 border-b border-line bg-bg/85 px-4 pb-3 pt-3 backdrop-blur">
+      <header className="z-20 shrink-0 border-b border-line bg-bg/55 px-4 pb-3 pt-3 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button onClick={() => setScreen("landing")} className="py-1 pr-1 text-lg text-muted" aria-label="나가기">
             ✕
@@ -650,7 +658,7 @@ export function Questionnaire() {
       </div>
 
       {/* Dock */}
-      <div className="dock z-10 max-h-[58dvh] shrink-0 overflow-y-auto border-t border-line bg-bg/95 px-4 pb-5 pt-4">
+      <div className="dock z-10 max-h-[58dvh] shrink-0 overflow-y-auto border-t border-line bg-bg/70 px-4 pb-5 pt-4 backdrop-blur-md">
         {done ? (
           <div key={step}>
             {dock}

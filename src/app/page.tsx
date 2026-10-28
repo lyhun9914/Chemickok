@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Backdrop } from "@/components/Backdrop";
 import { Footer } from "@/components/Footer";
 import { Landing } from "@/components/Landing";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -44,6 +45,8 @@ export default function Home() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    // The camera sits right at the altar while reading the result.
+    if (screen === "loading" || screen === "result" || screen === "my") document.documentElement.style.setProperty("--progress", "1");
   }, [screen]);
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export default function Home() {
 
   return (
     <>
+      <Backdrop scene={screen === "landing" ? "gate" : "inside"} />
       {screen === "landing" && <Landing />}
       {screen === "form" && <Questionnaire />}
       {screen === "loading" && <LoadingScreen />}

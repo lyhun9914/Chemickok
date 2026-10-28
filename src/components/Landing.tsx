@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PRODUCTS, won } from "@/lib/config";
 import type { Mode } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
+import { enterThroughDoors } from "./Backdrop";
 import { LoginSheet } from "./LoginSheet";
 import { MiniGameSheet, type MiniGame } from "./MiniGames";
 import { Nyang } from "./Nyang";
@@ -24,7 +25,7 @@ export function Landing() {
   // Saved 기본 정보 → the interview skips straight past name/birth. A product card also fixes the mode.
   const start = (mode?: Mode) => {
     setGame(null);
-    startInterview({ mode, me: me?.profile });
+    enterThroughDoors(() => startInterview({ mode, me: me?.profile }));
   };
 
   return (

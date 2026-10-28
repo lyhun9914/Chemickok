@@ -35,12 +35,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         {/* Mobile-first: everything lives in a 480px column centered on desktop */}
-        <div className="atmos" aria-hidden>
-          <div className="incense" />
-          <div className="incense" />
-          <div className="incense" />
-          <div className="candle-glow" />
-        </div>
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">{children}</div>
       </body>
     </html>

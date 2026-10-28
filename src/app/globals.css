@@ -147,21 +147,20 @@ h1, h2, .font-ritual {
 h1 { text-shadow: 0 0 18px rgba(232, 150, 60, 0.25); }
 
 /* Fixed, behind the content: hanji grain, candle-lit vignette that breathes, incense drifting up. */
-.atmos {
-  position: fixed;
+.atmos-layer {
+  position: absolute;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
   overflow: hidden;
 }
-.atmos::before {
+.atmos-layer::before {
   content: "";
   position: absolute;
   inset: -2%;
   background: radial-gradient(ellipse 75% 65% at 50% 55%, transparent 40%, rgba(0, 0, 0, 0.78) 100%);
   animation: candle 5s ease-in-out infinite;
 }
-.atmos::after {
+.atmos-layer::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -365,3 +364,322 @@ h1 { text-shadow: 0 0 18px rgba(232, 150, 60, 0.25); }
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
 }
+
+/* ───────────── 배경 무대 (Backdrop) ───────────── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  --sy: 0;
+  --half: 240px; /* half the content column */
+}
+.backdrop .layer-far { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.04px), 0); }
+.backdrop .layer-mid { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.1px), 0); }
+.backdrop .layer-near { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.22px), 0); }
+
+/* 입구 */
+.scene-gate { background: linear-gradient(180deg, #06050a 0%, #0b0807 55%, #0a0605 100%); }
+.moon {
+  position: absolute;
+  left: calc(50% - var(--half) - 330px);
+  top: 150px;
+  width: 92px;
+  height: 92px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 40% 40%, #efe4c8, #b9a782 60%, #6f6450);
+  box-shadow: 0 0 60px 20px rgba(220, 205, 170, 0.12);
+  opacity: 0.55;
+  filter: blur(0.6px);
+}
+.moon::after {
+  content: "";
+  position: absolute;
+  left: -60px;
+  top: 30px;
+  width: 220px;
+  height: 36px;
+  border-radius: 9999px;
+  background: rgba(10, 8, 10, 0.75);
+  filter: blur(10px);
+  animation: cloudPass 28s ease-in-out infinite;
+}
+@keyframes cloudPass { 0%, 100% { transform: translateX(-30px); } 50% { transform: translateX(60px); } }
+.doorway-light {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--half) * 2 + 40px);
+  margin-left: calc(var(--half) * -1 - 20px);
+  background: radial-gradient(ellipse 70% 60% at 50% 70%, rgba(200, 110, 40, 0.13), transparent 75%), rgba(12, 8, 6, 0.55);
+}
+.pillar {
+  position: absolute;
+  top: 80px;
+  bottom: 0;
+  width: 30px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 5px, rgba(0, 0, 0, 0.18) 5px 6px, transparent 6px 11px),
+    linear-gradient(90deg, #120a06, #3a2416 35%, #2a1a10 70%, #0e0805);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+}
+.pillar-l { left: calc(50% - var(--half) - 34px); }
+.pillar-r { left: calc(50% + var(--half) + 4px); }
+.eaves { position: absolute; left: 50%; top: 0; width: 1700px; height: 190px; margin-left: -850px; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.9)); }
+.lantern {
+  position: absolute;
+  top: 120px;
+  transform-origin: 50% 0;
+  animation: sway 5.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 22px rgba(230, 80, 40, 0.55));
+}
+.lantern svg { animation: lanternGlow 3s ease-in-out infinite; }
+@keyframes lanternGlow { 0%, 100% { filter: brightness(1); } 40% { filter: brightness(1.15); } 70% { filter: brightness(0.9); } }
+.lantern-l { left: calc(50% - var(--half) - 130px); }
+.lantern-r { left: calc(50% + var(--half) + 50px); animation-delay: -2.2s; }
+.sindae { position: absolute; left: calc(50% - var(--half) - 290px); bottom: 110px; transform-origin: 50% 100%; animation: sway 7s ease-in-out infinite; opacity: 0.85; }
+.sindae .cloth { transform-origin: 60px 30px; animation: flutter 3.2s ease-in-out infinite; }
+@keyframes flutter { 0%, 100% { transform: skewX(0) rotate(0); } 50% { transform: skewX(-6deg) rotate(3deg); } }
+.signboard {
+  position: absolute;
+  top: 300px;
+  left: calc(50% + var(--half) + 150px);
+  width: 78px;
+  padding: 16px 0 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(90deg, #1a0f08, #2e1c10 50%, #1a0f08);
+  border: 2px solid #4a3218;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 0, 0, 0.6);
+  font-family: var(--font-ritual);
+  color: #d9b25a;
+  transform-origin: 50% -60px;
+  animation: sway 9s ease-in-out infinite;
+}
+.signboard::before, .signboard::after {
+  content: "";
+  position: absolute;
+  top: -60px;
+  width: 2px;
+  height: 60px;
+  background: #3a2416;
+}
+.signboard::before { left: 14px; }
+.signboard::after { right: 14px; }
+.sign-big { font-size: 40px; color: #c9372a; text-shadow: 0 0 12px rgba(200, 50, 30, 0.6); }
+.sign-text, .sign-small { writing-mode: vertical-rl; letter-spacing: 0.3em; }
+.sign-text { font-size: 22px; }
+.sign-small { font-size: 13px; color: #9a8a76; }
+.wall { position: absolute; bottom: 0; width: 720px; height: 200px; opacity: 0.9; }
+.wall-left { right: calc(50% + var(--half) + 34px); }
+.wall-right { left: calc(50% + var(--half) + 34px); }
+.fog {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40vh;
+  background: linear-gradient(0deg, rgba(40, 34, 30, 0.55), transparent);
+  filter: blur(6px);
+  animation: fogDrift 14s ease-in-out infinite;
+}
+@keyframes fogDrift { 0%, 100% { opacity: 0.7; transform: translateX(-2%); } 50% { opacity: 1; transform: translateX(2%); } }
+
+/* 점집 안 */
+.scene-inside { background: #0b0706; }
+.dolly {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 78%;
+  transform: scale(calc(1 + var(--progress, 0) * 0.14)) translateY(calc(var(--progress, 0) * 2vh));
+  transition: transform 1.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.wall-room {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 85%, rgba(210, 120, 50, calc(0.12 + var(--progress, 0) * 0.1)), transparent 70%),
+    repeating-linear-gradient(90deg, rgba(255, 240, 210, 0.012) 0 90px, rgba(0, 0, 0, 0.12) 90px 92px),
+    linear-gradient(180deg, #0d0907, #17100c 60%, #0b0706);
+}
+.beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 10vh;
+  height: 22px;
+  background: linear-gradient(180deg, #24150c, #3a2414 50%, #1a0f08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7);
+}
+.beam::after {
+  content: "";
+  position: absolute;
+  inset: 6px 0;
+  background: repeating-linear-gradient(90deg, #2f5a43 0 18px, #7a1f1a 18px 24px, #c9a25a 24px 27px, #1f3560 27px 40px);
+  opacity: 0.35;
+}
+.lattice { position: absolute; top: 18vh; left: calc(50% - var(--half) - 320px); opacity: 0.8; }
+.scroll-painting { position: absolute; top: 16vh; left: calc(50% + var(--half) + 140px); opacity: 0.75; transform-origin: 50% 0; animation: sway 12s ease-in-out infinite; }
+.screen-fold { position: absolute; top: 20vh; left: 50%; width: min(1040px, 160vw); margin-left: max(-520px, -80vw); opacity: 0.75; }
+.screen-fold svg { width: 100%; height: auto; display: block; }
+.obang { position: absolute; top: calc(10vh + 20px); display: flex; gap: 4px; }
+.obang span { width: 16px; border-radius: 0 0 4px 4px; opacity: 0.7; transform-origin: 50% 0; animation: sway 6s ease-in-out infinite; box-shadow: inset -3px 0 6px rgba(0, 0, 0, 0.4); }
+.obang-l { left: calc(50% - var(--half) - 150px); }
+.obang-r { left: calc(50% + var(--half) + 50px); }
+.altar { position: absolute; left: 0; right: 0; bottom: 0; height: 15vh; }
+.altar-top {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #4a160e, #2a0b07 30%, #160605);
+  border-top: 2px solid rgba(201, 162, 90, 0.45);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+}
+.candle { position: absolute; bottom: calc(15vh - 4px); width: 18px; }
+.candle .wax {
+  display: block;
+  width: 18px;
+  height: calc(96px - var(--progress, 0) * 34px);
+  transition: height 1.8s ease;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(90deg, #b8a78a, #efe5d2 40%, #c9b99a);
+}
+.candle-tall .wax { height: calc(140px - var(--progress, 0) * 46px); }
+.candle .flame {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 12px;
+  height: 24px;
+  margin-left: -6px;
+  margin-bottom: 2px;
+  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+  background: radial-gradient(ellipse at 50% 75%, #fff6d0 0%, #ffc45a 35%, #ff7a1a 70%, transparent 72%);
+  transform-origin: 50% 100%;
+  animation: flame 1.3s ease-in-out infinite;
+}
+.candle .halo {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 20px);
+  width: 160px;
+  height: 160px;
+  margin-left: -80px;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, rgba(255, 170, 70, 0.28), transparent);
+  animation: candleGlow 2.6s ease-in-out infinite;
+}
+@keyframes flame {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  25% { transform: scale(1.08, 0.94) rotate(2deg); }
+  50% { transform: scale(0.94, 1.1) rotate(-1deg); }
+  75% { transform: scale(1.04, 0.97) rotate(3deg); }
+}
+.cd-1 { left: calc(50% - var(--half) - 170px); }
+.cd-2 { left: calc(50% - var(--half) - 110px); }
+.cd-3 { left: calc(50% + var(--half) + 92px); }
+.cd-4 { left: calc(50% + var(--half) + 152px); }
+.censer { position: absolute; bottom: calc(15vh - 6px); left: calc(50% - var(--half) - 290px); }
+.censer .smoke { bottom: 66px; }
+.bells { position: absolute; bottom: calc(15vh - 4px); left: calc(50% + var(--half) + 230px); transform-origin: 50% 0; animation: sway 4s ease-in-out infinite; }
+
+/* 폰: 기둥·벽은 화면 밖이니, 처마·등·초를 가장자리로 당겨 온다 */
+@media (max-width: 760px) {
+  .backdrop { --half: 0px; }
+  .pillar, .wall, .sindae, .signboard, .moon, .lattice, .scroll-painting, .bells, .censer { display: none; }
+  .eaves { height: 110px; width: 1100px; margin-left: -550px; opacity: 0.85; }
+  .lantern { top: 60px; }
+  .lantern svg { width: 44px; height: 94px; }
+  .lantern-l { left: -14px; }
+  .lantern-r { left: auto; right: -14px; }
+  .doorway-light { display: none; }
+  .screen-fold { top: 14vh; opacity: 0.55; }
+  .obang-l { left: 4px; }
+  .obang-r { left: auto; right: 4px; }
+  .obang span { width: 10px; }
+  .cd-1 { left: 10px; }
+  .cd-2 { left: 34px; }
+  .cd-3 { left: auto; right: 34px; }
+  .cd-4 { left: auto; right: 10px; }
+  .altar { height: 9vh; }
+  .candle, .censer, .bells { bottom: calc(9vh - 4px); }
+}
+
+/* 한옥 문: 닫히고 → 열리며 안으로 */
+.doors { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
+.door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background:
+    linear-gradient(#2a170c 3px, transparent 3px) 0 0 / 46px 58px,
+    linear-gradient(90deg, #2a170c 3px, transparent 3px) 0 0 / 46px 58px,
+    radial-gradient(ellipse at 50% 60%, #d9c294, #9c8456 80%);
+  border: 18px solid #24140a;
+  box-shadow: inset 0 0 120px rgba(255, 160, 70, 0.35), 0 0 40px rgba(0, 0, 0, 0.9);
+}
+.door-l { left: 0; }
+.door-r { right: 0; }
+.ring {
+  position: absolute;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  margin-top: -17px;
+  border-radius: 9999px;
+  border: 5px solid #b8893a;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+}
+.door-l .ring { right: 16px; }
+.door-r .ring { left: 16px; }
+.door-seam {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  margin-left: -2px;
+  background: #ffcf8a;
+  box-shadow: 0 0 40px 18px rgba(255, 170, 70, 0.6);
+  opacity: 0;
+}
+.doors-closing .door-l { animation: doorInL 0.5s cubic-bezier(0.6, 0, 0.4, 1) both; }
+.doors-closing .door-r { animation: doorInR 0.5s cubic-bezier(0.6, 0, 0.4, 1) both; }
+.doors-opening .door-l { animation: doorOutL 1.25s cubic-bezier(0.7, 0, 0.2, 1) 0.3s both; }
+.doors-opening .door-r { animation: doorOutR 1.25s cubic-bezier(0.7, 0, 0.2, 1) 0.3s both; }
+.doors-opening .door-seam { animation: seam 1.2s ease-out 0.2s both; }
+@keyframes doorInL { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes doorInR { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes doorOutL { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes doorOutR { from { transform: none; } to { transform: translateX(100%); } }
+@keyframes seam { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; transform: scaleX(30); } }
+
+/* 면담 중 새 말이 올 때 촛불이 한 번 일렁인다 */
+.flare .flame { animation: flare 0.9s ease-out, flame 1.3s ease-in-out 0.9s infinite; }
+@keyframes flare { 0% { transform: scale(1); } 30% { transform: scale(1.5, 1.7); filter: brightness(1.4); } 100% { transform: scale(1); } }
+
+/* 공유 버튼: 놋쇠 테두리 나무 현판 */
+.share-plaque {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 14px;
+  font-family: var(--font-ritual);
+  font-size: 18px;
+  background: linear-gradient(180deg, #2a1a10, #170d08);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.12), 0 8px 20px -10px rgba(0, 0, 0, 0.9);
+}
+.share-kakao { color: #fee500; border: 1.5px solid rgba(254, 229, 0, 0.55); text-shadow: 0 0 12px rgba(254, 229, 0, 0.35); }
+.share-insta {
+  color: #f6c1d4;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(180deg, #2a1a10, #170d08) padding-box,
+    linear-gradient(90deg, #f58529, #dd2a7b, #8134af) border-box;
+  text-shadow: 0 0 12px rgba(221, 42, 123, 0.4);
+}
+.share-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; font-size: 15px; }
