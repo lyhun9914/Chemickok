@@ -14,61 +14,52 @@ const OUTCOME_MSG: Partial<Record<ShareOutcome, string>> = {
   unsupported: "이 브라우저는 인스타 공유 창을 못 연다냥. 크롬이나 사파리에서 다시 눌러라냥",
 };
 
-/** Set by page.tsx when the result was handed over from another device / in-app browser to share on Instagram. */
-export const SHARE_INSTA_FLAG = "nyang-then-insta";
-
 interface Props {
   teaser: StoryCard;
   myName: string;
   partnerName: string;
   toast: (m: string) => void;
+  /** arrived from a QR / in-app handoff to post on Instagram: cover the screen, one tap anywhere shares */
+  tapToShare?: boolean;
 }
 
-export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
+export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = false }: Props) {
   const input = useAppStore((s) => s.input);
-  const section = useRef<HTMLElement>(null);
   const story = useRef<Blob | null>(null);
+  const drawing = useRef<Promise<Blob | null> | null>(null);
   const [ready, setReady] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [cover, setCover] = useState(tapToShare);
   const [qr, setQr] = useState<{ img: string; url: string } | null>(null);
   const [iosGuide, setIosGuide] = useState<string | null>(null);
-  const [beckon, setBeckon] = useState(false);
 
   // Draw the story image ahead of time: phones open the share sheet only straight from the tap.
   useEffect(() => {
     shareService.prepareKakao().catch(() => {});
     let alive = true;
-    const t = setTimeout(() => {
-      drawStoryImage(teaser, myName, partnerName)
-        .then((b) => {
-          if (!alive) return;
-          story.current = b;
-          setReady(true);
-        })
-        .catch(() => alive && setReady(true));
-    }, 400);
+    let url: string | null = null;
+    const t = setTimeout(
+      () => {
+        drawing.current = drawStoryImage(teaser, myName, partnerName)
+          .then((b) => {
+            if (alive) {
+              story.current = b;
+              url = URL.createObjectURL(b);
+              setPreview(url);
+            }
+            return b;
+          })
+          .catch(() => null)
+          .finally(() => alive && setReady(true));
+      },
+      tapToShare ? 0 : 400,
+    );
     return () => {
       alive = false;
       clearTimeout(t);
+      if (url) URL.revokeObjectURL(url);
     };
-  }, [teaser, myName, partnerName]);
-
-  // Arrived here to share on Instagram (from a QR scan or out of an in-app browser): bring the button into view.
-  useEffect(() => {
-    let flagged = false;
-    try {
-      flagged = sessionStorage.getItem(SHARE_INSTA_FLAG) === "1";
-      sessionStorage.removeItem(SHARE_INSTA_FLAG);
-    } catch {
-      /* storage blocked */
-    }
-    if (!flagged) return;
-    const t = setTimeout(() => {
-      section.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setBeckon(true);
-      toast("이어서 왔다냥! 아래 '스토리에 점괘 걸기'를 누르면 바로 인스타로 간다냥");
-    }, 1200);
-    return () => clearTimeout(t);
-  }, [toast]);
+  }, [teaser, myName, partnerName, tapToShare]);
 
   const shareText = {
     title: `냥신이 본 내 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
@@ -82,7 +73,6 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
 
   // Everything up to navigator.share runs synchronously inside the tap.
   const onInsta = () => {
-    setBeckon(false);
     if (!isMobile()) {
       const url = handoffUrl(input, { card: teaser, me: myName, partner: partnerName }, "insta");
       QRCode.toDataURL(url, { margin: 1, width: 360, errorCorrectionLevel: "L", color: { dark: "#1a0f08", light: "#e9dcbd" } })
@@ -95,15 +85,18 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
       if (!openExternally(url)) setIosGuide(url);
       return;
     }
-    if (!story.current) {
-      toast("점괘 카드를 그리는 중이다냥. 잠깐 뒤 다시 눌러라냥");
+    if (story.current) {
+      report(shareService.shareStory(story.current));
       return;
     }
-    report(shareService.shareStory(story.current));
+    // Tapped before the image was ready: Chrome keeps the tap valid for a few seconds, so finish drawing first.
+    const pending = drawing.current;
+    if (!pending) return toast("점괘 카드를 그리는 중이다냥. 잠깐 뒤 다시 눌러라냥");
+    report(pending.then((b) => (b ? shareService.shareStory(b) : ("unsupported" as const))));
   };
 
   return (
-    <section ref={section} className="mt-10">
+    <section className="mt-10">
       <h2 className="mb-1 text-[20px]">📜 이 점괘, 혼자 보기 아깝다냥</h2>
       <p className="mb-4 text-sm text-muted">친구 팔자도 궁금하지? 점괘 한 장 건네 봐라냥</p>
       <ShareCard teaser={teaser} myName={myName} partnerName={partnerName} />
@@ -119,7 +112,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
         <button
           onClick={onInsta}
           disabled={isMobileSafe() && !ready}
-          className={`share-plaque share-insta w-full py-4 transition active:scale-[0.98] disabled:opacity-60 ${beckon ? "glow" : ""}`}
+          className="share-plaque share-insta w-full py-4 transition active:scale-[0.98] disabled:opacity-60"
         >
           <span className="share-icon bg-gradient-to-tr from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">📸</span>
           {isMobileSafe() && !ready ? "점괘 카드 그리는 중…" : "인스타 스토리에 점괘 걸기"}
@@ -127,15 +120,41 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
         <p className="text-center text-[11px] text-muted">폰: 공유 창에서 Instagram → 스토리 · PC: QR을 폰으로 찍어 이어서 올리기</p>
       </div>
 
+      {cover && (
+        <button
+          onClick={() => {
+            onInsta();
+            setCover(false);
+          }}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/85 px-8 text-center"
+          aria-label="인스타 스토리에 점괘 걸기"
+        >
+          {preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt="스토리에 올라갈 점괘" className="max-h-[58dvh] w-auto rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)]" />
+          ) : (
+            <span className="font-ritual text-lg text-muted">점괘 카드 그리는 중…</span>
+          )}
+          <span className="share-plaque share-insta glow w-full max-w-[320px] py-4">
+            <span className="share-icon bg-gradient-to-tr from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">📸</span>
+            톡 치면 인스타 스토리로
+          </span>
+          <span className="text-xs leading-relaxed text-muted">
+            화면 아무 데나 한 번 누르면 공유 창이 뜬다냥.
+            <br />
+            거기서 <b className="text-ink">Instagram → 스토리</b>를 고르면 끝이다냥.
+          </span>
+        </button>
+      )}
       {qr && (
         <Sheet onClose={() => setQr(null)}>
           <p className="font-ritual text-[20px]">폰으로 이어서 걸어라냥 📸</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             PC 인스타그램은 스토리를 못 올린다냥.
             <br />
-            폰 카메라로 아래 QR을 찍으면 이 점괘가 그대로 열리고,
+            폰 카메라로 아래 QR을 찍고 링크를 열면
             <br />
-            버튼 한 번이면 스토리로 간다냥.
+            화면 한 번 톡 치는 걸로 스토리에 올라간다냥.
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qr.img} alt="폰으로 이어 보기 QR" width={240} height={240} className="mx-auto mt-4 rounded-xl" />

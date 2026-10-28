@@ -14,7 +14,7 @@ export function StoryScreen() {
   return (
     <main className="enter-dark flex flex-1 flex-col px-5 pb-10 pt-8">
       <Say mood="smug">이어서 왔다냥. {story.me}의 점괘, 여기서 바로 걸어라냥.</Say>
-      <ShareButtons teaser={story.card} myName={story.me} partnerName={story.partner} toast={toast.show} />
+      <ShareButtons teaser={story.card} myName={story.me} partnerName={story.partner} toast={toast.show} tapToShare={Boolean(story.insta)} />
       <button onClick={reset} className="mt-8 w-full rounded-2xl border border-line py-3.5 text-sm font-semibold text-muted">
         🕯️ 나도 점집 들어가 보기
       </button>

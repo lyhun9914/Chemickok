@@ -49,6 +49,8 @@ export interface StoryShare {
   card: StoryCard;
   me: string;
   partner: string;
+  /** arrived to post on Instagram: open straight onto the tap-to-share screen */
+  insta?: boolean;
 }
 
 /** True when the store holds a full interview (a fresh result), not just a reopened reading. */
@@ -59,12 +61,13 @@ function complete(input: QuestionnaireInput): boolean {
 }
 
 /**
- * A link that reopens this result elsewhere: the full interview (?r=) when we have it, so the whole reading
- * continues there; otherwise just the card (?c=), which opens a share-only screen.
+ * A link that reopens this result elsewhere. For Instagram (and whenever the answers aren't at hand, e.g. a
+ * reading reopened from 내 점괘함) it carries just the card (?c=) and opens the share screen directly, so the
+ * person isn't walked through the whole reading again; otherwise the full interview (?r=).
  */
 export function handoffUrl(input: QuestionnaireInput, share: StoryShare, then?: "insta"): string {
   const u = new URL("/", window.location.origin);
-  if (complete(input)) {
+  if (then !== "insta" && complete(input)) {
     const self = selfInterview(input.mode).map((q) => input.self[q.id] ?? "");
     const obs = input.mode === "couple" ? PARTNER_INTERVIEW.map((q) => input.partnerObs[q.id] ?? "") : [];
     const packed: Packed = [input.mode[0], input.status, packP(input.me), packP(input.partner), self, obs];

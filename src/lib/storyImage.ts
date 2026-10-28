@@ -182,7 +182,7 @@ export async function drawStoryImage(teaser: StoryCard, myName: string, partnerN
   // Hanji slip with the match or the couple score, and a red seal.
   const sx = cx + 70;
   const sw = cw - 140;
-  const sh = 230;
+  const sh = teaser.couple ? 270 : 230;
   const sy = cy + ch - sh - 90;
   roundRect(ctx, sx, sy, sw, sh, 16);
   g = ctx.createLinearGradient(0, sy, 0, sy + sh);
@@ -202,7 +202,19 @@ export async function drawStoryImage(teaser: StoryCard, myName: string, partnerN
     ctx.textAlign = "left";
     ctx.font = `bold 40px ${SANS}`;
     ctx.fillStyle = "#2a1a10";
-    ctx.fillText(teaser.couple.coupleTitle.slice(0, 22), sx + 44, sy + 170);
+    // Long couple titles wrap onto a second line, clear of the seal in the corner.
+    const words = teaser.couple.coupleTitle.split(" ");
+    const lines: string[] = [];
+    let cur = "";
+    for (const w of words) {
+      const t = cur ? `${cur} ${w}` : w;
+      if (ctx.measureText(t).width > sw - 190 && cur) {
+        lines.push(cur);
+        cur = w;
+      } else cur = t;
+    }
+    if (cur) lines.push(cur);
+    lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, sx + 44, sy + 160 + i * 54));
   } else {
     ctx.font = `32px ${SANS}`;
     ctx.fillStyle = "#6b4a2a";

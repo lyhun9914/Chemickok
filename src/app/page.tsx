@@ -9,7 +9,6 @@ import { MyPage } from "@/components/MyPage";
 import { Questionnaire } from "@/components/Questionnaire";
 import { ResultView } from "@/components/ResultView";
 import { StoryScreen } from "@/components/StoryScreen";
-import { SHARE_INSTA_FLAG } from "@/components/ShareButtons";
 import { readHandoff } from "@/lib/handoff";
 import { accountApi } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
@@ -33,16 +32,9 @@ export default function Home() {
     const handoff = readHandoff(window.location.search);
     if (handoff) {
       window.history.replaceState(null, "", "/");
-      if (handoff.then === "insta") {
-        try {
-          sessionStorage.setItem(SHARE_INSTA_FLAG, "1");
-        } catch {
-          /* storage blocked */
-        }
-      }
       if (handoff.kind === "input")
         useAppStore.setState({ input: handoff.input, screen: "loading", step: 0, teaser: null, report: null, level: "none", error: null });
-      else useAppStore.setState({ story: handoff.share, screen: "story", error: null });
+      else useAppStore.setState({ story: { ...handoff.share, insta: handoff.then === "insta" }, screen: "story", error: null });
     }
     // Back from /api/auth/*/callback with ?login=ok|fail|cancel|off — read it once, then clean the URL.
     const q = new URLSearchParams(window.location.search);
