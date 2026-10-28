@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CUSTOM_MAX, CUSTOM_PREFIX, PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
+import { PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
 import type { Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
@@ -353,57 +353,18 @@ function TextDock({ initial, placeholder, hint, onSend }: { initial: string; pla
   );
 }
 
-/** Answer chips plus a "type my own answer" escape hatch. */
+/** Answer chips plus "잘 모르겠어". */
 function QuestionDock({ options, onAnswer }: { options: { id: string; label: string }[]; onAnswer: (a: string) => void }) {
-  const [writing, setWriting] = useState(false);
-  const [v, setV] = useState("");
-  const ok = v.trim() !== "";
-  if (writing) {
-    return (
-      <form
-        className="chip-pop space-y-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (ok) onAnswer(CUSTOM_PREFIX + v.trim());
-        }}
-      >
-        <p className="text-xs text-peach">💡 네 말 그대로 적어라냥. 구체적일수록 냥신이 더 정확하게 읽는다냥.</p>
-        <div className="flex gap-2">
-          <input
-            className={inputCls}
-            value={v}
-            maxLength={CUSTOM_MAX}
-            placeholder="예: 일단 친구한테 전화해서 물어본다"
-            autoFocus
-            onChange={(e) => setV(e.target.value)}
-          />
-          <button disabled={!ok} className="btn-primary shrink-0 px-5">
-            보내기
-          </button>
-        </div>
-        <button type="button" onClick={() => setWriting(false)} className="w-full py-1 text-xs text-muted">
-          ← 보기에서 고를래
-        </button>
-      </form>
-    );
-  }
   return (
     <div className="space-y-2">
       <Chips items={options} onPick={onAnswer} />
-      <div className="chip-pop grid grid-cols-2 gap-2" style={{ animationDelay: `${options.length * 55}ms` }}>
-        <button
-          onClick={() => setWriting(true)}
-          className="rounded-2xl border border-dashed border-peach/50 px-3 py-3 text-[14px] font-medium text-peach active:scale-[0.98]"
-        >
-          ✏️ 직접 입력할래
-        </button>
-        <button
-          onClick={() => onAnswer(UNKNOWN_ANSWER)}
-          className="rounded-2xl border border-dashed border-white/20 px-3 py-3 text-[14px] font-medium text-muted active:scale-[0.98]"
-        >
-          {UNKNOWN_LABEL}
-        </button>
-      </div>
+      <button
+        onClick={() => onAnswer(UNKNOWN_ANSWER)}
+        className="chip-pop w-full rounded-2xl border border-dashed border-white/20 px-4 py-3 text-[14px] font-medium text-muted active:scale-[0.98]"
+        style={{ animationDelay: `${options.length * 55}ms` }}
+      >
+        {UNKNOWN_LABEL}
+      </button>
     </div>
   );
 }
