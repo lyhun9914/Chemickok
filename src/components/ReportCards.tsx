@@ -320,7 +320,7 @@ function LuckCard({ luck }: { luck: LuckSection }) {
 export function LetterCard({ section }: { section: ReportSection }) {
   return (
     <div className="fade-up space-y-3">
-      <div className="relative rotate-[-0.6deg] rounded-2xl bg-[#fff6ec] p-6 text-[#2b1d16] shadow-[0_12px_40px_-12px_rgba(255,95,162,0.5)]">
+      <div className="relative rotate-[-0.6deg] rounded-2xl hanji p-6 text-[#2b1d16] shadow-[0_12px_40px_-12px_rgba(255,95,162,0.5)]">
         <p className="mb-1 text-xs font-semibold text-[#b07a5a]">{section.title}</p>
         <p className="mb-4 text-sm font-bold text-[#8a5a3a]">{section.headline}</p>
         <p className="whitespace-pre-line text-[15px] leading-[1.9]">{section.body}</p>

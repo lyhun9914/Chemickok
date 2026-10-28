@@ -56,7 +56,7 @@ export function Nyang({ mood = "smug", size = 64, className = "" }: { mood?: Moo
       <path d="M54 50 L56 58 M60 48 L60 57 M66 50 L64 58" stroke="#d9a877" strokeWidth="3" strokeLinecap="round" />
       {/* 갓: crown + brim */}
       <rect x="42" y="10" width="36" height="28" rx="9" fill="#1d1a24" />
-      <rect x="42" y="30" width="36" height="5" fill="#ff5fa2" />
+      <rect x="42" y="30" width="36" height="5" fill="#a8261c" />
       <ellipse cx="60" cy="40" rx="52" ry="8" fill="#1d1a24" opacity="0.92" />
       <Eyes mood={mood} />
       {/* blush */}
@@ -93,7 +93,7 @@ export function Say({
       <div className="shrink-0">
         <Nyang mood={mood} size={44} />
       </div>
-      <div className="relative max-w-[82%] rounded-2xl rounded-bl-md bg-[#fff6ec] px-4 py-3 text-[15px] font-medium leading-relaxed text-[#2b1d16] shadow-sm">
+      <div className="relative max-w-[82%] rounded-2xl rounded-bl-md hanji px-4 py-3 text-[15px] font-medium leading-relaxed text-[#2b1d16] shadow-sm">
         {typing ? (
           <span className="typing-dots" aria-label="냥신이 말하는 중">
             <i />

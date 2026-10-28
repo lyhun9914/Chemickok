@@ -15,11 +15,11 @@ export function LoadingScreen() {
 
   const solo = input.mode === "solo";
   const messages = [
-    `흠… ${input.me.name}의 사주를 펼치는 중이다냥`,
-    "일주(日柱)를 보고 있다냥… 오호?",
-    "오행을 세어 보는 중이다냥. 하나, 둘…",
-    "네 답변을 꿰뚫어 보는 중이다냥 👀",
-    solo ? "너랑 찰떡인 놈을 찾는 중이다냥…" : `${input.partner.name}의 속마음을 엿보는 중이다냥… 🙊`,
+    "…향을 피웠다냥. 숨 고르고 가만히 있어라냥",
+    `${input.me.name}의 사주 여덟 글자를 펼치는 중이다냥`,
+    "촛불이 흔들린다냥… 일주(日柱)에 뭔가 보인다냥",
+    "네 답 사이에 숨긴 게 있다냥. 다 보인다냥 👁️",
+    solo ? "…네 앞에 올 사람의 그림자가 보인다냥" : `${input.partner.name}의 속마음이 비친다냥… 🙊`,
     "…다 봤다냥. 각오는 됐냥?",
   ];
 
@@ -69,9 +69,9 @@ export function LoadingScreen() {
         <div className="wiggle relative">
           <Nyang mood={idx % 2 ? "wow" : "smug"} size={150} />
         </div>
-        <div className="absolute -right-2 top-6 text-3xl">🔮</div>
+        <div className="flicker absolute -right-3 top-4 text-3xl">🕯️</div>
       </div>
-      <p key={idx} className="fade-up min-h-[3.5rem] max-w-[300px] text-[15px] font-medium leading-relaxed">
+      <p key={idx} className="font-ritual fade-up min-h-[3.5rem] max-w-[300px] text-[17px] leading-relaxed">
         {messages[idx]}
       </p>
       <div className="mt-6 h-1.5 w-56 overflow-hidden rounded-full bg-white/10">

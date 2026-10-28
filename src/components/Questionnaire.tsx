@@ -91,7 +91,7 @@ function asks(t: Turn, i: QuestionnaireInput, { saved, modeKnown }: Ctx): Return
   const p = i.partner.name || "그 사람";
   switch (t.kind) {
     case "mode": {
-      const hello = saved ? n(`${iGuNyang(i.me.name)}. 또 왔냥? 반갑다냥 🐾`, "happy") : n("어서 오라냥. 여기는 냥신 상담소다냥 🐾", "smug");
+      const hello = saved ? n(`${iGuNyang(i.me.name)}. 또 왔냥? …올 줄 알았다냥 🕯️`, "happy") : n("…왔구냥. 앉아라냥. 여기서 거짓말하면 촛불이 먼저 안다냥 🕯️", "smug");
       if (modeKnown) {
         return [hello, n(`오늘은 '${productOf(i.mode).name}'이구냥. ${saved ? "생년월일은 기억하고 있으니 바로 시작하겠다냥." : "좋다냥, 몇 가지만 물어보겠다냥."}`)];
       }
@@ -270,7 +270,7 @@ function NyangBubble({ msg, avatar }: { msg: Pick<Msg, "text" | "mood" | "node">
     <div className="bubble-in flex items-end gap-2">
       <div className="w-10 shrink-0">{avatar && <Nyang mood={msg.mood ?? "talk"} size={40} />}</div>
       <div className="max-w-[80%]">
-        <div className="rounded-2xl rounded-bl-md bg-[#fff6ec] px-4 py-2.5 text-[15px] font-medium leading-relaxed text-[#2b1d16] shadow-sm">
+        <div className="rounded-2xl rounded-bl-md hanji px-4 py-2.5 text-[15px] font-medium leading-relaxed text-[#2b1d16] shadow-sm">
           {msg.text}
         </div>
         {msg.node && <div className="mt-3">{msg.node}</div>}
@@ -285,7 +285,7 @@ function Typing() {
       <div className="w-10 shrink-0">
         <Nyang mood="talk" size={40} />
       </div>
-      <div className="rounded-2xl rounded-bl-md bg-[#fff6ec] px-4 py-3">
+      <div className="rounded-2xl rounded-bl-md hanji px-4 py-3">
         <span className="typing-dots" aria-label="냥신이 말하는 중">
           <i />
           <i />
@@ -618,10 +618,10 @@ export function Questionnaire() {
           </button>
           <div className="relative">
             <Nyang mood={typing ? "talk" : lastMood} size={38} />
-            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg bg-green-400" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg bg-pink shadow-[0_0_6px_var(--pink)]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-bold leading-tight">냥신 상담소 · 1:1 면담</p>
+            <p className="font-ritual text-[16px] leading-tight">냥신 점집 · 촛불 앞 면담</p>
             <p className="text-xs text-muted">{typing ? "냥신이 입력 중…" : inQ || qDone ? `질문 ${Math.min(qDone + 1, qTurns.length)} / ${qTurns.length}` : "기본 정보 확인 중"}</p>
           </div>
           <span className="flicker text-xl" aria-hidden>

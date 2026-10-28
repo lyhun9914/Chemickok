@@ -77,7 +77,7 @@ export function LoginSheet({ open, onClose, forPay, onGuest }: { open: boolean; 
         <div className="flex items-center gap-3">
           <Nyang mood="smug" size={52} />
           <div>
-            <p className="text-[17px] font-bold">{forPay ? "점괘를 보관하려면 3초 로그인" : "냥신 상담소 로그인"}</p>
+            <p className="text-[17px] font-bold">{forPay ? "점괘를 보관하려면 3초 로그인" : "냥신 점집 로그인"}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-muted">
               {forPay ? "결제한 점괘는 내 점괘함에 보관된다냥. 다음엔 생년월일도 안 물어본다냥." : "기본 정보를 기억해 두고, 산 점괘는 언제든 다시 볼 수 있다냥."}
             </p>

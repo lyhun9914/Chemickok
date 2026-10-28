@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0e0a1a",
+  themeColor: "#090605",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -29,10 +29,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           crossOrigin="anonymous"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" crossOrigin="anonymous" href="https://fonts.googleapis.com/css2?family=Song+Myung&display=swap" />
       </head>
       <body className="min-h-full">
         {/* Mobile-first: everything lives in a 480px column centered on desktop */}
-        <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">{children}</div>
+        <div className="atmos" aria-hidden>
+          <div className="incense" />
+          <div className="incense" />
+          <div className="incense" />
+          <div className="candle-glow" />
+        </div>
+        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">{children}</div>
       </body>
     </html>
   );
