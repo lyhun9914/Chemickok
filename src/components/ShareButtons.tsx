@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TeaserReport } from "@/models/types";
 import { shareService, siteUrl, type ShareOutcome } from "@/services/shareService";
 import { ShareCard } from "./ShareCard";
@@ -10,6 +10,7 @@ const OUTCOME_MSG: Record<ShareOutcome, string | null> = {
   copied: "복사했어요! 붙여넣기 해서 공유해 주세요 📋",
   downloaded: "이미지를 저장했어요! 인스타 스토리에 올려보세요 📸",
   cancelled: null,
+  desktopImage: "카드 이미지를 저장했어요! PC 인스타그램은 스토리 올리기를 지원하지 않아서, 폰으로 옮겨 스토리에 올려 주세요 📸",
 };
 
 interface Props {
@@ -22,6 +23,19 @@ interface Props {
 export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+
+  // Pre-render the card image: Safari only opens the share sheet if it's called right after the tap.
+  const cardBlob = useRef<Promise<Blob> | null>(null);
+  useEffect(() => {
+    shareService.prepareKakao().catch(() => {});
+    const t = setTimeout(() => {
+      if (!cardRef.current) return;
+      const pending = shareService.captureCard(cardRef.current);
+      pending.catch(() => {});
+      cardBlob.current = pending;
+    }, 1500);
+    return () => clearTimeout(t);
+  }, []);
 
   const shareText = {
     title: `냥신이 본 내 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
@@ -62,7 +76,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
           onClick={() =>
             run(async () => {
               if (!cardRef.current) throw new Error("카드를 찾을 수 없어요");
-              const blob = await shareService.captureCard(cardRef.current);
+              const blob = await (cardBlob.current?.catch(() => null) ?? null) ?? (await shareService.captureCard(cardRef.current));
               return shareService.shareImage(blob);
             })
           }
@@ -70,7 +84,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
         >
           📸 인스타그램 스토리에 결과 공유하기
         </button>
-        <p className="text-center text-[11px] text-muted">모바일에선 공유 시트 → Instagram, PC에선 이미지가 저장/복사돼요</p>
+        <p className="text-center text-[11px] text-muted">폰에선 공유 창에서 Instagram → 스토리를 고르세요 · PC에선 카드 이미지가 저장돼요</p>
       </div>
     </section>
   );

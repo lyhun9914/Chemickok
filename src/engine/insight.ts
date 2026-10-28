@@ -6,6 +6,7 @@ import type { Decoded, Trait, Weights } from "./content/decode";
 import * as T from "./content/insight";
 import { resolve, type Resolved } from "./freeText";
 import { josa } from "@/lib/josa";
+import { core, punch } from "./tone";
 import { AXES as PROFILE_AXES, hiddenPct, type Profile } from "./profile";
 
 // Readings that depend on the whole person, not just one answer: every decoded answer is tied to the
@@ -50,6 +51,12 @@ const saidAs = (label: string) => {
   const last = label.match(/[가-힣]/g)?.at(-1);
   const batchim = last && /[가-힣]$/.test(label) ? (last.charCodeAt(0) - 0xac00) % 28 !== 0 : false;
   return `'${label}'${batchim ? "이라고" : "라고"}`;
+};
+/** "'편한 자리'였지" / "'우리 사진'이었지" */
+const was = (label: string) => {
+  const last = label.match(/[가-힣]/g)?.at(-1);
+  const batchim = last && /[가-힣]$/.test(label) ? (last.charCodeAt(0) - 0xac00) % 28 !== 0 : false;
+  return `'${label}'${batchim ? "이었지" : "였지"}`;
 };
 const sign = (v: number) => (v > 0 ? 1 : v < 0 ? -1 : 0);
 const pick = <X,>(list: X[], i: number) => list[((i % list.length) + list.length) % list.length];
@@ -142,15 +149,15 @@ function crossLine(set: AnswerSet, it: Item, all: Item[], t: Trait, s: number): 
     .sort((a, b) => Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
   if (!other) return null;
   const same = sign(other.w[t] ?? 0) === s;
-  const head = same ? `Q${other.num}에서 ${saidAs(other.label)} 한 것과 같은 뿌리다냥.` : `근데 Q${other.num}에서는 ${saidAs(other.label)} 했지.`;
+  const head = same ? `Q${other.num} '${other.label}'도 같은 뿌리다냥.` : `근데 Q${other.num}에선 ${was(other.label)}.`;
   if (set.aboutPartner) {
     if (!(AXES as Trait[]).includes(t)) return null;
     const table = same ? T.PARTNER_ROOT : T.PARTNER_SPLIT;
     return `${head} ${table[t as AxisKey][s > 0 ? 0 : 1]}`;
   }
-  const body = (same ? T.ROOT : T.SPLIT)[t][s > 0 ? 0 : 1];
-  const tail = set.couple ? ` ${T.COUPLE_TAIL[t][s > 0 ? 0 : 1]}` : "";
-  return `${head} ${body}${tail}`;
+  // Couple mode says what the lean means for the partner; solo says what it means for you.
+  const body = same && set.couple ? T.COUPLE_TAIL[t][s > 0 ? 0 : 1] : punch((same ? T.ROOT : T.SPLIT)[t][s > 0 ? 0 : 1], 1);
+  return `${head} ${body}`;
 }
 
 function profileLine(set: AnswerSet, it: Item, t: Trait, s: number): string | null {
@@ -180,9 +187,10 @@ function typeLine(set: AnswerSet, it: Item, t: Trait, s: number, short: (m: stri
 
 /** The decoded reading for one answer, tied to the rest of the person. */
 function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => string): string {
-  const parts = [it.r.read];
+  // The answer itself is shown right above, so skip the echo and keep the reading to its core.
+  const parts = [core(it.r.read, 2)];
   if (it.predicted && it.unknown) {
-    parts.push(sub(set.aboutPartner ? T.PREDICT_PARTNER : T.PREDICT, { label: it.predicted.label, read: it.predicted.read }));
+    parts.push(sub(set.aboutPartner ? T.PREDICT_PARTNER : T.PREDICT, { label: it.predicted.label, read: punch(it.predicted.read, 1) }));
   } else if (it.predicted) {
     parts.push(sub(set.aboutPartner ? T.BRIDGE_PARTNER : T.BRIDGE, { label: it.predicted.label }));
   }
@@ -193,13 +201,13 @@ function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => s
     const cross = crossLine(set, it, all, t, s);
     const prof = set.aboutPartner ? null : profileLine(set, it, t, s);
     const type = set.aboutPartner ? null : typeLine(set, it, t, s, short);
-    // Rotate which two context lines each question gets, so a long report doesn't repeat one pattern.
+    // Rotate which context line each question gets, so a long report doesn't repeat one pattern.
     const order = [
       [cross, prof, type],
       [cross, type, prof],
       [prof, type, cross],
     ][it.num % 3];
-    parts.push(...order.filter((x): x is string => Boolean(x)).slice(0, 2));
+    parts.push(...order.filter((x): x is string => Boolean(x)).slice(0, 1));
   }
   return fill(parts.join(" "), set.p);
 }
@@ -214,7 +222,7 @@ export function decodeTells(set: AnswerSet, short: (m: string) => string): Map<s
         {
           question: fill(q.short, set.p),
           answer: fill(it.r.label || (optionOf(set.qs, it.qid, set.answers[it.qid])?.label ?? ""), set.p),
-          why: fill(set.decode[it.qid].why, set.p),
+          why: fill(punch(set.decode[it.qid].why, 1), set.p),
           read: enriched(set, it, all, short),
         },
       ];
@@ -226,7 +234,7 @@ export function decodeBullets(set: AnswerSet, short: (m: string) => string): str
   const tells = decodeTells(set, short);
   return set.qs.flatMap((q, i) => {
     const t = tells.get(q.id);
-    return t ? [`Q${i + 1}. ${t.question}\n→ ${t.answer}\n💭 왜 물었냐면: ${t.why}\n🔮 ${t.read}`] : [];
+    return t ? [`Q${i + 1}. ${t.question}\n→ ${t.answer}\n💭 ${t.why}\n🔮 ${t.read}`] : [];
   });
 }
 
@@ -337,34 +345,34 @@ export function traitEvidence(set: AnswerSet): Record<AxisKey, string> {
     const variants: string[] =
       a && b && !c
         ? [
-            `${josa(A!, "이랑/랑")} ${B}, 이 두 답이 너를 ${mine}으로 만들었다냥. 반대쪽으로 고른 답이 하나도 없어서 꽤 확실하다냥.`,
-            `${josa(A!, "을/를")} 고를 때부터 알았다냥. ${B}까지 더해지니 ${mine}이 아닐 수가 없다냥. 이 성향은 상대가 바뀌어도 잘 안 변한다냥.`,
-            `${A}, ${B}… 같은 쪽을 가리키는 답이 겹쳤다냥. 흔들림 없는 ${mine}이다냥.`,
+            `결정타는 ${josa(A!, "이랑/랑")} ${B}. 반대 신호 없다냥. 빼박 ${mine}이다냥.`,
+            `${A}에서 이미 끝났다냥. ${B}로 확인 사살. ${mine}이다냥.`,
+            `${A}, ${B}. 두 답이 같은 데를 찌른다냥. 흔들림 없는 ${mine}이다냥.`,
           ]
         : a && b && c
           ? [
-              `${josa(A!, "이랑/랑")} ${B}에서 ${mine}이 드러났다냥. 근데 ${C}에선 ${other} 모습도 보였지. 평소엔 ${mine}이어도 그런 순간엔 ${other}으로 바뀌는 사람이다냥.`,
-              `${A}, ${B} 쪽으로 보면 ${mine}인데 ${josa(C!, "이/가")} 걸린다냥. 마음이 편할 땐 ${mine}, 불안해지면 ${other}으로 돌아서는 타입이다냥.`,
-              `${mine} 쪽 답(${A}, ${B})이 더 많았지만 ${C}에서 숨은 ${other} 얼굴을 봤다냥. 그 얼굴은 좋아하는 마음이 클수록 더 자주 나온다냥.`,
+              `${A}, ${B}에서 ${mine}. 근데 ${C}에선 ${other}이 나왔다냥. 상황 따라 얼굴이 바뀐다냥.`,
+              `${mine}이다냥. 근거는 ${A}, ${B}. 단, ${C}에선 ${other}이다냥. 불안하면 그쪽으로 돌아선다냥.`,
+              `${A}, ${B} 보면 ${mine}. ${josa(C!, "이/가")} 숨은 ${other} 얼굴이다냥. 좋아할수록 그 얼굴이 나온다냥.`,
             ]
           : a && c
             ? [
-                `${josa(A!, "은/는")} ${mine}, ${josa(C!, "은/는")} ${other}… 두 모습 사이를 오가다 ${mine} 쪽으로 조금 더 기울었다냥. 상대가 어떻게 나오느냐에 따라 얼굴이 바뀐다냥.`,
-                `${A}에서 ${mine}, ${C}에서 ${other}. 너 안에 두 사람이 있다냥. 지금은 ${mine} 쪽이 조금 이기고 있다냥.`,
+                `${josa(A!, "은/는")} ${mine}, ${josa(C!, "은/는")} ${other}. 반반인데 ${mine}이 살짝 이긴다냥.`,
+                `${A}에서 ${mine}, ${C}에서 ${other}. 너 안에 둘 다 있다냥. 지금은 ${mine}이다냥.`,
               ]
             : a
               ? [
-                  `${A}, 이 답 하나가 너를 ${mine} 쪽으로 기울게 했다냥. 나머지 답은 중간이라, 만나는 사람에 따라 달라질 여지가 있다냥.`,
-                  `다른 답들은 애매했는데 ${A}에서 ${mine}이 확 드러났다냥. 딱 그 상황이 오면 본모습이 나오는 거다냥.`,
+                  `결정타는 ${A} 하나다냥. 나머지는 애매했다냥. 상대 따라 바뀔 수 있다냥.`,
+                  `${A}에서 ${mine}이 튀어나왔다냥. 딱 그 상황이 오면 본모습이 나온다냥.`,
                 ]
               : c
                 ? [
-                    `${josa(C!, "은/는")} ${other} 쪽이었지만, 나머지 답들이 조금씩 ${mine} 쪽으로 모였다냥. 겉으로 보이는 것보다 속은 ${mine}이다냥.`,
-                    `${C}만 보면 ${other} 같지만, 작은 답들이 모여 결국 ${mine}을 가리켰다냥. 티 안 나는 ${mine}이다냥.`,
+                    `${josa(C!, "은/는")} ${other} 쪽인데, 작은 답들이 모여 ${mine}이다냥. 겉보다 속이 ${mine}이다냥.`,
+                    `${C}만 보면 ${other}. 근데 나머지가 ${mine}을 가리킨다냥. 티 안 나는 ${mine}이다냥.`,
                   ]
                 : mbtiPush
-                  ? [`답만으로는 거의 반반이었는데 ${mbti}의 기질이 ${mine} 쪽으로 살짝 밀었다냥.`]
-                  : [`답만으로는 딱 반반이라 ${mine}은 아주 살짝이다냥. 상대에 따라 ${other}으로도 금방 바뀐다냥.`];
+                  ? [`답은 반반이었다냥. ${mbti} 기질이 ${mine} 쪽으로 밀었다냥.`]
+                  : [`답은 딱 반반이다냥. ${mine}은 살짝이고, 상대 따라 ${other}도 된다냥.`];
     const branch = `${a ? 1 : 0}${b ? 1 : 0}${c ? 1 : 0}`;
     const n = used.get(branch) ?? 0;
     used.set(branch, n + 1);

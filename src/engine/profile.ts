@@ -54,15 +54,62 @@ function centered(decode: Record<string, Decoded>, answers: Record<string, strin
 }
 
 /**
- * Lopsided choice sets can still tip random answering to one side even after centering. Simulate random
- * interviews once per question set and remember the median score per trait, so it can be subtracted:
- * someone answering at random lands 50/50 on every axis, and a clear lean has to come from the person.
+ * Lopsided choice sets can still tip random answering to one side even after centering, and one choice often
+ * moves two axes together (e.g. 직진 + 표현), which makes some type codes far more common than others.
+ * Simulate random interviews once per question set and remember (1) the median per trait, subtracted so random
+ * answering lands 50/50 on every axis, and (2) a whitening matrix for the four axes, so they stop moving
+ * together and every one of the 16 codes is about equally reachable. A clear lean still has to come from the person.
  */
-const OFFSETS = new WeakMap<Record<string, Decoded>, Record<Trait, number>>();
+interface Calibration {
+  median: Record<Trait, number>;
+  /** symmetric 4×4 (ZCA) matrix: decorrelates the axis scores while keeping each as close to itself as possible */
+  whiten: number[][];
+  /** median of each whitened axis under random answering */
+  shift: number[];
+}
+const CALIBRATION = new WeakMap<Record<string, Decoded>, Calibration>();
 const ALL_TRAITS: Trait[] = ["drive", "express", "conflict", "attach", "linger", "jealous", "doubt"];
+const AXIS_KEYS: AxisKey[] = ["drive", "express", "conflict", "attach"];
 
-function offsets(decode: Record<string, Decoded>): Record<Trait, number> {
-  const cached = OFFSETS.get(decode);
+/** Eigen-decomposition of a small symmetric matrix (Jacobi rotations). */
+function eigenSym(m: number[][]): { values: number[]; vectors: number[][] } {
+  const n = m.length;
+  const a = m.map((r) => [...r]);
+  const v: number[][] = a.map((_, i) => a.map((__, j) => (i === j ? 1 : 0)));
+  for (let sweep = 0; sweep < 50; sweep++) {
+    let off = 0;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] ** 2;
+    if (off < 1e-12) break;
+    for (let p = 0; p < n; p++) {
+      for (let q = p + 1; q < n; q++) {
+        if (Math.abs(a[p][q]) < 1e-15) continue;
+        const theta = (a[q][q] - a[p][p]) / (2 * a[p][q]);
+        const t = Math.sign(theta || 1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+        const c = 1 / Math.sqrt(t * t + 1);
+        const s = t * c;
+        for (let k = 0; k < n; k++) {
+          const akp = a[k][p], akq = a[k][q];
+          a[k][p] = c * akp - s * akq;
+          a[k][q] = s * akp + c * akq;
+        }
+        for (let k = 0; k < n; k++) {
+          const apk = a[p][k], aqk = a[q][k];
+          a[p][k] = c * apk - s * aqk;
+          a[q][k] = s * apk + c * aqk;
+        }
+        for (let k = 0; k < n; k++) {
+          const vkp = v[k][p], vkq = v[k][q];
+          v[k][p] = c * vkp - s * vkq;
+          v[k][q] = s * vkp + c * vkq;
+        }
+      }
+    }
+  }
+  return { values: a.map((r, i) => r[i]), vectors: v };
+}
+
+function calibration(decode: Record<string, Decoded>): Calibration {
+  const cached = CALIBRATION.get(decode);
   if (cached) return cached;
   let seed = 20261028;
   const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
@@ -79,8 +126,24 @@ function offsets(decode: Record<string, Decoded>): Record<Trait, number> {
     const s = [...xs].sort((a, b) => a - b);
     return (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
   };
-  const out = Object.fromEntries(ALL_TRAITS.map((t) => [t, median(samples[t])])) as Record<Trait, number>;
-  OFFSETS.set(decode, out);
+  const med = Object.fromEntries(ALL_TRAITS.map((t) => [t, median(samples[t])])) as Record<Trait, number>;
+  // Covariance of the four axes around their medians → C^(-1/2).
+  const N = samples.drive.length;
+  const cov = AXIS_KEYS.map((x) =>
+    AXIS_KEYS.map((y) => samples[x].reduce((s, v, i) => s + (v - med[x]) * (samples[y][i] - med[y]), 0) / N),
+  );
+  const { values, vectors } = eigenSym(cov);
+  const whiten = AXIS_KEYS.map((_, i) =>
+    AXIS_KEYS.map((__, j) => values.reduce((s, ev, k) => s + (vectors[i][k] * vectors[j][k]) / Math.sqrt(Math.max(ev, 1e-6)), 0)),
+  );
+  // Re-center after mixing so each whitened axis still splits random answering 50/50.
+  const mixed = AXIS_KEYS.map(() => [] as number[]);
+  for (let i = 0; i < N; i++) {
+    const dev = AXIS_KEYS.map((k) => samples[k][i] - med[k]);
+    whiten.forEach((row, a) => mixed[a].push(row.reduce((s, w, j) => s + w * dev[j], 0)));
+  }
+  const out = { median: med, whiten, shift: mixed.map(median) };
+  CALIBRATION.set(decode, out);
   return out;
 }
 
@@ -98,9 +161,12 @@ export function scoreProfile(decode: Record<string, Decoded>, answers: Record<st
   const tie = seedOf(JSON.stringify(answers));
   const raw = {} as Record<AxisKey, number>;
   const poles = {} as Record<AxisKey, Pole>;
+  const cal = calibration(decode);
+  const dev = AXIS_KEYS.map((k) => centered(decode, answers, k) - cal.median[k]);
+  const white = cal.whiten.map((row, a) => row.reduce((s, w, j) => s + w * dev[j], 0) - cal.shift[a]);
   const axes: AxisResult[] = AXES.map((ax, i) => {
     const prior = [...mbti].reduce((s, l) => s + (MBTI_PRIOR[l]?.[ax.key] ?? 0), 0);
-    let score = Math.max(-2, Math.min(2, (centered(decode, answers, ax.key) - offsets(decode)[ax.key]) * 0.9 + prior));
+    let score = Math.max(-2, Math.min(2, white[i] * 0.9 + prior));
     if (Math.abs(score) < 0.01) score = (tie >> i) & 1 ? 0.01 : -0.01;
     raw[ax.key] = score;
     const pole = score > 0 ? ax.poles[0] : ax.poles[1];
@@ -117,7 +183,7 @@ export function scoreProfile(decode: Record<string, Decoded>, answers: Record<st
       intensity: intensityOf(score),
     };
   });
-  const hidden = Object.fromEntries(HIDDEN_KEYS.map((k) => [k, centered(decode, answers, k) - offsets(decode)[k]])) as Record<HiddenKey, number>;
+  const hidden = Object.fromEntries(HIDDEN_KEYS.map((k) => [k, centered(decode, answers, k) - calibration(decode).median[k]])) as Record<HiddenKey, number>;
   return { axes, raw, poles, code: AXES.map((a) => poles[a.key]).join(""), hidden };
 }
 

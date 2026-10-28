@@ -38,6 +38,7 @@ import * as SOLO from "./content/solo";
 import { isValidAnswer, normalizeAnswer, resolve } from "./freeText";
 import { crossCombos, decodeBullets, decodeTells, partnerCombos, selfCombos, traitEvidence, type AnswerSet } from "./insight";
 import { MBTI_LOVE, bestMbti, hardMbti, mbtiPair, mbtiShort, normalizeMbti } from "./mbti";
+import { core as coreOf, punch } from "./tone";
 import { AXES, hiddenPct, reliability, scoreProfile, seedOf, tellingOrder, type Profile } from "./profile";
 import {
   ELEMENT_LABEL,
@@ -99,6 +100,10 @@ export function inputHash(i: QuestionnaireInput): string {
 
 // ───────────── Shared (both modes) ─────────────
 
+/** Fortune-teller cadence: each point cut to its core, one per line. */
+const lines = (parts: (string | null | undefined)[], n = 2) =>
+  parts.filter((p): p is string => Boolean(p)).map((p) => punch(p, n)).join("\n");
+const punchOrNull = (s: string | null, n: number) => (s ? punch(s, n) : null);
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(n)));
 const opposite: Record<Pole, Pole> = { G: "W", W: "G", E: "H", H: "E", F: "R", R: "F", A: "S", S: "A" };
 
@@ -150,7 +155,7 @@ function personalReading(c: Core): TeaserReport["personal"] {
       title: r.title,
       label: first ? r.leftLabel : r.rightLabel,
       pct: first ? r.leftPct : 100 - r.leftPct,
-      text: traitText(r.pole, r.intensity),
+      text: punch(traitText(r.pole, r.intensity), 2),
       why: evidence[key],
     };
   });
@@ -174,11 +179,11 @@ function personalReading(c: Core): TeaserReport["personal"] {
   }
 
   return {
-    nameReading: mySaju ? nameReading(input.me.name, mySaju.dm.element) : null,
+    nameReading: mySaju ? punchOrNull(nameReading(input.me.name, mySaju.dm.element), 2) : null,
     dayMasterReading: mySaju
-      ? `네 일간은 ${dayMasterLabel(mySaju.dm)}, '${mySaju.summary.dayMaster.image}'의 기운이다냥. ${DAY_MASTER_READING[mySaju.dm.stem]}`
+      ? `네 일간은 ${dayMasterLabel(mySaju.dm)}, ${daNyang(`'${mySaju.summary.dayMaster.image}'`)}. ${punch(DAY_MASTER_READING[mySaju.dm.stem], 2)}`
       : null,
-    elementReading,
+    elementReading: elementReading && punch(elementReading, 3),
     twoFaces: { outer: OUTER[me.poles[outerKey]], inner: INNER[me.poles[innerKey]] },
     signature: TYPES[me.code].signature,
     traits,
@@ -229,7 +234,7 @@ function colorReading(c: Core): string | null {
   const r = resolve(selfDecode(c.input.mode)[COLOR_Q], COLOR_Q, c.input.self[COLOR_Q]);
   if (!r?.oid) return null;
   const pick = r.oid as (typeof ELEMENT_ORDER)[number];
-  const base = r.read;
+  const base = coreOf(r.read, 2);
   if (!c.mySaju) return base;
   const els = c.mySaju.summary.elements;
   const max = Math.max(...Object.values(els));
@@ -241,7 +246,7 @@ function colorReading(c: Core): string | null {
         : els[pick] === max
           ? COLOR_VS_SAJU.strongest
           : COLOR_VS_SAJU.other;
-  return `${base} ${vs}`;
+  return `${base} ${punch(vs, 2)}`;
 }
 
 const hiddenLevel = (pct: number) => (pct >= 66 ? "high" : pct >= 42 ? "mid" : "low");
@@ -339,7 +344,7 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
   const bestM = bestMbti(mbti);
   const hardM = hardMbti(mbti);
   const animals = mySaju ? goodAnimals(mySaju.dm.yearBranch) : [];
-  const matchBody = [
+  const matchBody = lines([
     `너랑 제일 잘 맞는 건 '${best.name}' 유형이다냥.`,
     ...reasons,
     bestM.length
@@ -347,9 +352,7 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
       : "",
     animals.length ? `띠로는 ${animals.map((a) => `${a}띠`).join(", ")}랑 기운이 잘 맞는다냥(삼합·육합).` : "",
     mySaju ? `사주로는 일간이 ${combineStemLabel(mySaju.dm.stem)}인 놈이랑 천간합(天干合), 즉 '끌림의 합'이다냥. 이런 놈 만나면 이유 없이 끌린다냥.` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  ]);
 
   const match: ReportSection = {
     title: "나와 맞는 사람 vs 피해야 할 사람",
@@ -369,13 +372,11 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
   const pattern: ReportSection = {
     title: "내가 연애에서 반복하는 패턴 & 실수",
     headline: `${TYPES[me.code].emoji} '${TYPES[me.code].name}'의 연애 공식`,
-    body: [
+    body: lines([
       SOLO.PATTERN[me.poles[top1]],
       SOLO.PATTERN[me.poles[top2]],
       mbti ? `MBTI로 봐도 ${mbti}는 '${mbtiShort(mbti)}' 타입이라 이 패턴이 더 선명하게 나온다냥.` : "",
-    ]
-      .filter(Boolean)
-      .join(" "),
+    ]),
     bullets: [
       ...hiddenReadings(me),
       `⚠️ 자주 하는 실수: ${SOLO.MISTAKE[me.poles[top1]]}`,
@@ -421,12 +422,10 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
   const luck: LuckSection = {
     title: "이번 달 연애운 & 인연이 들어오는 날",
     headline: loveLuck.loveLuckHeadline,
-    body: [
+    body: lines([
       SOLO.MONTH_FLOW[soloMonthFlow(c)],
       lackingLabel ? `네 사주에서 제일 약한 기운은 ${daNyang(lackingLabel)}. 이 기운을 채우는 색이랑 장소가 인연을 불러온다냥.` : "",
-    ]
-      .filter(Boolean)
-      .join(" "),
+    ]),
     luckyColor: myLuck.color,
     luckyPlace: myLuck.place,
     luckyItem: myLuck.item,
@@ -614,14 +613,12 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
   const hiddenMind: ReportSection = {
     title: "상대방이 말하지 않는 진짜 속마음 & 섭섭한 점",
     headline: `${TYPES[partner.code].emoji} ${josa(n.p, "은/는")} '${TYPES[partner.code].name}' 유형이다냥`,
-    body: [
+    body: lines([
       P.PARTNER_HIDDEN[partner.poles[partnerRanked[0].key]](n),
       P.PARTNER_HIDDEN[partner.poles[partnerRanked[1].key]](n),
       partnerMbti ? `MBTI로 봐도 ${partnerMbti}는 '${mbtiShort(partnerMbti)}' 타입이라 이런 면이 더 세게 나온다냥.` : "",
       hurt,
-    ]
-      .filter(Boolean)
-      .join(" "),
+    ]),
     bullets: [
       `🙊 속으로 하고 싶은 말: ${P.WANT_TO_SAY[topPole]}`,
       `😢 섭섭 포인트: ${shortHurt(mismatch?.key)}`,
@@ -638,15 +635,13 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
   const overall: ReportSection = {
     title: "종합 궁합 & 연애 스타일",
     headline: overallHeadline(x.score),
-    body: [
+    body: lines([
       P.STATUS_OPENER[input.status],
       sajuParagraph(x),
       mbti ? `MBTI로는 ${mbti.pair}, '${mbti.level}' 조합이다냥. ${mbti.line}` : "",
       P.PAIR[g](n),
       P.PAIR[e](n),
-    ]
-      .filter(Boolean)
-      .join(" "),
+    ]),
     bullets: [
       WEAPON[sortedSub[0]],
       WEAKNESS[sortedSub[sortedSub.length - 1]],
@@ -694,7 +689,7 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
       x.sub.attraction >= 85
         ? `끌림 케미 ${x.sub.attraction}점, 눈만 마주쳐도 공기가 달라지는 사이 ✨`
         : `끌림 케미 ${x.sub.attraction}점, 분위기를 만들면 확 타오르는 사이 🔥`,
-    body: `${P.MOOD_BY_EXPRESS[expressKey]} ${P.TIMING_BY_ATTACH[attachKey]}`,
+    body: lines([P.MOOD_BY_EXPRESS[expressKey], P.TIMING_BY_ATTACH[attachKey]]),
     bullets: [`🕯️ 최고의 무드: ${myLuck.place}`, P.INTIMACY_SWITCH[partner.poles.express as "E" | "H"], P.MENTAL_SPARK[conflictKey]],
   };
 
@@ -706,7 +701,7 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
         : conflictKey === "FF"
           ? "둘 다 안 물러설 때가 제일 위험하다냥 ⚔️"
           : "조용한 거리감이 제일 큰 적이다냥 🧊",
-    body: `${P.PAIR[f](n)} ${P.PAIR[a](n)}`,
+    body: lines([P.PAIR[f](n), P.PAIR[a](n)]),
     bullets: [P.DANGER_SIGN[conflictKey], P.EXTINGUISHER[conflictKey], P.BREAKUP_GUARD[attachKey]],
   };
 
