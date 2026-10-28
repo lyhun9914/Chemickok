@@ -82,7 +82,7 @@ export interface PersonalReading {
   twoFaces: { outer: string; inner: string };
   signature: string;
   /** all 4 axes, most decisive first */
-  traits: { title: string; label: string; pct: number; text: string }[];
+  traits: { title: string; label: string; pct: number; text: string; why?: string }[];
   /** the two most telling interview answers, decoded (the rest are in the paid report) */
   tells: Tell[];
   /** the color the user picked, read against their saju */

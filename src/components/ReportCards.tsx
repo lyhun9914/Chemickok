@@ -180,6 +180,7 @@ export function TraitsCard({ teaser, myName }: { teaser: TeaserReport; myName: s
             <p className="text-sm font-semibold">
               <span className="text-pink">0{i + 1}</span> {t.title} · <span className="text-pink">{t.label} {t.pct}%</span>
             </p>
+            {t.why && <p className="mt-1.5 text-[13px] leading-relaxed text-pink/90">🔎 {t.why}</p>}
             <p className="mt-1.5 text-[15px] leading-relaxed text-ink/90">{t.text}</p>
             {personal.scenes[i] && (
               <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-sm leading-relaxed text-muted">😳 {personal.scenes[i]}</p>

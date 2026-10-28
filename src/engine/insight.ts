@@ -5,7 +5,8 @@ import { COMBO_CONTRAST_TAIL, COMBO_SAME, TRAIT_FACE } from "./content/combo";
 import type { Decoded, Trait, Weights } from "./content/decode";
 import * as T from "./content/insight";
 import { resolve, type Resolved } from "./freeText";
-import { hiddenPct, type Profile } from "./profile";
+import { josa } from "@/lib/josa";
+import { AXES as PROFILE_AXES, hiddenPct, type Profile } from "./profile";
 
 // Readings that depend on the whole person, not just one answer: every decoded answer is tied to the
 // person's other answers, their overall leaning, and their MBTI or day master, so the same choice reads
@@ -304,3 +305,81 @@ export function crossCombos(me: AnswerSet, partner: AnswerSet, max = 3): string[
       return fill(`🔗 너: '${a!.label}' × {p}: '${b!.label}'\n${T.CROSS[axis][idx]}`, me.p);
     });
 }
+
+/**
+ * Why each axis came out the way it did: the answers that pushed hardest toward the final pole, and the
+ * strongest one that pulled the other way. Ties the card to this exact answer combination.
+ */
+export function traitEvidence(set: AnswerSet): Record<AxisKey, string> {
+  const list = items(set).filter((it) => !it.unknown && !it.r.unread);
+  const mbti = set.person.mbti.toUpperCase();
+  const q = (it: Item) => `'${it.label}'`;
+  const out = {} as Record<AxisKey, string>;
+  const seed = [...JSON.stringify(set.answers)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  // Same branch → next phrasing; an answer already quoted for another axis yields to a fresh one.
+  const used = new Map<string, number>();
+  const cited = new Set<string>();
+  const fresh = (it: Item) => (cited.has(it.qid) ? 0.6 : 0);
+  for (const ax of PROFILE_AXES) {
+    const dir = set.person.profile.raw[ax.key] > 0 ? 1 : -1;
+    const [mine, other] = dir > 0 ? ax.labels : [ax.labels[1], ax.labels[0]];
+    const pushes = list.map((it) => {
+      const vals = Object.values(set.decode[it.qid].options).map((o) => o.w[ax.key] ?? 0);
+      const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+      return { it, p: ((it.r.w[ax.key] ?? 0) - mean) * dir };
+    });
+    const pro = pushes.filter((x) => x.p >= 0.4).sort((a, b) => b.p - fresh(b.it) - (a.p - fresh(a.it))).map((x) => x.it);
+    const con = pushes.filter((x) => x.p <= -0.4).sort((a, b) => a.p + fresh(a.it) - (b.p + fresh(b.it))).map((x) => x.it);
+    const [a, b] = pro;
+    const c = con[0];
+    const mbtiPush = [...mbti].reduce((s, l) => s + (MBTI_PRIOR_SIGN[l]?.[ax.key] ?? 0), 0) * dir > 0;
+    const A = a && q(a), B = b && q(b), C = c && q(c);
+    const variants: string[] =
+      a && b && !c
+        ? [
+            `${josa(A!, "이랑/랑")} ${B}, 이 두 답이 너를 ${mine}으로 만들었다냥. 반대쪽으로 고른 답이 하나도 없어서 꽤 확실하다냥.`,
+            `${josa(A!, "을/를")} 고를 때부터 알았다냥. ${B}까지 더해지니 ${mine}이 아닐 수가 없다냥. 이 성향은 상대가 바뀌어도 잘 안 변한다냥.`,
+            `${A}, ${B}… 같은 쪽을 가리키는 답이 겹쳤다냥. 흔들림 없는 ${mine}이다냥.`,
+          ]
+        : a && b && c
+          ? [
+              `${josa(A!, "이랑/랑")} ${B}에서 ${mine}이 드러났다냥. 근데 ${C}에선 ${other} 모습도 보였지. 평소엔 ${mine}이어도 그런 순간엔 ${other}으로 바뀌는 사람이다냥.`,
+              `${A}, ${B} 쪽으로 보면 ${mine}인데 ${josa(C!, "이/가")} 걸린다냥. 마음이 편할 땐 ${mine}, 불안해지면 ${other}으로 돌아서는 타입이다냥.`,
+              `${mine} 쪽 답(${A}, ${B})이 더 많았지만 ${C}에서 숨은 ${other} 얼굴을 봤다냥. 그 얼굴은 좋아하는 마음이 클수록 더 자주 나온다냥.`,
+            ]
+          : a && c
+            ? [
+                `${josa(A!, "은/는")} ${mine}, ${josa(C!, "은/는")} ${other}… 두 모습 사이를 오가다 ${mine} 쪽으로 조금 더 기울었다냥. 상대가 어떻게 나오느냐에 따라 얼굴이 바뀐다냥.`,
+                `${A}에서 ${mine}, ${C}에서 ${other}. 너 안에 두 사람이 있다냥. 지금은 ${mine} 쪽이 조금 이기고 있다냥.`,
+              ]
+            : a
+              ? [
+                  `${A}, 이 답 하나가 너를 ${mine} 쪽으로 기울게 했다냥. 나머지 답은 중간이라, 만나는 사람에 따라 달라질 여지가 있다냥.`,
+                  `다른 답들은 애매했는데 ${A}에서 ${mine}이 확 드러났다냥. 딱 그 상황이 오면 본모습이 나오는 거다냥.`,
+                ]
+              : c
+                ? [
+                    `${josa(C!, "은/는")} ${other} 쪽이었지만, 나머지 답들이 조금씩 ${mine} 쪽으로 모였다냥. 겉으로 보이는 것보다 속은 ${mine}이다냥.`,
+                    `${C}만 보면 ${other} 같지만, 작은 답들이 모여 결국 ${mine}을 가리켰다냥. 티 안 나는 ${mine}이다냥.`,
+                  ]
+                : mbtiPush
+                  ? [`답만으로는 거의 반반이었는데 ${mbti}의 기질이 ${mine} 쪽으로 살짝 밀었다냥.`]
+                  : [`답만으로는 딱 반반이라 ${mine}은 아주 살짝이다냥. 상대에 따라 ${other}으로도 금방 바뀐다냥.`];
+    const branch = `${a ? 1 : 0}${b ? 1 : 0}${c ? 1 : 0}`;
+    const n = used.get(branch) ?? 0;
+    used.set(branch, n + 1);
+    [a, b, c].forEach((it) => it && cited.add(it.qid));
+    out[ax.key] = fill(pick(variants, seed + n), set.p);
+  }
+  return out;
+}
+
+/** Direction of the MBTI tie-breaker in profile.ts (sign only). */
+const MBTI_PRIOR_SIGN: Record<string, Partial<Record<AxisKey, number>>> = {
+  E: { drive: 1, express: 1 },
+  I: { drive: -1, express: -1 },
+  T: { conflict: 1, attach: -1 },
+  F: { conflict: -1, attach: 1, express: 1 },
+  J: { drive: 1, conflict: 1 },
+  P: { drive: -1, attach: -1 },
+};

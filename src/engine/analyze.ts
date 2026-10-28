@@ -36,7 +36,7 @@ import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, PARTNER_DECODE, selfDecode,
 import * as P from "./content/paid";
 import * as SOLO from "./content/solo";
 import { isValidAnswer, normalizeAnswer, resolve } from "./freeText";
-import { crossCombos, decodeBullets, decodeTells, partnerCombos, selfCombos, type AnswerSet } from "./insight";
+import { crossCombos, decodeBullets, decodeTells, partnerCombos, selfCombos, traitEvidence, type AnswerSet } from "./insight";
 import { MBTI_LOVE, bestMbti, hardMbti, mbtiPair, mbtiShort, normalizeMbti } from "./mbti";
 import { AXES, hiddenPct, reliability, scoreProfile, seedOf, tellingOrder, type Profile } from "./profile";
 import {
@@ -142,6 +142,7 @@ function worstTypeCode(me: Profile): string {
 
 function personalReading(c: Core): TeaserReport["personal"] {
   const { me, input, mySaju } = c;
+  const evidence = traitEvidence(selfSet(c));
   const traits = c.ranked.map((key) => {
     const r = me.axes.find((a) => a.key === key)!;
     const first = r.leftPct >= 50;
@@ -150,6 +151,7 @@ function personalReading(c: Core): TeaserReport["personal"] {
       label: first ? r.leftLabel : r.rightLabel,
       pct: first ? r.leftPct : 100 - r.leftPct,
       text: traitText(r.pole, r.intensity),
+      why: evidence[key],
     };
   });
   const scenes = c.ranked.map((key, i) => {
