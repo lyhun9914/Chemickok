@@ -1,0 +1,303 @@
+import "server-only";
+import { fill, optionOf, type InterviewQuestion } from "@/lib/interview";
+import type { AxisKey, ElementKey, Tell } from "@/models/types";
+import { COMBO_CONTRAST_TAIL, COMBO_SAME, TRAIT_FACE } from "./content/combo";
+import type { Decoded, Trait, Weights } from "./content/decode";
+import * as T from "./content/insight";
+import { resolve, type Resolved } from "./freeText";
+import { hiddenPct, type Profile } from "./profile";
+
+// Readings that depend on the whole person, not just one answer: every decoded answer is tied to the
+// person's other answers, their overall leaning, and their MBTI or day master, so the same choice reads
+// differently for different people. "잘 모르겠어" is filled in from the rest of the answers.
+
+export interface Person {
+  profile: Profile;
+  mbti: string;
+  dm: { label: string; element: ElementKey } | null;
+}
+
+export interface AnswerSet {
+  qs: InterviewQuestion[];
+  decode: Record<string, Decoded>;
+  answers: Record<string, string>;
+  person: Person;
+  /** observations about the partner (not the user's own answers) */
+  aboutPartner: boolean;
+  couple: boolean;
+  /** partner name for {p} */
+  p: string;
+}
+
+interface Item {
+  qid: string;
+  num: number;
+  label: string;
+  r: Resolved;
+  unknown: boolean;
+  /** the answer's weights; for 잘 모르겠어, the predicted choice's */
+  w: Weights;
+  predicted?: { label: string; read: string };
+}
+
+const AXES: AxisKey[] = ["drive", "express", "conflict", "attach"];
+const COLOR_Q = "s6";
+const plain = (label: string) => label.replace(/^\S+\s/, "").replace(/["']/g, "");
+const restOf = (read: string) => read.replace(/^.*?지\.\s*/, "");
+/** "'가끔 꺼내 본다'라고" / "'우리 사진'이라고" */
+const saidAs = (label: string) => {
+  const last = label.match(/[가-힣]/g)?.at(-1);
+  const batchim = last && /[가-힣]$/.test(label) ? (last.charCodeAt(0) - 0xac00) % 28 !== 0 : false;
+  return `'${label}'${batchim ? "이라고" : "라고"}`;
+};
+const sign = (v: number) => (v > 0 ? 1 : v < 0 ? -1 : 0);
+const pick = <X,>(list: X[], i: number) => list[((i % list.length) + list.length) % list.length];
+const sub = (s: string, vars: Record<string, string>) => s.replace(/\{(face|overall|expected|mbti|short|dm|label|read)\}/g, (_, k) => vars[k] ?? "");
+
+/** The person as a vector over all traits (axes in −2..2, hidden gauges rescaled to the same range). */
+function personVector(person: Person): Record<Trait, number> {
+  const pr = person.profile;
+  const h = (k: "linger" | "jealous" | "doubt") => (hiddenPct(pr.hidden[k]) - 50) / 25;
+  return { ...pr.raw, linger: h("linger"), jealous: h("jealous"), doubt: h("doubt") };
+}
+
+function dominant(w: Weights): [Trait, number] | null {
+  const top = (Object.entries(w) as [Trait, number][]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0];
+  return top && Math.abs(top[1]) >= 0.5 ? top : null;
+}
+
+/** The choice whose weights point most the way the person does. */
+function predict(set: AnswerSet, qid: string): { oid: string; label: string; read: string; w: Weights } | null {
+  const v = personVector(set.person);
+  let best: { oid: string; score: number } | null = null;
+  for (const [oid, o] of Object.entries(set.decode[qid].options)) {
+    const norm = Math.sqrt(Object.values(o.w).reduce((s, x) => s + (x ?? 0) ** 2, 0));
+    if (!norm) continue;
+    const score = (Object.entries(o.w) as [Trait, number][]).reduce((s, [t, x]) => s + v[t] * x, 0) / norm;
+    if (!best || score > best.score) best = { oid, score };
+  }
+  if (!best) return null;
+  const o = set.decode[qid].options[best.oid];
+  return { oid: best.oid, label: optionOf(set.qs, qid, best.oid)?.label ?? "", read: o.read, w: o.w };
+}
+
+function items(set: AnswerSet): Item[] {
+  return set.qs.flatMap((q, i) => {
+    const r = resolve(set.decode[q.id], q.id, set.answers[q.id]);
+    if (!r) return [];
+    const unknown = r.oid === null && !r.custom;
+    const guess = unknown ? predict(set, q.id) : null;
+    return [
+      {
+        qid: q.id,
+        num: i + 1,
+        label: plain(fill(r.label, set.p)),
+        r,
+        unknown,
+        w: guess ? guess.w : r.w,
+        predicted: guess ? { label: plain(fill(guess.label, set.p)), read: restOf(guess.read) } : undefined,
+      },
+    ];
+  });
+}
+
+/** How MBTI letters / a day-master element usually lean on a trait (positive = first pole). */
+const MBTI_VOTES: Record<string, Partial<Record<Trait, number>>> = {
+  E: { express: 1, drive: 1 },
+  I: { express: -1, drive: -1 },
+  N: { linger: 0.5, doubt: 0.5 },
+  S: { linger: -0.5 },
+  T: { conflict: 1, attach: -0.5, express: -0.5 },
+  F: { attach: 1, express: 0.5, conflict: -0.5, doubt: 0.5 },
+  J: { drive: 0.5, conflict: 0.5 },
+  P: { drive: -0.5, attach: -0.5 },
+};
+const ELEMENT_VOTES: Record<ElementKey, Partial<Record<Trait, number>>> = {
+  wood: { drive: 1, conflict: 0.5 },
+  fire: { express: 1, drive: 0.5 },
+  earth: { attach: -0.5, conflict: -0.5 },
+  metal: { conflict: 1, express: -0.5 },
+  water: { express: -1, doubt: 0.5, linger: 0.5 },
+};
+const mbtiLean = (mbti: string, t: Trait) => [...mbti].reduce((s, l) => s + (MBTI_VOTES[l]?.[t] ?? 0), 0);
+const elementLean = (el: ElementKey, t: Trait) => ELEMENT_VOTES[el][t] ?? 0;
+
+function overallSign(person: Person, t: Trait): number {
+  if ((AXES as Trait[]).includes(t)) {
+    const raw = person.profile.raw[t as AxisKey];
+    return Math.abs(raw) >= 0.35 ? sign(raw) : 0;
+  }
+  const pct = hiddenPct(person.profile.hidden[t as "linger" | "jealous" | "doubt"]);
+  return pct >= 66 ? 1 : pct <= 35 ? -1 : 0;
+}
+
+const face = (t: Trait, s: number) => TRAIT_FACE[t][s > 0 ? 0 : 1];
+
+/** This answer next to another answer with a strong lean on the same trait. */
+function crossLine(set: AnswerSet, it: Item, all: Item[], t: Trait, s: number): string | null {
+  const other = all
+    .filter((o) => o.qid !== it.qid && !o.unknown && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 0.5)
+    .sort((a, b) => Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
+  if (!other) return null;
+  const same = sign(other.w[t] ?? 0) === s;
+  const head = same ? `Q${other.num}에서 ${saidAs(other.label)} 한 것과 같은 뿌리다냥.` : `근데 Q${other.num}에서는 ${saidAs(other.label)} 했지.`;
+  if (set.aboutPartner) {
+    if (!(AXES as Trait[]).includes(t)) return null;
+    const table = same ? T.PARTNER_ROOT : T.PARTNER_SPLIT;
+    return `${head} ${table[t as AxisKey][s > 0 ? 0 : 1]}`;
+  }
+  const body = (same ? T.ROOT : T.SPLIT)[t][s > 0 ? 0 : 1];
+  const tail = set.couple ? ` ${T.COUPLE_TAIL[t][s > 0 ? 0 : 1]}` : "";
+  return `${head} ${body}${tail}`;
+}
+
+function profileLine(set: AnswerSet, it: Item, t: Trait, s: number): string | null {
+  const o = overallSign(set.person, t);
+  if (!o) return null;
+  if (o === s) return sub(pick(T.CONSISTENT, it.num), { face: face(t, s) });
+  const line = sub(pick(T.INCONSISTENT, it.num), { face: face(t, s), overall: face(t, o) });
+  return set.couple ? `${line} ${T.INCONSISTENT_COUPLE}` : line;
+}
+
+function typeLine(set: AnswerSet, it: Item, t: Trait, s: number, short: (m: string) => string): string | null {
+  const { mbti, dm } = set.person;
+  if (mbti) {
+    const lean = mbtiLean(mbti, t);
+    if (Math.abs(lean) < 0.5) return null;
+    const aligned = sign(lean) === s;
+    return sub(pick(aligned ? T.MBTI_ALIGNED : T.MBTI_OPPOSITE, it.num), { mbti, short: short(mbti), face: face(t, s), expected: face(t, sign(lean)) });
+  }
+  if (dm) {
+    const lean = elementLean(dm.element, t);
+    if (Math.abs(lean) < 0.5) return null;
+    const aligned = sign(lean) === s;
+    return sub(pick(aligned ? T.SAJU_ALIGNED : T.SAJU_OPPOSITE, it.num), { dm: dm.label, face: face(t, s), expected: face(t, sign(lean)) });
+  }
+  return null;
+}
+
+/** The decoded reading for one answer, tied to the rest of the person. */
+function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => string): string {
+  const parts = [it.r.read];
+  if (it.predicted) {
+    parts.push(sub(set.aboutPartner ? T.PREDICT_PARTNER : T.PREDICT, { label: it.predicted.label, read: it.predicted.read }));
+  }
+  const dom = dominant(it.w);
+  if (dom && it.qid !== COLOR_Q) {
+    const [t, v] = dom;
+    const s = sign(v);
+    const cross = crossLine(set, it, all, t, s);
+    const prof = set.aboutPartner ? null : profileLine(set, it, t, s);
+    const type = set.aboutPartner ? null : typeLine(set, it, t, s, short);
+    // Rotate which two context lines each question gets, so a long report doesn't repeat one pattern.
+    const order = [
+      [cross, prof, type],
+      [cross, type, prof],
+      [prof, type, cross],
+    ][it.num % 3];
+    parts.push(...order.filter((x): x is string => Boolean(x)).slice(0, 2));
+  }
+  return fill(parts.join(" "), set.p);
+}
+
+export function decodeTells(set: AnswerSet, short: (m: string) => string): Map<string, Tell> {
+  const all = items(set);
+  return new Map(
+    all.map((it) => {
+      const q = set.qs.find((x) => x.id === it.qid)!;
+      return [
+        it.qid,
+        {
+          question: fill(q.short, set.p),
+          answer: fill(it.r.label || (optionOf(set.qs, it.qid, set.answers[it.qid])?.label ?? ""), set.p),
+          why: fill(set.decode[it.qid].why, set.p),
+          read: enriched(set, it, all, short),
+        },
+      ];
+    }),
+  );
+}
+
+export function decodeBullets(set: AnswerSet, short: (m: string) => string): string[] {
+  const tells = decodeTells(set, short);
+  return set.qs.flatMap((q, i) => {
+    const t = tells.get(q.id);
+    return t ? [`Q${i + 1}. ${t.question}\n→ ${t.answer}\n💭 왜 물었냐면: ${t.why}\n🔮 ${t.read}`] : [];
+  });
+}
+
+// ───────────── 답변 조합 ─────────────
+
+const strongest = (set: AnswerSet, n: number) =>
+  items(set)
+    .filter((it) => !it.unknown && it.qid !== COLOR_Q && dominant(it.r.w))
+    .sort((a, b) => weightOf(b.r.w) - weightOf(a.r.w))
+    .slice(0, n);
+const weightOf = (w: Weights) => Object.values(w).reduce((s, v) => s + Math.abs(v ?? 0), 0) + (Object.keys(w).some((k) => ["linger", "jealous", "doubt"].includes(k)) ? 1 : 0);
+
+/** The user's own answers read in pairs. Couple mode uses its own sentences about the partner. */
+export function selfCombos(set: AnswerSet, max = 3): string[] {
+  const top = strongest(set, 4);
+  const pairs: [number, number][] = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 3], [0, 3]];
+  const used = new Set<string>();
+  const out: string[] = [];
+  for (const [i, j] of pairs) {
+    const a = top[i], b = top[j];
+    if (!a || !b || out.length >= max) continue;
+    const traits = [...new Set([...Object.keys(a.w), ...Object.keys(b.w)])] as Trait[];
+    const shared = traits
+      .map((t) => ({ t, va: a.w[t] ?? 0, vb: b.w[t] ?? 0 }))
+      .filter((x) => x.va * x.vb > 0 && Math.min(Math.abs(x.va), Math.abs(x.vb)) >= 0.5)
+      .sort((x, y) => Math.min(Math.abs(y.va), Math.abs(y.vb)) - Math.min(Math.abs(x.va), Math.abs(x.vb)))[0];
+    let key: string;
+    let line: string;
+    if (shared) {
+      key = `same-${shared.t}-${shared.va > 0}`;
+      line = (set.couple ? T.COMBO_SAME_COUPLE : COMBO_SAME)[shared.t][shared.va > 0 ? 0 : 1];
+    } else {
+      const da = dominant(a.w);
+      const db = (Object.entries(b.w) as [Trait, number][]).filter(([t]) => t !== da?.[0]).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0];
+      if (!da || !db) continue;
+      key = `face-${da[0]}-${db[0]}`;
+      const tail = set.couple ? pick(T.COMBO_CONTRAST_COUPLE, i + j) : pick(COMBO_CONTRAST_TAIL, i + j);
+      line = `겉으로는 ${face(da[0], da[1])}, 속으로는 ${face(db[0], db[1])}이다냥. ${tail}`;
+    }
+    if (used.has(key)) continue;
+    used.add(key);
+    out.push(fill(`🔗 '${a.label}' + '${b.label}'\n${line}`, set.p));
+  }
+  return out;
+}
+
+/** Two observations of the partner leaning the same way on an axis. */
+export function partnerCombos(set: AnswerSet, max = 2): string[] {
+  const all = items(set).filter((it) => !it.unknown);
+  const out: string[] = [];
+  for (const axis of AXES) {
+    const lean = (s: number) => all.filter((it) => sign(it.r.w[axis] ?? 0) === s && Math.abs(it.r.w[axis] ?? 0) >= 1);
+    for (const s of [1, -1]) {
+      const [a, b] = lean(s).sort((x, y) => Math.abs(y.r.w[axis] ?? 0) - Math.abs(x.r.w[axis] ?? 0));
+      if (a && b && out.length < max) out.push(fill(`🔗 {p}: '${a.label}' + '${b.label}'\n${T.PARTNER_COMBO[axis][s > 0 ? 0 : 1]}`, set.p));
+    }
+  }
+  return out;
+}
+
+/** My answer × the partner's answer on the same axis — the couple's actual dynamic. */
+export function crossCombos(me: AnswerSet, partner: AnswerSet, max = 3): string[] {
+  const mine = items(me).filter((it) => !it.unknown);
+  const theirs = items(partner).filter((it) => !it.unknown);
+  const strongestOn = (list: Item[], axis: AxisKey) =>
+    list.filter((it) => Math.abs(it.r.w[axis] ?? 0) >= 0.5).sort((a, b) => Math.abs(b.r.w[axis] ?? 0) - Math.abs(a.r.w[axis] ?? 0))[0];
+  return AXES.map((axis) => ({ axis, a: strongestOn(mine, axis), b: strongestOn(theirs, axis) }))
+    .filter((x) => x.a && x.b)
+    .map((x) => ({ ...x, score: Math.abs(x.a!.r.w[x.axis] ?? 0) + Math.abs(x.b!.r.w[x.axis] ?? 0) }))
+    .sort((x, y) => y.score - x.score)
+    .slice(0, max)
+    .map(({ axis, a, b }) => {
+      const sa = sign(a!.r.w[axis] ?? 0);
+      const sb = sign(b!.r.w[axis] ?? 0);
+      const idx = sa > 0 && sb > 0 ? 0 : sa < 0 && sb < 0 ? 1 : sa > 0 ? 2 : 3;
+      return fill(`🔗 너: '${a!.label}' × {p}: '${b!.label}'\n${T.CROSS[axis][idx]}`, me.p);
+    });
+}

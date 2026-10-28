@@ -211,7 +211,7 @@ export function ComboCard({ combo }: { combo: string }) {
   const [pair, ...rest] = combo.split("\n");
   return (
     <Card className="border-violet/40">
-      <p className="text-xs font-semibold text-violet">🔗 네 답 두 개를 같이 보면</p>
+      <p className="text-xs font-semibold text-violet">🔗 {pair.includes(" × ") ? "너와 그 사람의 답을 같이 보면" : "네 답 두 개를 같이 보면"}</p>
       <p className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm leading-relaxed text-muted">{pair.replace(/^🔗 /, "")}</p>
       <p className="mt-3 text-[15px] leading-relaxed">{rest.join(" ")}</p>
     </Card>

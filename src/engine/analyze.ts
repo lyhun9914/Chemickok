@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { copula, daNyang, josa } from "@/lib/josa";
 import { syllableStrokes } from "@/lib/nameCompat";
-import { PARTNER_INTERVIEW, fill, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
+import { PARTNER_INTERVIEW, selfInterview } from "@/lib/interview";
 import { COUPLE_CONCERNS, SOLO_CONCERNS } from "@/lib/questions";
 import type {
   AxisKey,
@@ -17,7 +17,6 @@ import type {
   QuestionnaireInput,
   ReportSection,
   SoloConcernId,
-  Tell,
   SoloTeaser,
   TeaserReport,
   TypeInfo,
@@ -33,11 +32,11 @@ import {
   TYPES,
   traitText,
 } from "./content/free";
-import { COMBO_CONTRAST_TAIL, COMBO_SAME, TRAIT_FACE } from "./content/combo";
-import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, PARTNER_DECODE, selfDecode, type Decoded, type HiddenKey, type Trait, type Weights } from "./content/decode";
+import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, PARTNER_DECODE, selfDecode, type Decoded, type HiddenKey } from "./content/decode";
 import * as P from "./content/paid";
 import * as SOLO from "./content/solo";
 import { isValidAnswer, normalizeAnswer, resolve } from "./freeText";
+import { crossCombos, decodeBullets, decodeTells, partnerCombos, selfCombos, type AnswerSet } from "./insight";
 import { MBTI_LOVE, bestMbti, hardMbti, mbtiPair, mbtiShort, normalizeMbti } from "./mbti";
 import { AXES, hiddenPct, reliability, scoreProfile, seedOf, tellingOrder, type Profile } from "./profile";
 import {
@@ -184,9 +183,9 @@ function personalReading(c: Core): TeaserReport["personal"] {
     tells: tellingOrder(selfDecode(input.mode), input.self)
       .filter((id) => id !== COLOR_Q)
       .slice(0, FREE_TELLS)
-      .map((id) => tell(selfInterview(input.mode), selfDecode(input.mode), id, input.self[id], input.partner.name)),
+      .map((id) => decodeTells(selfSet(c), mbtiShort).get(id)!),
     colorReading: colorReading(c),
-    combo: comboLines(input, 1)[0] ?? null,
+    combo: selfCombos(selfSet(c), 1)[0] ?? null,
     hidden: hiddenGauges(me),
     scenes,
   };
@@ -198,24 +197,30 @@ const COLOR_Q = "s6";
 const FREE_TELLS = 2;
 const HIDDEN_KEYS = Object.keys(HIDDEN_META) as HiddenKey[];
 
-const questionText = (q: InterviewQuestion, p: string) => fill(q.short, p);
-
-function tell(qs: InterviewQuestion[], decode: Record<string, Decoded>, qid: string, answer: string, p: string): Tell {
-  const q = qs.find((x) => x.id === qid)!;
-  const r = resolve(decode[qid], qid, answer)!;
+/** The user's own answers, with everything known about them, for decoding answers in context. */
+function selfSet(c: Core): AnswerSet {
   return {
-    question: questionText(q, p),
-    answer: fill(r.label || (optionOf(qs, qid, answer)?.label ?? ""), p),
-    why: fill(decode[qid].why, p),
-    read: fill(r.read, p),
+    qs: selfInterview(c.input.mode),
+    decode: selfDecode(c.input.mode),
+    answers: c.input.self,
+    person: { profile: c.me, mbti: c.input.me.mbti ?? "", dm: c.mySaju ? { label: dayMasterLabel(c.mySaju.dm), element: c.mySaju.dm.element } : null },
+    aboutPartner: false,
+    couple: c.input.mode === "couple",
+    p: c.input.partner.name,
   };
 }
 
-function decodeBullets(qs: InterviewQuestion[], decode: Record<string, Decoded>, answers: Record<string, string>, p: string): string[] {
-  return qs.map((q, i) => {
-    const t = tell(qs, decode, q.id, answers[q.id], p);
-    return `Q${i + 1}. ${t.question}\n→ ${t.answer}\n💭 왜 물었냐면: ${t.why}\n🔮 ${t.read}`;
-  });
+/** What the user told us about the partner, read against the partner's profile. */
+function partnerSet(x: Couple): AnswerSet {
+  return {
+    qs: PARTNER_INTERVIEW,
+    decode: PARTNER_DECODE,
+    answers: x.input.partnerObs,
+    person: { profile: x.partner, mbti: x.input.partner.mbti ?? "", dm: x.partnerSaju ? { label: dayMasterLabel(x.partnerSaju.dm), element: x.partnerSaju.dm.element } : null },
+    aboutPartner: true,
+    couple: true,
+    p: x.input.partner.name,
+  };
 }
 
 function colorReading(c: Core): string | null {
@@ -250,59 +255,12 @@ function hiddenReadings(me: Profile): string[] {
     .map((g) => `${g.icon} ${g.label} ${g.pct}% · ${HIDDEN_READING[g.key as HiddenKey][hiddenLevel(g.pct)]}`);
 }
 
-/**
- * 답변 조합 해석: pairs of the most telling answers, read together — "both say the same thing" when they lean
- * the same way on a trait, "two faces" when they pull apart. The same choice reads differently next to
- * different other answers.
- */
-function comboLines(input: QuestionnaireInput, max = 3): string[] {
-  const qs = selfInterview(input.mode);
-  const decode = selfDecode(input.mode);
-  const items = tellingOrder(decode, input.self)
-    .filter((id) => id !== COLOR_Q)
-    .map((id) => ({ id, r: resolve(decode[id], id, input.self[id]) }))
-    .filter((x) => x.r && Object.values(x.r.w).some((v) => Math.abs(v ?? 0) >= 0.5))
-    .slice(0, 4)
-    .map(({ id, r }) => ({ id, w: r!.w, label: fill(r!.label, input.partner.name).replace(/^\S+\s/, "").replaceAll('"', "") }));
-  const pairs: [number, number][] = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 3], [0, 3]];
-  const used = new Set<string>();
-  const out: string[] = [];
-  for (const [i, j] of pairs) {
-    const a = items[i], b = items[j];
-    if (!a || !b || out.length >= max) continue;
-    const traits = [...new Set([...Object.keys(a.w), ...Object.keys(b.w)])] as Trait[];
-    const shared = traits
-      .map((t) => ({ t, va: a.w[t] ?? 0, vb: b.w[t] ?? 0 }))
-      .filter((x) => x.va * x.vb > 0 && Math.min(Math.abs(x.va), Math.abs(x.vb)) >= 0.5)
-      .sort((x, y) => Math.min(Math.abs(y.va), Math.abs(y.vb)) - Math.min(Math.abs(x.va), Math.abs(x.vb)))[0];
-    let line: string;
-    let key: string;
-    if (shared) {
-      key = `same-${shared.t}-${shared.va > 0}`;
-      line = COMBO_SAME[shared.t][shared.va > 0 ? 0 : 1];
-    } else {
-      const top = (w: Weights, skip?: string) =>
-        (Object.entries(w) as [Trait, number][]).filter(([t]) => t !== skip).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0];
-      const ta = top(a.w);
-      const tb = top(b.w, ta?.[0]);
-      if (!ta || !tb) continue;
-      key = `face-${ta[0]}-${tb[0]}`;
-      const tail = COMBO_CONTRAST_TAIL[(i + j) % COMBO_CONTRAST_TAIL.length];
-      line = `겉으로는 ${TRAIT_FACE[ta[0]][ta[1] > 0 ? 0 : 1]}, 속으로는 ${TRAIT_FACE[tb[0]][tb[1] > 0 ? 0 : 1]}이다냥. ${tail}`;
-    }
-    if (used.has(key)) continue;
-    used.add(key);
-    out.push(`🔗 '${a.label}' + '${b.label}'\n${line}`);
-  }
-  return out;
-}
-
 function decodeSection(c: Core, intro: string): ReportSection {
   return {
     title: "면담 기록 전체 해석 · 냥신이 그 질문을 한 이유",
     headline: `'왜 이런 걸 묻지?' 싶었던 ${selfInterview(c.input.mode).length}개, 전부 이유가 있었다냥 🔍`,
     body: intro,
-    bullets: [...comboLines(c.input), ...decodeBullets(selfInterview(c.input.mode), selfDecode(c.input.mode), c.input.self, c.input.partner.name)],
+    bullets: [...selfCombos(selfSet(c)), ...decodeBullets(selfSet(c), mbtiShort)],
   };
 }
 
@@ -717,7 +675,7 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     title: `네가 말한 ${n.p}의 행동 ${PARTNER_INTERVIEW.length}가지, 진짜 의미`,
     headline: `사소해 보여도 ${n.p}의 마음은 습관에 새어 나온다냥 🕵️`,
     body: `${n.p} 얘기할 때 냥신이 이상한 것만 물어봤지? 사람 속마음은 말보다 습관에 먼저 나온다냥. 네가 본 ${n.p}의 모습 ${PARTNER_INTERVIEW.length}개를 하나씩 번역해 주겠다냥.`,
-    bullets: decodeBullets(PARTNER_INTERVIEW, PARTNER_DECODE, input.partnerObs, n.p),
+    bullets: [...crossCombos(selfSet(x), partnerSet(x)), ...partnerCombos(partnerSet(x)), ...decodeBullets(partnerSet(x), mbtiShort)],
   };
 
   const decode = decodeSection(x, `이번엔 너다냥, ${n.me}. 면담 때 '이걸 왜 묻지?' 싶었던 것들, 네 답에 숨은 것까지 다 읽었다냥.`);
@@ -872,7 +830,7 @@ function lockedPreviews(input: QuestionnaireInput, report: FullReport): LockedPr
   // Tease the decode with an answer that wasn't decoded for free.
   const order = tellingOrder(selfDecode(input.mode), input.self).filter((id) => id !== COLOR_Q);
   const hiddenTell = order[FREE_TELLS] ?? order[0];
-  const ht = tell(selfInterview(input.mode), selfDecode(input.mode), hiddenTell, input.self[hiddenTell], p);
+  const ht = decodeTells(selfSet(core(input)), mbtiShort).get(hiddenTell)!;
   const decodeTease = `"${ht.question}" → ${ht.answer}. ${cut(ht.read, 26)}`;
   const decodeTitle = `냥신이 그 질문을 한 진짜 이유 (네 답 ${selfInterview(input.mode).length}개 전부 해석)`;
 
@@ -889,7 +847,7 @@ function lockedPreviews(input: QuestionnaireInput, report: FullReport): LockedPr
   return [
     { id: "hiddenMind", icon: "🔒", title: `${p}의 진짜 속마음 & 너한테 섭섭한 점`, tease: cut(sec("hiddenMind").body.split(/(?<=[.?!])\s+/).slice(-1)[0], 22), count: sentenceCount(sec("hiddenMind")) },
     { id: "letter", icon: "💌", title: `${josa(p, "이/가")} 너한테 끝내 보내지 못한 편지`, tease: cut(sec("letter").body.split("\n\n")[1], 24), count: sec("letter").body.split("\n\n").length - 2 + sec("letter").bullets.length },
-    { id: "partnerDecode", icon: "🕵️", title: `네가 말한 ${p}의 행동 ${PARTNER_INTERVIEW.length}가지, 진짜 의미`, tease: cut(sec("partnerDecode").bullets[3].split("🔮 ")[1] ?? "", 28), count: PARTNER_INTERVIEW.length },
+    { id: "partnerDecode", icon: "🕵️", title: `네가 말한 ${p}의 행동 ${PARTNER_INTERVIEW.length}가지, 진짜 의미`, tease: cut(sec("partnerDecode").bullets.find((b) => b.startsWith("Q4."))?.split("🔮 ")[1] ?? "", 28), count: PARTNER_INTERVIEW.length },
     { id: "chemistry", icon: "🔥", title: "두 사람 스킨십 · 속궁합, 불붙는 순간", tease: cut(sec("chemistry").body), count: sentenceCount(sec("chemistry")) },
     { id: "crisis", icon: "⚡", title: "이 커플이 헤어진다면, 바로 이 순간 (이별 예방책)", tease: cut(sec("crisis").body), count: sentenceCount(sec("crisis")) },
     { id: "decode", icon: "🔍", title: decodeTitle, tease: decodeTease, count: selfInterview(input.mode).length },
@@ -913,7 +871,9 @@ export function buildTeaser(input: QuestionnaireInput): TeaserReport {
     return { ...base, couple: null, solo: soloLoveLuck(c), locked: lockedPreviews(input, buildSoloReport(c, "full")) };
   }
   const x = couple(c);
-  return { ...base, couple: coupleTeaser(x), solo: null, locked: lockedPreviews(input, buildCoupleReport(x, "full")) };
+  // Couples get the sharpest free pair: one of my answers next to one of theirs.
+  const personal = { ...base.personal, combo: crossCombos(selfSet(c), partnerSet(x), 1)[0] ?? base.personal.combo };
+  return { ...base, personal, couple: coupleTeaser(x), solo: null, locked: lockedPreviews(input, buildCoupleReport(x, "full")) };
 }
 
 /** level "share" → only the first locked section; "full" → everything. */
