@@ -112,7 +112,7 @@ interface Core {
 }
 
 function core(input: QuestionnaireInput): Core {
-  const me = scoreProfile(selfDecode(input.mode), input.self);
+  const me = scoreProfile(selfDecode(input.mode), input.self, input.me.mbti ?? "");
   return {
     input,
     me,
@@ -472,7 +472,7 @@ const pair = (a: Profile, b: Profile, axis: AxisKey) => a.poles[axis] + b.poles[
 function couple(c: Core): Couple {
   const { input, me, mySaju, seed } = c;
   const names = { me: input.me.name, p: input.partner.name };
-  const partner = scoreProfile(PARTNER_DECODE, input.partnerObs);
+  const partner = scoreProfile(PARTNER_DECODE, input.partnerObs, input.partner.mbti ?? "");
   const partnerSaju = computeSaju(input.partner.birthdate, input.partner.birthtime);
   const stemRel = mySaju && partnerSaju ? stemRelation(mySaju.dm, partnerSaju.dm) : null;
   const branchRel = mySaju && partnerSaju ? branchRelation(mySaju.dm.branch, partnerSaju.dm.branch) : null;

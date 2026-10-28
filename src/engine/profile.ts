@@ -1,5 +1,5 @@
 import "server-only";
-import type { Decoded, HiddenKey, Weights } from "./content/decode";
+import type { Decoded, HiddenKey, Trait, Weights } from "./content/decode";
 import { resolve } from "./freeText";
 import type { AxisKey, AxisResult, Intensity, Pole } from "@/models/types";
 
@@ -16,7 +16,7 @@ export interface Profile {
   raw: Record<AxisKey, number>;
   poles: Record<AxisKey, Pole>;
   code: string;
-  /** hidden trait → raw sum of weights */
+  /** hidden trait → centered z-score (0 = average answers) */
   hidden: Record<HiddenKey, number>;
 }
 
@@ -32,19 +32,76 @@ function chosen(decode: Record<string, Decoded>, answers: Record<string, string>
 }
 
 /**
- * Scores the 4 axes from interview answers. Each axis is normalised by how many questions can touch it,
- * so a consistent respondent reaches ±2. Exact ties lean on a hash of the answers so everyone gets a type.
+ * Centered score for one trait: for every question, how far the chosen answer sits from the average of that
+ * question's choices, over the spread you'd expect from answering at random (a z-score). Centering per question
+ * removes the lean built into a choice set, so the result reflects the person, not the questionnaire.
+ * 잘 모르겠어 and unreadable typed answers count as the average (no push either way).
  */
-export function scoreProfile(decode: Record<string, Decoded>, answers: Record<string, string>): Profile {
-  const picks = chosen(decode, answers);
+function centered(decode: Record<string, Decoded>, answers: Record<string, string>, t: Trait): number {
+  let sum = 0;
+  let variance = 0;
+  for (const [qid, d] of Object.entries(decode)) {
+    const vals = Object.values(d.options).map((o) => o.w[t] ?? 0);
+    const mean = vals.reduce((a, v) => a + v, 0) / vals.length;
+    const v = vals.reduce((a, x) => a + (x - mean) ** 2, 0) / vals.length;
+    if (!v) continue;
+    variance += v;
+    const r = resolve(d, qid, answers[qid]);
+    if (!r || r.unknown || r.unread) continue;
+    sum += (r.w[t] ?? 0) - mean;
+  }
+  return variance ? sum / Math.sqrt(variance) : 0;
+}
+
+/**
+ * Lopsided choice sets can still tip random answering to one side even after centering. Simulate random
+ * interviews once per question set and remember the median score per trait, so it can be subtracted:
+ * someone answering at random lands 50/50 on every axis, and a clear lean has to come from the person.
+ */
+const OFFSETS = new WeakMap<Record<string, Decoded>, Record<Trait, number>>();
+const ALL_TRAITS: Trait[] = ["drive", "express", "conflict", "attach", "linger", "jealous", "doubt"];
+
+function offsets(decode: Record<string, Decoded>): Record<Trait, number> {
+  const cached = OFFSETS.get(decode);
+  if (cached) return cached;
+  let seed = 20261028;
+  const rand = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32);
+  const samples = Object.fromEntries(ALL_TRAITS.map((t) => [t, [] as number[]])) as Record<Trait, number[]>;
+  const qids = Object.keys(decode);
+  for (let n = 0; n < 2000; n++) {
+    const answers = Object.fromEntries(qids.map((q) => {
+      const ids = Object.keys(decode[q].options);
+      return [q, ids[Math.floor(rand() * ids.length)]];
+    }));
+    for (const t of ALL_TRAITS) samples[t].push(centered(decode, answers, t));
+  }
+  const median = (xs: number[]) => {
+    const s = [...xs].sort((a, b) => a - b);
+    return (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+  };
+  const out = Object.fromEntries(ALL_TRAITS.map((t) => [t, median(samples[t])])) as Record<Trait, number>;
+  OFFSETS.set(decode, out);
+  return out;
+}
+
+/** MBTI letters → a small push per axis, used only to tip close calls (positive = first pole). */
+const MBTI_PRIOR: Record<string, Partial<Record<AxisKey, number>>> = {
+  E: { drive: 0.25, express: 0.3 },
+  I: { drive: -0.25, express: -0.3 },
+  T: { conflict: 0.25, attach: -0.15 },
+  F: { conflict: -0.15, attach: 0.25, express: 0.1 },
+  J: { drive: 0.15, conflict: 0.15 },
+  P: { drive: -0.15, attach: -0.1 },
+};
+
+export function scoreProfile(decode: Record<string, Decoded>, answers: Record<string, string>, mbti = ""): Profile {
   const tie = seedOf(JSON.stringify(answers));
   const raw = {} as Record<AxisKey, number>;
   const poles = {} as Record<AxisKey, Pole>;
   const axes: AxisResult[] = AXES.map((ax, i) => {
-    const reach = Object.values(decode).filter((d) => Object.values(d.options).some((o) => o.w[ax.key])).length;
-    const sum = picks.reduce((s, w) => s + (w[ax.key] ?? 0), 0);
-    let score = Math.max(-2, Math.min(2, sum / Math.max(1, reach * 0.55)));
-    if (score === 0) score = (tie >> i) & 1 ? 0.01 : -0.01;
+    const prior = [...mbti].reduce((s, l) => s + (MBTI_PRIOR[l]?.[ax.key] ?? 0), 0);
+    let score = Math.max(-2, Math.min(2, (centered(decode, answers, ax.key) - offsets(decode)[ax.key]) * 0.9 + prior));
+    if (Math.abs(score) < 0.01) score = (tie >> i) & 1 ? 0.01 : -0.01;
     raw[ax.key] = score;
     const pole = score > 0 ? ax.poles[0] : ax.poles[1];
     poles[ax.key] = pole;
@@ -60,15 +117,13 @@ export function scoreProfile(decode: Record<string, Decoded>, answers: Record<st
       intensity: intensityOf(score),
     };
   });
-  const hidden = Object.fromEntries(
-    HIDDEN_KEYS.map((k) => [k, picks.reduce((s, w) => s + (w[k] ?? 0), 0)]),
-  ) as Record<HiddenKey, number>;
+  const hidden = Object.fromEntries(HIDDEN_KEYS.map((k) => [k, centered(decode, answers, k) - offsets(decode)[k]])) as Record<HiddenKey, number>;
   return { axes, raw, poles, code: AXES.map((a) => poles[a.key]).join(""), hidden };
 }
 
-/** Hidden trait sum → 0..100 gauge. */
-export function hiddenPct(sum: number): number {
-  return Math.round(Math.max(8, Math.min(96, 30 + sum * 11)));
+/** Hidden trait (centered z-score) → 0..100 gauge; 50 = average. */
+export function hiddenPct(z: number): number {
+  return Math.round(Math.max(8, Math.min(96, 50 + z * 17)));
 }
 
 /**
