@@ -19,6 +19,8 @@ interface Saved {
   /** day numbers checked in during the current streak (last 7 shown as stamps) */
   days: number[];
   tarot?: { day: string; card: number };
+  /** 연락 타로: today's three cards per question */
+  contact?: { day: string; draws: Record<string, number[]> };
 }
 
 function read(): Saved | null {
@@ -69,4 +71,15 @@ export function tarotToday(): number | null {
 export function saveTarot(card: number) {
   const s = read() ?? { last: "", streak: 0, days: [] };
   write({ ...s, tarot: { day: todayKey(), card } });
+}
+
+/** 연락할까 말까 타로: one spread per question per day, so asking again shows the same answer. */
+export function contactToday(q: string): number[] | null {
+  const s = read();
+  return s?.contact?.day === todayKey() ? (s.contact.draws[q] ?? null) : null;
+}
+export function saveContact(q: string, cards: number[]) {
+  const s = read() ?? { last: "", streak: 0, days: [] };
+  const draws = s.contact?.day === todayKey() ? s.contact.draws : {};
+  write({ ...s, contact: { day: todayKey(), draws: { ...draws, [q]: cards } } });
 }

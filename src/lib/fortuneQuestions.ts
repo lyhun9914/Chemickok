@@ -438,7 +438,92 @@ const SPOUSE: InterviewQuestion[] = [
   },
 ];
 
+// ───────────── 신년운세 ─────────────
+
+const NEWYEAR: InterviewQuestion[] = [
+  {
+    id: "ny1",
+    short: "올 한 해, 한마디로 하면?",
+    ask: ["새해를 보려면 올해부터 알아야 한다냥.", "올 한 해, 한마디로 하면 어땠냥?"],
+    options: [
+      { id: "good", label: "🌸 잘 풀린 해", react: "좋았구냥. 그 흐름이 이어지는지 보자냥.", mood: "happy" },
+      { id: "busy", label: "🏃 정신없이 바빴던 해", react: "숨 돌릴 틈도 없었구냥." },
+      { id: "hard", label: "⛈️ 버티기만 한 해", react: "…고생했다냥. 새해엔 뭐가 바뀌는지 보자냥.", mood: "wow" },
+      { id: "change", label: "🔀 확 바뀐 해 (이사·이직·이별)", react: "판이 바뀌었구냥. 사주에도 흔적이 있다냥.", mood: "smug" },
+      { id: "stuck", label: "🧊 제자리걸음", react: "답답했구냥. 발이 언제 떨어지는지 보자냥." },
+      { id: "lonely", label: "🌙 외로웠던 해", react: "혼자 버텼구냥…" },
+    ],
+  },
+  {
+    id: "ny2",
+    short: "새해에 제일 잡고 싶은 운은?",
+    ask: ["새해에 딱 하나만 잡는다면, 무슨 운이냥?"],
+    options: [
+      { id: "money", label: "💰 재물운", react: "돈이구냥. 현실적이다냥 😼", mood: "smug" },
+      { id: "love", label: "💘 연애운", react: "인연이구냥." },
+      { id: "work", label: "💼 일·직장운", react: "일이구냥. 인정받고 싶구냥." },
+      { id: "study", label: "📝 시험·합격운", react: "붙어야 하는 게 있구냥." },
+      { id: "health", label: "🌿 건강운", react: "몸이 먼저구냥. 현명하다냥." },
+      { id: "people", label: "🤝 인간관계운", react: "사람이구냥. 사람이 곧 운이다냥." },
+    ],
+  },
+  {
+    id: "ny3",
+    short: "새해에 계획 중인 큰일은?",
+    ask: ["새해에 계획 중인 큰일이 있냥? 날짜까지 골라 주겠다냥."],
+    options: [
+      { id: "job", label: "💼 이직·취업", react: "움직일 생각이구냥. 문이 열리는 달을 보자냥.", minAge: 17 },
+      { id: "move", label: "📦 이사", react: "집을 옮기는구냥. 움직일 달이 따로 있다냥." },
+      { id: "marry", label: "💍 결혼·연애 시작", react: "좋은 일이구냥 😽", mood: "happy", minAge: 20 },
+      { id: "biz", label: "🚀 창업·부업", react: "판을 벌이는구냥. 돈 들어오는 달을 보자냥.", minAge: 18 },
+      { id: "exam", label: "📝 시험·자격증", react: "합격하는 달을 짚어 주겠다냥." },
+      { id: "invest", label: "📈 투자·큰 지출", react: "큰돈이구냥… 신중히 보겠다냥.", mood: "wow", minAge: 20 },
+      { id: "none", label: "🌿 딱히 없다, 흐름 보고", react: "흐름부터 보자냥. 기회는 따로 온다냥." },
+    ],
+  },
+  {
+    id: "ny4",
+    short: "지금 연애 상태는?",
+    ask: ["새해 인연운을 보려면 지금 상태부터 알아야 한다냥."],
+    options: [
+      { id: "single", label: "🙋 솔로", react: "자리가 비었구냥. 누가 앉는지 보자냥.", mood: "smug" },
+      { id: "some", label: "💭 썸 타는 중", react: "누가 있구냥… 새해에 어떻게 되는지 보자냥.", mood: "wow" },
+      { id: "dating", label: "💑 연애 중", react: "둘 사이의 새해를 보자냥." },
+      { id: "married", label: "💍 결혼했다", react: "가정의 새해를 보자냥.", minAge: 20 },
+      { id: "after", label: "💔 이별한 지 얼마 안 됐다", react: "…아직 아프구냥. 새해엔 다르다냥." },
+    ],
+  },
+  {
+    id: "ny5",
+    short: "요즘 제일 걱정되는 건?",
+    ask: ["요즘 밤에 제일 자주 떠오르는 걱정은 뭐냥?"],
+    options: [
+      { id: "money", label: "💸 돈", react: "돈 걱정이구냥." },
+      { id: "work", label: "📉 일·진로", react: "앞길이 걱정이구냥." },
+      { id: "people", label: "😮‍💨 사람 관계", react: "사람 때문이구냥." },
+      { id: "health", label: "🏥 건강", react: "몸 걱정이구냥. 꼭 짚어 주겠다냥." },
+      { id: "love", label: "💔 연애", react: "마음 걱정이구냥." },
+      { id: "family", label: "🏠 가족", react: "집안 걱정이구냥." },
+      { id: "mind", label: "🫠 번아웃·무기력", react: "많이 지쳤구냥…", mood: "wow" },
+    ],
+  },
+  {
+    id: "ny6",
+    short: "새해엔 꼭 버리고 싶은 버릇은?",
+    ask: ["마지막이다냥. 새해엔 꼭 버리고 싶은 버릇 하나만 골라라냥."],
+    options: [
+      { id: "late", label: "⏰ 늦잠·미루기", react: "아침이 무겁구냥." },
+      { id: "spend", label: "🛍️ 충동구매", react: "지갑이 가볍구냥 😼", mood: "smug" },
+      { id: "phone", label: "📱 새벽까지 폰", react: "밤이 길구냥." },
+      { id: "worry", label: "🌀 생각 과다", react: "머릿속이 시끄럽구냥." },
+      { id: "drink", label: "🍺 술·야식", react: "위장이 운다냥.", minAge: 20 },
+      { id: "people", label: "🙇 거절 못 하기", react: "착한 게 병이구냥." },
+    ],
+  },
+];
+
 export const FORTUNE_INTERVIEW: Record<FortuneMode, InterviewQuestion[]> = {
+  newyear: NEWYEAR,
   saju: SAJU,
   daeun: DAEUN,
   reunion: REUNION,

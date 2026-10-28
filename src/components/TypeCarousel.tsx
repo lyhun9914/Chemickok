@@ -130,7 +130,7 @@ export function TypeCarousel() {
   return (
     <div
       ref={box}
-      className="no-scrollbar -mx-5 flex cursor-grab select-none gap-3 overflow-x-auto px-5 pb-1 active:cursor-grabbing"
+      className="no-scrollbar -mx-5 flex cursor-grab select-none gap-2.5 overflow-x-auto px-5 py-1 active:cursor-grabbing"
       style={{
         maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
         WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
@@ -138,11 +138,18 @@ export function TypeCarousel() {
       aria-label="16가지 연애 팔자"
     >
       {[0, 1, 2].flatMap((copy) =>
-        TYPES.map((t) => (
-          <div key={`${copy}-${t.name}`} aria-hidden={copy !== 1} className="w-[158px] shrink-0 rounded-2xl border border-line bg-surface p-4">
-            <div className="text-[34px] leading-none">{t.emoji}</div>
-            <div className="mt-2.5 text-[15px] font-bold leading-snug">{t.name}</div>
-            <div className="mt-1 text-[12.5px] leading-snug text-muted">{t.tagline}</div>
+        TYPES.map((t, i) => (
+          // Drawn like the card you get in the reading (portrait, framed, numbered) so it reads as "a card to collect", not a menu button.
+          <div
+            key={`${copy}-${t.name}`}
+            aria-hidden={copy !== 1}
+            className="relative flex aspect-[3/4] w-[132px] shrink-0 flex-col items-center rounded-xl border border-peach/45 bg-chemi px-2.5 pb-3 pt-2.5 text-center shadow-[0_10px_24px_-12px_rgba(0,0,0,0.9)]"
+          >
+            <span className="pointer-events-none absolute inset-1.5 rounded-lg border border-peach/20" aria-hidden />
+            <p className="text-[9px] tracking-[0.2em] text-peach/80">CHEMI · {String(i + 1).padStart(2, "0")}/16</p>
+            <div className="mt-auto text-[38px] leading-none">{t.emoji}</div>
+            <p className="mt-2.5 break-keep text-[13px] font-bold leading-tight text-white">{t.name}</p>
+            <p className="mb-auto mt-1 break-keep text-[10.5px] leading-snug text-white/70">{t.tagline}</p>
           </div>
         )),
       )}

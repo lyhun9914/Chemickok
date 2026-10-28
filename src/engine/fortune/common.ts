@@ -249,7 +249,7 @@ const HEAVY_TAIL = [
 ];
 
 /** The same year for someone past 65: 몸 · 식구 · 재산, not promotions and weddings. */
-const GOD_YEAR_SENIOR: Record<TenGod, string> = {
+export const GOD_YEAR_SENIOR: Record<TenGod, string> = {
   비견: "친구·형제 일로 바빠지는 해다냥. 돈 거래만은 피해라냥.",
   겁재: "주변으로 돈이 새기 쉬운 해다냥. 지갑은 꼭 닫아라냥.",
   식신: "먹을 복과 편한 일상이 드는 해다냥. 몸이 가볍다냥.",

@@ -7,20 +7,23 @@ import type { Mode } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { enterThroughDoors } from "./Backdrop";
 import { LoginSheet } from "./LoginSheet";
-import { MiniGameSheet, type MiniGame } from "./MiniGames";
+import { MethodSection } from "./MethodSection";
+import { MiniGameSheet, type MiniGame, suneungDday } from "./MiniGames";
 import { Nyang } from "./Nyang";
 import { SoundToggle } from "./SoundToggle";
 import { Talisman } from "./Talisman";
 import { TypeCarousel } from "./TypeCarousel";
 
-
 const MENU: { title: string; sub: string; modes: Mode[] }[] = [
   { title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
-  { title: "📜 사주 · 운세 감정", sub: "만세력으로 원국을 세워 십성 · 용신 · 신살 · 대운까지 짚는 정통 감정서", modes: ["saju", "daeun"] },
+  { title: "📜 사주 · 운세 감정", sub: "만세력으로 원국을 세워 십성 · 용신 · 신살 · 대운까지 짚는 정통 감정서", modes: ["newyear", "saju", "daeun"] },
 ];
 
 const MINI: { id: MiniGame; emoji: string; name: string; sub: string; wide?: boolean }[] = [
   { id: "today", emoji: "📅", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번", wide: true },
+  { id: "exam", emoji: "🧧", name: "냥신 합격 부적", sub: "이름 넣으면 냥신이 직접 써 주는 부적 + 시험날 일진", wide: true },
+  { id: "ilju", emoji: "🐈", name: "일주 고양이 도감", sub: "60일주 중 내 고양이 · 기 센 순위" },
+  { id: "contact", emoji: "📨", name: "연락할까 말까?", sub: "카드 세 장으로 답하는 연락 타로" },
   { id: "tarot", emoji: "🃏", name: "오늘의 타로", sub: "하루 한 장 · 무료" },
   { id: "zodiac", emoji: "🐾", name: "띠별 운세", sub: "12띠 오늘 일진 · 무료" },
   { id: "daily", emoji: "🔮", name: "오늘의 연애운", sub: "생일만 넣으면 끝 · 무료" },
@@ -36,6 +39,8 @@ export function Landing() {
   // 출석 streak lives in this browser only; read after mount and whenever a mini game closes.
   const [{ streak, checkedToday }, setStreak] = useState({ streak: 0, checkedToday: false });
   useEffect(() => setStreak(streakNow()), [game]);
+  const [dday, setDday] = useState<number | null>(null);
+  useEffect(() => setDday(suneungDday()), []);
 
   // Saved 기본 정보 → the interview skips straight past name/birth. A product card also fixes the mode.
   const start = (mode?: Mode) => {
@@ -110,24 +115,35 @@ export function Landing() {
       </button>
 
       {MENU.map((group, gi) => (
-        <section key={group.title} id={gi ? "menu-fortune" : "menu-love"} className={`fade-up scroll-mt-4 ${gi ? "mt-8" : "mt-10"}`} style={{ animationDelay: `${0.1 + gi * 0.05}s` }}>
+        <section
+          key={group.title}
+          id={gi ? "menu-fortune" : "menu-love"}
+          className={`fade-up scroll-mt-4 ${gi ? "mt-9" : "mt-10"}`}
+          style={{ animationDelay: `${0.1 + gi * 0.05}s` }}
+        >
           <h2 className="text-[17px]">{group.title}</h2>
-          <p className="mb-3 mt-1 text-[13.5px] leading-relaxed text-muted">{group.sub}</p>
+          <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{group.sub}</p>
+          <p className="mb-3 mt-1.5 text-[12.5px] font-semibold text-peach">👆 누르면 바로 냥신 면담이 시작된다냥</p>
           <div className="space-y-3">
             {(Object.keys(PRODUCTS) as Mode[])
               .filter((m) => group.modes.includes(m))
               .map((m) => {
                 const pr = PRODUCTS[m];
                 return (
+                  // A door, not a panel: lit edge, gradient, and a real "보기" button on the right.
                   <button
                     key={m}
                     onClick={() => start(m)}
-                    className="flex w-full items-center gap-4 rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]"
+                    className="group relative flex w-full items-center gap-3.5 overflow-hidden rounded-2xl border border-peach/30 bg-gradient-to-r from-[#2a1510] via-surface to-surface py-4 pl-5 pr-3.5 text-left shadow-[0_10px_28px_-16px_rgba(0,0,0,0.95)] transition hover:border-peach/60 active:scale-[0.98]"
                   >
-                    <span className="text-4xl">{pr.emoji}</span>
+                    <span className="absolute inset-y-3 left-0 w-1 rounded-r bg-gradient-to-b from-peach to-pink" aria-hidden />
+                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-peach/20 bg-black/25 text-[30px]">{pr.emoji}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[17px] font-bold">{pr.name}</span>
-                      <span className="mt-1 block text-[13.5px] leading-relaxed text-muted">{pr.pitch}</span>
+                      <span className="block text-[17px] font-bold">
+                        {pr.name}
+                        {m === "newyear" && <span className="ml-1.5 rounded-sm bg-pink px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-white">NEW · 시즌</span>}
+                      </span>
+                      <span className="mt-1 block text-[13px] leading-relaxed text-muted">{pr.pitch}</span>
                       <span className="mt-1.5 block text-xs">
                         <span className="rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
                         <span className="ml-1.5 font-semibold text-peach">
@@ -135,8 +151,11 @@ export function Landing() {
                         </span>
                       </span>
                     </span>
-                    <span className="text-muted" aria-hidden>
-                      →
+                    <span className="flex shrink-0 flex-col items-center gap-1">
+                      <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-pink to-[#8c1c13] text-[20px] font-bold leading-none text-white shadow-[0_0_14px_rgba(212,80,63,0.5)] transition group-hover:translate-x-0.5">
+                        ›
+                      </span>
+                      <span className="text-[11px] font-bold text-peach">보기</span>
                     </span>
                   </button>
                 );
@@ -153,43 +172,69 @@ export function Landing() {
             <button
               key={g.id}
               onClick={() => setGame(g.id)}
-              className={`rounded-2xl border bg-surface p-4 text-left active:scale-[0.98] ${g.wide ? "col-span-2 flex items-center gap-4 border-violet/40" : "border-line"}`}
+              className={`relative rounded-2xl border bg-surface p-4 text-left transition hover:border-peach/50 active:scale-[0.98] ${g.wide ? "col-span-2 flex items-center gap-4 border-violet/40" : "border-line"}`}
             >
               <div className="text-3xl">{g.emoji}</div>
-              <div className={g.wide ? "min-w-0 flex-1" : ""}>
-                <div className={`font-bold ${g.wide ? "text-[16px]" : "mt-2 text-[15px]"}`}>{g.name}</div>
-                <div className="mt-0.5 text-[13px] text-muted">{g.wide && streak ? `🐾 출석 ${streak}일째 · ${checkedToday ? "오늘 도장 완료" : "오늘 도장 받으러 가기"}` : g.sub}</div>
+              <div className={g.wide ? "min-w-0 flex-1" : "pr-3"}>
+                <div className={`font-bold ${g.wide ? "text-[16px]" : "mt-2 text-[15px]"}`}>
+                  {g.name}
+                  {g.id === "exam" && dday !== null && (
+                    <span className="ml-1.5 rounded-sm bg-pink px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-white">수능 D-{dday}</span>
+                  )}
+                </div>
+                <div className="mt-0.5 text-[13px] text-muted">
+                  {g.id === "today" && streak ? `🐾 출석 ${streak}일째 · ${checkedToday ? "오늘 도장 완료" : "오늘 도장 받으러 가기"}` : g.sub}
+                </div>
               </div>
-              {g.wide && (
-                <span className="text-muted" aria-hidden>
-                  →
-                </span>
-              )}
+              <span className={`text-peach ${g.wide ? "text-lg" : "absolute right-3 top-3 text-base"}`} aria-hidden>
+                ›
+              </span>
             </button>
           ))}
         </div>
       </section>
 
-      <section className="fade-up mt-8" style={{ animationDelay: "0.25s" }}>
-        <h2 className="mb-3 text-sm font-semibold text-muted">16가지 연애 팔자 중 너는?</h2>
-        <TypeCarousel />
+      <section className="fade-up mt-10" style={{ animationDelay: "0.25s" }}>
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 className="text-[17px]">🃏 16가지 연애 팔자 카드</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted">연애 점괘를 보면 이 중 한 장이 네 카드로 뽑힌다냥</p>
+          </div>
+          <span className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[11px] text-muted">👀 구경 전용</span>
+        </div>
+        <div className="mt-3">
+          <TypeCarousel />
+        </div>
+        <p className="mt-2 text-center text-[12px] text-muted">👈 손가락으로 밀면 넘어간다냥 👉</p>
+        <button onClick={() => start("solo")} className="btn-primary mt-3 w-full py-3.5 text-[15px]">
+          🃏 내 카드 뽑으러 가기 (무료)
+        </button>
       </section>
 
-      <section className="fade-up mb-10 mt-8 space-y-3" style={{ animationDelay: "0.35s" }}>
-        {[
-          ["🕯️", "촛불 앞에서 냥신이 묻는 이상한 질문들… 다 이유가 있다"],
-          ["📜", "원국 · 십성 · 용신 · 대운, 감정 근거까지 적어 주는 감정서"],
-          ["😳", "\"이거 나 몰래 본 거 아니냥?\" 소름 돋는 일간 해석"],
-          ["🃏", "카드를 뒤집으면 나오는 나의 연애 유형"],
-          ["💘", "너랑 찰떡인 사람 vs 절대 만나면 안 되는 사람"],
-          ["💌", "그 사람이 끝내 보내지 못한 편지까지 꺼내 준다"],
-        ].map(([icon, text]) => (
-          <div key={text} className="flex items-center gap-3 rounded-2xl border border-line bg-surface/60 px-4 py-3 text-sm">
-            <span className="text-xl">{icon}</span>
-            <span>{text}</span>
-          </div>
-        ))}
+      <section className="fade-up mt-10" style={{ animationDelay: "0.3s" }}>
+        <h2 className="text-[17px]">📜 감정서에 담기는 것</h2>
+        <ul className="mt-3 divide-y divide-line border-y border-line">
+          {[
+            ["🕯️", "촛불 앞 면담", "이상해 보이는 질문마다 이유가 있다냥. 답이 해석의 근거가 된다냥"],
+            ["🀄", "원국과 감정 근거", "원국 · 십성 · 용신 · 신살 · 대운을 표로 적어 준다냥"],
+            ["😳", "일간 해석", '"이거 나 몰래 본 거 아니냥?" 소리 나오는 성격 풀이'],
+            ["📅", "날짜까지 짚는 시기", "좋은 해 · 좋은 달 · 조심할 때를 숫자로 적는다냥"],
+            ["💌", "그 사람의 속마음", "궁합 · 재회엔 끝내 보내지 못한 편지까지 꺼내 준다냥"],
+          ].map(([icon, title, text]) => (
+            <li key={title} className="flex gap-3 py-3">
+              <span className="mt-0.5 text-[18px]" aria-hidden>
+                {icon}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14.5px] font-bold">{title}</span>
+                <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">{text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
+
+      <MethodSection />
 
       <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={start} />
       <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />

@@ -18,6 +18,18 @@ const TYPING_MS = 750;
 
 /** 냥신's line before each section of the paid 감정서 (by section id). {p} is the ex. */
 const INTROS: Record<FortuneMode, Record<string, string>> = {
+  newyear: {
+    total: "새해 총운부터 보자냥 🎍",
+    money: "돈 얘기다냥. 들어오는 달과 지갑 닫을 달이다냥 💰",
+    love: "인연 얘기다냥.",
+    work: "일 얘기다냥. 힘이 실리는 달이 따로 있다냥.",
+    health: "몸 얘기다냥. 가볍게 넘기지 마라냥.",
+    people: "사람 얘기다냥. 귀인과 부딪칠 사람이다냥.",
+    flow: "열두 달을 하나씩 짚어 주겠다냥 🗓️",
+    plan: "네가 계획한 일의 날짜다냥. 꼭 적어 둬라냥.",
+    caution: "삼재와 조심할 달이다냥.",
+    luck: "마지막으로 새해 개운법이다냥. 1월 1일부터 해라냥.",
+  },
   saju: {
     nature: "타고난 그릇 얘기다냥. 겉과 속이 다 적혀 있다냥.",
     money: "돈 얘기다냥. 들어오는 길과 새는 길이다냥 💰",
@@ -60,6 +72,7 @@ const INTROS: Record<FortuneMode, Record<string, string>> = {
 };
 
 const PAY_LABEL: Record<FortuneMode, string> = {
+  newyear: "🎍 신년 감정서 전부 열기",
   saju: "📜 사주 감정서 전부 열기",
   daeun: "🌊 대운 감정서 전부 열기",
   reunion: "🔁 재회 감정서 전부 열기",
@@ -67,6 +80,7 @@ const PAY_LABEL: Record<FortuneMode, string> = {
 };
 
 const LEAVE_LINE: Record<FortuneMode, string> = {
+  newyear: "잠깐냥! 새해 최고의 달에 뭘 해야 하는지, 아직 안 말했다냥. 그냥 갈 거냥?",
   saju: "잠깐냥! 돈 들어오는 해랑 개운법은 아직 안 말했다냥. 그냥 갈 거냥?",
   daeun: "잠깐냥! 네 인생 황금기가 몇 살인지 아직 안 말했다냥. 그냥 갈 거냥?",
   reunion: "잠깐냥! {p}한테 연락해도 되는 날짜, 아직 안 말했다냥. 그냥 갈 거냥?",

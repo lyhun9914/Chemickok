@@ -1,6 +1,6 @@
 import "server-only";
 import { ANIMALS, SAMHAP, branchRelation, dayCycleIndex } from "./saju";
-import { type TenGod, BRANCHES_HANGUL, STEMS_HANGUL, buildChart, tenGod } from "./fortune/chart";
+import { type TenGod, BRANCHES_HANGUL, BRANCH_ELEMENT, GROUP_OF, STEMS_HANGUL, buildChart, elementValue, tenGod } from "./fortune/chart";
 import { LUCK } from "./fortune/common";
 import { seedOf } from "./profile";
 
@@ -93,6 +93,13 @@ const CAT_LINE: Record<Cat, [string, string, string]> = {
   health: ["몸이 가볍다냥.", "잠만 잘 자면 된다냥.", "무리하면 탈 난다냥."],
 };
 
+/** Three blocks of the day, each read by the hour branch at its middle (巳 · 未 · 戌). */
+const SLOTS = [
+  { label: "오전", branch: 5, good: "중요한 일은 오전에 끝내라냥.", low: "오전엔 실수 한 번 더 확인해라냥." },
+  { label: "오후", branch: 7, good: "약속·미팅은 오후가 좋다냥.", low: "오후엔 무리하지 말고 쉬어 가라냥." },
+  { label: "저녁", branch: 10, good: "저녁에 좋은 연락이 온다냥.", low: "저녁엔 일찍 들어가라냥." },
+];
+
 const TIMES = ["오전 7~9시", "오전 9~11시", "낮 11~1시", "오후 1~3시", "오후 3~5시", "저녁 5~7시", "밤 7~9시"];
 
 export interface TodayFortune {
@@ -108,6 +115,10 @@ export interface TodayFortune {
   direction: string;
   number: string;
   time: string;
+  /** 오전 · 오후 · 저녁, read off the hour branch each block sits in */
+  slots: { label: string; score: number; line: string }[];
+  outfit: string;
+  food: string;
 }
 
 export interface ZodiacToday {
@@ -165,6 +176,13 @@ export function todayFortune(birthdate: string, now = new Date()): TodayFortune 
     direction: L.direction,
     number: L.numbers.split("·")[seed % 2] ?? L.numbers,
     time: TIMES[(seed >> 4) % TIMES.length],
+    slots: SLOTS.map((sl, i) => {
+      const r = branchRelation(c.dayBranch, sl.branch);
+      const sc = clamp(base + elementValue(c, BRANCH_ELEMENT[sl.branch]) * 5 + (r === "harmony" ? 7 : r === "clash" ? -9 : 0) + (((seed >> (i + 9)) % 5) - 2));
+      return { label: sl.label, score: sc, line: sc >= 78 ? sl.good : sc >= 62 ? "무난하게 흘러간다냥." : sl.low };
+    }),
+    outfit: `${L.color.split("·")[0]} 포인트 하나 — 양말·가방·폰 케이스면 충분하다냥`,
+    food: L.food,
   };
 }
 
@@ -189,4 +207,91 @@ export function zodiacToday(now = new Date()): { date: string; ganji: string; li
     return { animal, score, line };
   });
   return { date: `${t.m}월 ${t.d}일`, ganji: `${STEMS_HANGUL[t.stem]}${BRANCHES_HANGUL[t.branch]}일`, list };
+}
+
+// ───────────── 합격 부적 · 시험날 일진 ─────────────
+
+const EXAM: Record<TenGod, { title: string; line: string; tip: string }> = {
+  정인: { title: "공부한 게 머리에 붙는 날", line: "공부 기운(정인)이 드는 날이다냥. 아는 문제는 다 맞힌다냥.", tip: "첫 문제에서 막히면 바로 넘겨라냥. 돌아오면 풀린다냥." },
+  편인: { title: "감이 맞는 날", line: "직감(편인)이 살아나는 날이다냥. 헷갈리면 처음 고른 답이 맞다냥.", tip: "답 고친 문제는 두 번만 확인하고 손 떼라냥." },
+  정관: {
+    title: "합격의 별이 뜨는 날",
+    line: "합격의 별(정관)이 뜨는 날이다냥. 반듯하게 준비한 만큼 그대로 나온다냥.",
+    tip: "수험표·신분증부터 챙겨라냥. 규칙대로 하면 이긴다냥.",
+  },
+  편관: {
+    title: "긴장이 집중이 되는 날",
+    line: "압박의 별(편관)이 드는 날이다냥. 떨리는 만큼 집중력이 올라간다냥.",
+    tip: "시작 전 숨 네 번 — 넷 세고 들이쉬고, 넷 세고 내쉬어라냥.",
+  },
+  식신: { title: "실력이 술술 나오는 날", line: "실력이 편하게 나오는 날(식신)이다냥. 평소처럼만 하면 된다냥.", tip: "점심은 평소 먹던 걸로 가볍게 먹어라냥." },
+  상관: { title: "머리가 번뜩이는 날", line: "머리가 번뜩이는 날(상관)이다냥. 서술형·면접에 강하다냥.", tip: "답안 옮겨 적기, 마지막에 한 번 더 확인해라냥." },
+  정재: { title: "꼼꼼함이 점수가 되는 날", line: "꼼꼼함(정재)이 점수가 되는 날이다냥. 시간 배분만 지키면 된다냥.", tip: "시계를 보고 교시마다 마지막 10분은 검토에 써라냥." },
+  편재: { title: "판을 넓게 보는 날", line: "넓게 보는 눈(편재)이 뜨는 날이다냥. 쉬운 문제부터 쓸어 담아라냥.", tip: "한 문제에 3분 넘게 붙잡지 마라냥." },
+  비견: { title: "버티는 힘이 센 날", line: "버티는 힘(비견)이 센 날이다냥. 마지막 교시까지 체력이 남는다냥.", tip: "쉬는 시간엔 답 맞춰 보지 말고 다음 과목만 봐라냥." },
+  겁재: { title: "승부욕이 불붙는 날", line: "승부욕(겁재)이 불붙는 날이다냥. 남 신경 끄면 네 실력이 다 나온다냥.", tip: "옆 사람 넘기는 소리는 무시해라냥. 네 속도로 가라냥." },
+};
+
+const EXAM_TIME: Record<string, string> = {
+  wood: "아침 첫 시간",
+  fire: "오전 늦게",
+  earth: "점심 먹은 직후",
+  metal: "오후",
+  water: "늦은 오후",
+};
+
+export interface ExamDay {
+  date: string; // "11월 19일 (목)"
+  ganji: string;
+  god: TenGod;
+  score: number;
+  title: string;
+  line: string;
+  tip: string;
+  color: string;
+  item: string;
+  time: string;
+  food: string;
+}
+
+/** 시험날 일진 against the chart: the 십성 the day brings, 합/충 with the 일지, and the 용신 for color / time. */
+export function examDay(birthdate: string, date: string): ExamDay | null {
+  const c = buildChart(birthdate, "", "female");
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!c || !m) return null;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const idx = dayCycleIndex(y, mo, d);
+  const stem = idx % 10;
+  const branch = idx % 12;
+  const god = tenGod(c.dayStem, stem);
+  const rel = branchRelation(c.dayBranch, branch);
+  const seed = seedOf(`${birthdate}|exam|${date}`);
+  const g = GROUP_OF[god];
+  const base = 74 + (g === "인성" || g === "관성" ? 8 : g === "식상" ? 5 : g === "비겁" ? 2 : 0) + (rel === "harmony" ? 6 : rel === "clash" ? -6 : 0) + ((seed % 7) - 3);
+  const e = EXAM[god];
+  const L = LUCK[c.yongsin];
+  const color = L.color.split("·")[0];
+  const weekday = "일월화수목금토"[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()];
+  return {
+    date: `${mo}월 ${d}일 (${weekday})`,
+    ganji: `${STEMS_HANGUL[stem]}${BRANCHES_HANGUL[branch]}일`,
+    god,
+    score: Math.max(70, Math.min(98, base)),
+    title: e.title,
+    line: [
+      e.line,
+      rel === "harmony"
+        ? "게다가 네 일지와 합이 드는 날이라 운이 붙는다냥."
+        : rel === "clash"
+          ? "다만 네 일지와 충이 드는 날이다냥. 전날 일찍 자고, 집에서 20분 일찍 나서라냥."
+          : null,
+    ]
+      .filter(Boolean)
+      .join(" "),
+    tip: e.tip,
+    color,
+    item: `${color} 손수건이나 필통`,
+    time: EXAM_TIME[c.yongsin],
+    food: L.food,
+  };
 }

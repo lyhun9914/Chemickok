@@ -406,9 +406,39 @@ export function LetterCard({ section }: { section: ReportSection }) {
   );
 }
 
+/** 한눈에 보기: every section's conclusion on one card, the way 감정서 open — tap a line to jump to it. */
+function SummaryIndex({ sections }: { sections: FullReport["sections"] }) {
+  return (
+    <div className="fade-up relative overflow-hidden rounded-2xl hanji p-5 text-[#2b1d16]">
+      <p className="text-[12px] tracking-[0.35em] text-[#8a5a3a]">要 約</p>
+      <p className="font-ritual text-[18px]">한눈에 보는 감정 요약</p>
+      <ol className="mt-3 divide-y divide-[#2b1d16]/15 border-y border-[#2b1d16]/25">
+        {sections.map((s) => (
+          <li key={s.id}>
+            <a href={`#sec-${s.id}`} className="flex items-start gap-2.5 py-2.5 active:opacity-60">
+              <span className="text-[17px] leading-6" aria-hidden>
+                {s.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12px] font-semibold text-[#8a5a3a]">{s.section.title}</span>
+                <span className="block text-[14px] font-semibold leading-snug">{s.section.headline}</span>
+              </span>
+              <span className="text-[13px] leading-6 text-[#8a5a3a]" aria-hidden>
+                ↓
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-2 text-[12px] text-[#8a5a3a]">줄을 누르면 그 풀이로 바로 내려간다냥.</p>
+    </div>
+  );
+}
+
 export function FullReportView({ report, intros = {} }: { report: FullReport; intros?: Record<string, string> }) {
   return (
     <div className="space-y-4">
+      {report.sections.length >= 4 && <SummaryIndex sections={report.sections} />}
       {report.subScores.length > 0 && (
         <Card>
           <p className="mb-3 text-xs font-semibold text-muted">📊 세부 지표</p>
@@ -428,7 +458,7 @@ export function FullReportView({ report, intros = {} }: { report: FullReport; in
         </Card>
       )}
       {report.sections.map((s, i) => (
-        <div key={s.id} className="space-y-3">
+        <div key={s.id} id={`sec-${s.id}`} className="scroll-mt-16 space-y-3">
           {intros[s.id] && <Say mood={i % 2 ? "smug" : "talk"}>{intros[s.id]}</Say>}
           {s.id === "letter" ? (
             <LetterCard section={s.section} />

@@ -7,7 +7,7 @@ const price = (v: string | undefined, fallback: number) => {
 
 /**
  * 상품 · 가격. Change the numbers here, or override per deploy without code changes with
- * NEXT_PUBLIC_PRICE_SOLO / _COUPLE / _SAJU / _DAEUN / _REUNION / _SPOUSE in Vercel (takes effect on the next deploy).
+ * NEXT_PUBLIC_PRICE_SOLO / _COUPLE / _NEWYEAR / _SAJU / _DAEUN / _REUNION / _SPOUSE in Vercel (takes effect on the next deploy).
  */
 export interface Product {
   name: string;
@@ -18,6 +18,16 @@ export interface Product {
   /** 연애 점괘 (love interview) or 사주·운세 (chart readings) — the landing menu groups by this */
   category: "love" | "fortune";
 }
+
+const GAN = "갑을병정무기경신임계";
+const JI = "자축인묘진사오미신유술해";
+/** The year a 신년운세 reads: from October on, people want next year's. */
+export function newYearOf(now = new Date()): number {
+  const k = new Date(now.getTime() + 9 * 3600 * 1000);
+  return k.getUTCMonth() >= 9 ? k.getUTCFullYear() + 1 : k.getUTCFullYear();
+}
+export const yearGanji = (y: number) => GAN[(((y - 4) % 10) + 10) % 10] + JI[(((y - 4) % 12) + 12) % 12];
+const NY = newYearOf();
 
 export const PRODUCTS: Record<Mode, Product> = {
   solo: {
@@ -51,6 +61,14 @@ export const PRODUCTS: Record<Mode, Product> = {
     orderName: "냥신 점괘 · 미래 배우자운",
     pitch: "배우자 자리로 보는 성격·외모·직업 · 만나는 해와 달 · 만나는 곳",
     category: "love",
+  },
+  newyear: {
+    name: `${NY} 신년운세`,
+    emoji: "🎍",
+    price: price(process.env.NEXT_PUBLIC_PRICE_NEWYEAR, 990),
+    orderName: `냥신 점괘 · ${NY} 신년운세`,
+    pitch: `${NY} ${yearGanji(NY)}년 총운 · 12달 흐름 · 좋은 달·조심할 달 · 삼재 · 재물·연애·일·건강`,
+    category: "fortune",
   },
   saju: {
     name: "타고난 사주 팔자",

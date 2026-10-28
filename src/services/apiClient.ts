@@ -46,6 +46,9 @@ export interface TodayFortuneResponse {
   direction: string;
   number: string;
   time: string;
+  slots: { label: string; score: number; line: string }[];
+  outfit: string;
+  food: string;
 }
 
 export interface ZodiacTodayResponse {
@@ -54,7 +57,39 @@ export interface ZodiacTodayResponse {
   list: { animal: string; score: number; line: string }[];
 }
 
+export interface IljuResponse {
+  no: number;
+  ganji: string;
+  hanja: string;
+  name: string;
+  icon: string;
+  keys: string[];
+  trait: string;
+  love: string;
+  labels: string[];
+  labelLine: string | null;
+  rank: number;
+  rankLine: string;
+  match: { ganji: string; name: string };
+}
+
+export interface ExamDayResponse {
+  date: string;
+  ganji: string;
+  god: string;
+  score: number;
+  title: string;
+  line: string;
+  tip: string;
+  color: string;
+  item: string;
+  time: string;
+  food: string;
+}
+
 export const todayApi = {
+  ilju: (birthdate: string) => post<{ ilju: IljuResponse }>("/api/today", { kind: "ilju", birthdate }).then((r) => r.ilju),
+  exam: (birthdate: string, date: string) => post<{ exam: ExamDayResponse }>("/api/today", { kind: "exam", birthdate, date }).then((r) => r.exam),
   fortune: (birthdate: string) => post<{ fortune: TodayFortuneResponse }>("/api/today", { birthdate }).then((r) => r.fortune),
   zodiac: () => post<{ zodiac: ZodiacTodayResponse }>("/api/today", {}).then((r) => r.zodiac),
 };

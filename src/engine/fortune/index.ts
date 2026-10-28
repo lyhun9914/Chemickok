@@ -4,14 +4,16 @@ import { FORTUNE_INTERVIEW } from "@/lib/fortuneQuestions";
 import { UNKNOWN_ANSWER } from "@/lib/interview";
 import type { FortuneMode, FortuneTeaser, FullReport, Gender, PersonInput, QuestionnaireInput } from "@/models/types";
 import { normalizeBlood } from "@/lib/blood";
+import { newYearOf } from "@/lib/config";
 import { normalizeMbti } from "../mbti";
 import { buildChart } from "./chart";
 import { daeunReading } from "./daeunReading";
+import { newyearReading } from "./newyearReading";
 import { reunionReading } from "./reunionReading";
 import { sajuReading } from "./sajuReading";
 import { spouseReading } from "./spouseReading";
 
-const FORTUNE_MODES: FortuneMode[] = ["saju", "daeun", "reunion", "spouse"];
+const FORTUNE_MODES: FortuneMode[] = ["newyear", "saju", "daeun", "reunion", "spouse"];
 export const isFortuneMode = (m: unknown): m is FortuneMode => FORTUNE_MODES.includes(m as FortuneMode);
 
 const GENDERS: Gender[] = ["female", "male", "other"];
@@ -71,6 +73,8 @@ function read(input: QuestionnaireInput): {
 } {
   const c = { ...buildChart(input.me.birthdate, input.me.birthtime, input.me.gender)!, blood: input.me.blood || undefined };
   switch (input.mode as FortuneMode) {
+    case "newyear":
+      return newyearReading(input, c);
     case "saju":
       return sajuReading(input, c);
     case "daeun":
@@ -93,6 +97,8 @@ export function buildFortuneReport(input: QuestionnaireInput, level: "share" | "
 export function fortuneTitle(input: QuestionnaireInput): string {
   const n = input.me.name;
   switch (input.mode as FortuneMode) {
+    case "newyear":
+      return `${n}의 ${newYearOf()} 신년운세`;
     case "saju":
       return `${n}의 사주 감정서`;
     case "daeun":

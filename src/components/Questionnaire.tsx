@@ -99,6 +99,12 @@ const n = (text: string, mood: Mood = "talk", node?: React.ReactNode) => ({ text
 
 /** 사주·운세 lines, per product. {p} is the ex (재회운). */
 const FORTUNE_SCRIPT: Record<FortuneMode, { intro: string; welcome: [string, Mood]; ritual: string[]; end: string }> = {
+  newyear: {
+    intro: "새해 운은 그해의 간지가 네 원국에 어떻게 들어오는지로 본다냥. 생일이 정확해야 열두 달이 맞는다냥.",
+    welcome: ["좋다냥. 새해 열두 달, 하나도 안 빼고 짚어 주겠다냥 🎍", "smug"],
+    ritual: ["새해 간지를 네 원국 위에 올렸다냥.", "올해 얘기부터 묻겠다냥. 지난 해를 알아야 새해가 정확해진다냥 😼"],
+    end: "새해 기운이랑 네 답이 다 맞춰졌다냥. 신년 감정서를 펼쳐 볼까냥?",
+  },
   saju: {
     intro: "사주는 태어난 해·달·날·시, 여덟 글자로 본다냥. 한 글자만 틀려도 풀이가 틀어진다냥.",
     welcome: ["좋다냥. 여덟 글자, 하나도 안 빼고 읽어 주겠다냥.", "smug"],

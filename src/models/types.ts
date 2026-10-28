@@ -6,7 +6,7 @@ export type Gender = "female" | "male" | "other";
 /** 연애 점괘 (the original interview + love engine) */
 export type LoveMode = "solo" | "couple";
 /** 사주·운세 점괘: their own short interview, chart-based readings */
-export type FortuneMode = "saju" | "daeun" | "reunion" | "spouse";
+export type FortuneMode = "newyear" | "saju" | "daeun" | "reunion" | "spouse";
 export type Mode = LoveMode | FortuneMode;
 
 export type RelationshipStatus = "crush" | "dating" | "slump" | "breakup";
@@ -187,7 +187,16 @@ export type FortuneCard =
   | { kind: "basis"; rows: [string, string][]; note?: string }
   | { kind: "text"; icon: string; title: string; body: string }
   | { kind: "score"; label: string; score: number; headline: string; body?: string }
-  | { kind: "timeline"; title: string; items: { age: string; ganji: string; hanja: string; score: number; current: boolean; god: string }[] }
+  | {
+      kind: "timeline";
+      title: string;
+      items: { age: string; ganji: string; hanja: string; score: number; current: boolean; god: string }[];
+      /** label under each bar after the number: "세" for 대운 (default), "월" for 12달 */
+      unit?: string;
+      icon?: string;
+      /** line under the graph explaining the lit bar */
+      note?: string;
+    }
   | { kind: "keywords"; title: string; items: string[]; body?: string };
 
 export interface FortuneBeat {
