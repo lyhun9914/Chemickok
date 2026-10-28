@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { TeaserReport } from "@/models/types";
-import { shareService, siteUrl, type ShareOutcome } from "@/services/shareService";
+import { isMobile, shareService, siteUrl, type ShareOutcome } from "@/services/shareService";
 import { ShareCard } from "./ShareCard";
 
 const OUTCOME_MSG: Record<ShareOutcome, string | null> = {
@@ -11,6 +11,7 @@ const OUTCOME_MSG: Record<ShareOutcome, string | null> = {
   downloaded: "이미지를 저장했어요! 인스타 스토리에 올려보세요 📸",
   cancelled: null,
   storyCamera: "카드 이미지를 저장했어요! 인스타 스토리 화면이 열리면 방금 저장한 사진을 골라 주세요 📸",
+  desktopInsta: "인스타그램을 새 탭으로 열고 카드 이미지를 저장했어요! PC 인스타는 스토리 대신 게시물만 돼요 → 왼쪽 '만들기(+)'에 저장된 이미지를 끌어다 놓으세요. 스토리는 폰에서 같은 버튼을 눌러 주세요 📸",
   desktopImage: "카드 이미지를 저장했어요! PC 인스타그램은 스토리 올리기를 지원하지 않아서, 폰으로 옮겨 스토리에 올려 주세요 📸",
 };
 
@@ -78,6 +79,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
           disabled={busy}
           onClick={() =>
             run(() => {
+              if (!isMobile()) shareService.openInstagramWeb();
               if (cardBlob.current) return shareService.shareImage(cardBlob.current);
               if (!cardRef.current) throw new Error("카드를 찾을 수 없어요");
               // Not rendered yet: render now (the share sheet may then be refused → story camera fallback).
@@ -92,7 +94,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
           <span className="share-icon bg-gradient-to-tr from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">📸</span>
           인스타 스토리에 점괘 걸기
         </button>
-        <p className="text-center text-[11px] text-muted">폰: 공유 창에서 Instagram → 스토리 · PC: 카드 이미지 저장</p>
+        <p className="text-center text-[11px] text-muted">폰: 공유 창에서 Instagram → 스토리 · PC: 인스타그램 열기 + 카드 저장</p>
       </div>
     </section>
   );

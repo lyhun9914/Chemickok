@@ -3,12 +3,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: "냥신 점괘 | 고양이 도사의 사주 · 궁합 · 연애 점괘",
+  title: "냥신 점괘 | 골목 끝 고양이 점집 · 사주 · 궁합 · 연애 팔자",
   description: "고양이 도사 냥신과 1:1 면담으로 보는 사주 점괘. 내 연애 팔자와 찰떡 궁합, 그 사람 속마음, 이번 달 운세까지. 사주 × MBTI × 심리",
   openGraph: {
-    title: "냥신 점괘 🐾",
-    description: "흥, 또 고민이냥? 고양이 도사 냥신이 1:1 면담으로 봐주는 사주 점괘",
-    images: ["/og.png"],
+    title: "냥신 점괘 🕯️ 골목 끝 점집",
+    description: "…들어왔으면 문부터 닫아라냥. 촛불 앞 1:1 면담으로 보는 사주 · 궁합 · 연애 팔자",
+    images: ["/og.png?v=2"],
     locale: "ko_KR",
     type: "website",
   },

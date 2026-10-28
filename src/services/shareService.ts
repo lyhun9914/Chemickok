@@ -15,7 +15,7 @@ declare global {
 
 const KAKAO_SDK_URL = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js";
 
-export type ShareOutcome = "shared" | "copied" | "downloaded" | "cancelled" | "desktopImage" | "storyCamera";
+export type ShareOutcome = "shared" | "copied" | "downloaded" | "cancelled" | "desktopImage" | "storyCamera" | "desktopInsta";
 
 /** Phones and tablets (incl. iPadOS, which reports itself as a Mac). PC gets popup / download flows instead of OS share sheets. */
 export function isMobile(): boolean {
@@ -59,10 +59,10 @@ export const shareService = {
         content: {
           title: opts.title,
           description: opts.description,
-          imageUrl: `${window.location.origin}/og.png`,
+          imageUrl: `${window.location.origin}/og.png?v=2`,
           link: { mobileWebUrl: opts.url, webUrl: opts.url },
         },
-        buttons: [{ title: "나도 점괘 보기", link: { mobileWebUrl: opts.url, webUrl: opts.url } }],
+        buttons: [{ title: "점집 들어가기", link: { mobileWebUrl: opts.url, webUrl: opts.url } }],
       });
       return Promise.resolve("shared");
     }
@@ -92,7 +92,7 @@ export const shareService = {
     const file = new File([blob], fileName, { type: "image/png" });
     if (!isMobile()) {
       this.download(blob, fileName);
-      return Promise.resolve("desktopImage");
+      return Promise.resolve("desktopInsta");
     }
     if (navigator.canShare?.({ files: [file] })) {
       return navigator.share({ files: [file] }).then(
@@ -101,6 +101,14 @@ export const shareService = {
       );
     }
     return Promise.resolve(this.toStoryCamera(blob, fileName));
+  },
+
+  /**
+   * PC: Instagram's website can't post stories (only feed posts via 만들기), so open it in a new tab right
+   * away (must happen inside the click, before anything async) and save the card for upload there.
+   */
+  openInstagramWeb() {
+    window.open("https://www.instagram.com/", "_blank", "noopener");
   },
 
   /** Save the card, then open Instagram's story camera (app deep link). */
