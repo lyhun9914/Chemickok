@@ -619,7 +619,7 @@ export function Questionnaire() {
   return (
     <main className="flex h-dvh flex-col overflow-hidden">
       {/* Header: the consultation room */}
-      <header className="z-20 shrink-0 border-b border-line bg-bg/55 px-4 pb-3 pt-3 backdrop-blur-md">
+      <header className="z-20 shrink-0 border-b border-line bg-bg/80 px-4 pb-3 pt-3 md:bg-bg/55 md:backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button onClick={() => setScreen("landing")} className="py-1 pr-1 text-lg text-muted" aria-label="나가기">
             ✕
@@ -658,7 +658,7 @@ export function Questionnaire() {
       </div>
 
       {/* Dock */}
-      <div className="dock z-10 max-h-[58dvh] shrink-0 overflow-y-auto border-t border-line bg-bg/70 px-4 pb-5 pt-4 backdrop-blur-md">
+      <div className="dock z-10 max-h-[58dvh] shrink-0 overflow-y-auto border-t border-line bg-bg/90 px-4 pb-5 pt-4 md:bg-bg/70 md:backdrop-blur-md">
         {done ? (
           <div key={step}>
             {dock}

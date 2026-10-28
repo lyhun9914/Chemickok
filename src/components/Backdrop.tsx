@@ -95,9 +95,10 @@ function Particles({ kind }: { kind: "embers" | "dust" }) {
     const cv = ref.current;
     const ctx = cv?.getContext("2d");
     if (!cv || !ctx || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const phone = window.matchMedia?.("(max-width: 760px), (pointer: coarse)").matches;
     let w = 0;
     let h = 0;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = phone ? 1 : Math.min(2, window.devicePixelRatio || 1);
     const resize = () => {
       w = cv.clientWidth;
       h = cv.clientHeight;
@@ -107,7 +108,18 @@ function Particles({ kind }: { kind: "embers" | "dust" }) {
     };
     resize();
     window.addEventListener("resize", resize);
-    const N = w < 600 ? 22 : 46;
+
+    // One glow sprite drawn once and stamped per particle (no gradient objects per frame).
+    const sprite = document.createElement("canvas");
+    sprite.width = sprite.height = 32;
+    const sc = sprite.getContext("2d")!;
+    const g = sc.createRadialGradient(16, 16, 0, 16, 16, 16);
+    g.addColorStop(0, kind === "embers" ? "rgba(255,180,90,1)" : "rgba(255,228,190,1)");
+    g.addColorStop(1, "rgba(255,140,60,0)");
+    sc.fillStyle = g;
+    sc.fillRect(0, 0, 32, 32);
+
+    const N = phone ? 14 : 40;
     const spawn = (init: boolean) => ({
       x: Math.random() * w,
       y: init ? Math.random() * h : kind === "embers" ? h + 10 : Math.random() * h,
@@ -117,29 +129,36 @@ function Particles({ kind }: { kind: "embers" | "dust" }) {
       life: Math.random() * Math.PI * 2,
     });
     const ps = Array.from({ length: N }, () => spawn(true));
+    // Phones: 30fps is plenty for slow drifting specks and halves the work.
+    const frameMs = phone ? 33 : 16;
     let raf = 0;
-    const tick = () => {
+    let last = 0;
+    const tick = (t: number) => {
+      raf = requestAnimationFrame(tick);
+      if (t - last < frameMs) return;
+      const step = Math.min(3, (t - last) / 16.7 || 1);
+      last = t;
       ctx.clearRect(0, 0, w, h);
       for (const p of ps) {
-        p.life += 0.02;
-        p.x += p.vx + Math.sin(p.life * 0.7) * 0.18;
-        p.y += p.vy;
-        if (p.y < -10 || p.x < -10 || p.x > w + 10 || (kind === "dust" && (p.y > h + 10))) Object.assign(p, spawn(false));
-        const a = kind === "embers" ? 0.35 + 0.45 * Math.abs(Math.sin(p.life * 2.3)) : 0.12 + 0.18 * Math.abs(Math.sin(p.life));
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
-        g.addColorStop(0, kind === "embers" ? `rgba(255,170,80,${a})` : `rgba(255,225,180,${a})`);
-        g.addColorStop(1, "rgba(255,140,60,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2);
-        ctx.fill();
+        p.life += 0.02 * step;
+        p.x += (p.vx + Math.sin(p.life * 0.7) * 0.18) * step;
+        p.y += p.vy * step;
+        if (p.y < -10 || p.x < -10 || p.x > w + 10 || (kind === "dust" && p.y > h + 10)) Object.assign(p, spawn(false));
+        ctx.globalAlpha = kind === "embers" ? 0.35 + 0.45 * Math.abs(Math.sin(p.life * 2.3)) : 0.12 + 0.18 * Math.abs(Math.sin(p.life));
+        const s = p.r * 8;
+        ctx.drawImage(sprite, p.x - s / 2, p.y - s / 2, s, s);
       }
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+    const start = () => {
+      cancelAnimationFrame(raf);
+      if (!document.hidden) raf = requestAnimationFrame(tick);
+    };
+    start();
+    document.addEventListener("visibilitychange", start);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", start);
     };
   }, [kind]);
   return <canvas ref={ref} className="particles" />;

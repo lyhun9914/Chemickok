@@ -24,11 +24,11 @@
 .particles { position: absolute; inset: 0; width: 100%; height: 100%; mix-blend-mode: screen; }
 
 /* 화면 전체에 촛불이 숨 쉬듯 */
-.atmos-layer::before { animation: candle 5s ease-in-out infinite, dimout 23s ease-in-out infinite; }
+.atmos-layer::before { animation: candle 6s ease-in-out infinite; }
 @keyframes dimout {
-  0%, 86%, 100% { opacity: 1; }
-  88% { opacity: 1.4; }
-  90% { opacity: 1.1; }
+  0%, 84%, 100% { opacity: 1; }
+  88% { opacity: 0.55; }
+  92% { opacity: 1; }
 }
 
 /* ═════════ 입구 ═════════ */
@@ -57,8 +57,9 @@
 .cloud {
   position: absolute;
   height: 240px;
-  width: 140vw;
-  left: -20vw;
+  width: calc(100vw + 900px);
+  left: -900px;
+  will-change: transform;
   background: var(--tex-cloud);
   background-size: 900px 300px;
   opacity: 0.35;
@@ -66,7 +67,7 @@
 }
 .cloud-1 { top: 60px; animation: cloudDrift 90s linear infinite; }
 .cloud-2 { top: 190px; opacity: 0.22; animation: cloudDrift 140s linear infinite reverse; }
-@keyframes cloudDrift { from { background-position: 0 0; } to { background-position: 900px 0; } }
+@keyframes cloudDrift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(900px, 0, 0); } }
 .far-roofs { position: absolute; left: 0; right: 0; top: 18vh; width: 100%; height: 300px; filter: blur(1.5px); opacity: 0.9; }
 
 .facade { position: absolute; top: 150px; bottom: 0; }
@@ -169,8 +170,8 @@
   animation: sway 5.5s ease-in-out infinite;
   filter: drop-shadow(0 0 26px rgba(255, 100, 40, 0.65));
 }
-.lantern svg { animation: lanternGlow 3s ease-in-out infinite; }
-@keyframes lanternGlow { 0%, 100% { filter: brightness(1); } 40% { filter: brightness(1.18); } 70% { filter: brightness(0.88); } }
+.lantern { will-change: transform; }
+@keyframes lanternGlow { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 .lantern-l { left: calc(50% - var(--half) - 140px); }
 .lantern-r { left: calc(50% + var(--half) + 50px); animation-delay: -2.2s; }
 .sindae { position: absolute; left: calc(50% - var(--half) - 330px); bottom: 120px; transform-origin: 50% 100%; animation: sway 7s ease-in-out infinite; filter: blur(0.4px) drop-shadow(0 0 20px rgba(0, 0, 0, 0.8)); }
@@ -206,9 +207,10 @@
 .sign-text { font-size: 23px; }
 .sign-small { font-size: 13px; color: #9a8a76; }
 .branch { position: absolute; left: -30px; top: 120px; transform-origin: 0 20%; animation: sway 11s ease-in-out infinite; opacity: 0.95; filter: blur(0.6px); }
-.fog { position: absolute; left: -10%; right: -10%; bottom: -4vh; height: 38vh; background: var(--tex-cloud); background-size: 1100px 380px; filter: blur(4px); }
-.fog-1 { opacity: 0.45; animation: cloudDrift 60s linear infinite; }
-.fog-2 { opacity: 0.3; bottom: -10vh; animation: cloudDrift 85s linear infinite reverse; }
+.fog { position: absolute; left: -1100px; width: calc(100vw + 1100px); bottom: -4vh; height: 38vh; background: var(--tex-cloud); background-size: 1100px 380px; will-change: transform; }
+.fog-1 { opacity: 0.4; animation: fogDrift 60s linear infinite; }
+.fog-2 { opacity: 0.26; bottom: -10vh; animation: fogDrift 85s linear infinite reverse; }
+@keyframes fogDrift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(1100px, 0, 0); } }
 
 /* ═════════ 점집 안 ═════════ */
 .scene-inside { background: #0a0605; }
@@ -389,11 +391,10 @@
 }
 /* 가끔 촛불이 꺼질 듯 줄어든다 */
 @keyframes flameDim {
-  0%, 85%, 100% { opacity: 1; }
-  87% { opacity: 0.25; }
-  89% { opacity: 0.6; }
-  90% { opacity: 0.3; }
-  93% { opacity: 1; }
+  0%, 84%, 100% { opacity: 1; }
+  87% { opacity: 0.3; }
+  90% { opacity: 0.45; }
+  94% { opacity: 1; }
 }
 .cd-1 { left: calc(50% - var(--half) - 180px); }
 .cd-2 { left: calc(50% - var(--half) - 115px); }
@@ -430,4 +431,17 @@
   .altar { height: 9vh; }
   .candle { bottom: calc(9vh - 6px); }
   .candle .halo { width: 150px; height: 150px; margin-left: -75px; }
+}
+
+/* 폰 성능: 화면 합성(블렌드)·흐림·그림자 필터를 끄고, 움직이는 레이어 수를 줄인다 */
+@media (max-width: 760px), (pointer: coarse) {
+  .particles, .lantern-cast, .candlelight, .candle .halo, .moonbeam, .atmos-layer::after { mix-blend-mode: normal; }
+  .lantern, .sindae, .branch, .scroll-painting, .lattice, .eaves, .screen-fold { filter: none; }
+  .cloud, .far-roofs, .passing-shadow { display: none; }
+  .fog-2 { display: none; }
+  .candle .flame { filter: none; }
+  .candle .halo { animation: none; opacity: 0.8; }
+  .screen-fold { transition: none; }
+  .incense:nth-child(n + 2) { display: none; }
+  .incense { filter: blur(10px); }
 }
