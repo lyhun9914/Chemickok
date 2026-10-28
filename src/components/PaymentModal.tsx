@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { productOf, won } from "@/lib/config";
+import { isFortune, productOf, won } from "@/lib/config";
 import type { PaymentMethod, QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
 import { useAppStore } from "@/store/useAppStore";
@@ -19,7 +19,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked }: Pr
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const locked = useAppStore((s) => s.teaser?.locked ?? []);
+  const locked = useAppStore((s) => (isFortune(s.input.mode) ? s.fortune?.locked : s.teaser?.locked) ?? []);
 
   if (!open) return null;
   const product = productOf(input.mode);

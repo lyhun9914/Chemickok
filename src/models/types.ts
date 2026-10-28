@@ -3,7 +3,11 @@
 export type Gender = "female" | "male" | "other";
 
 /** solo = 나 혼자 보기, couple = 마음에 둔 사람과 궁합 보기 */
-export type Mode = "solo" | "couple";
+/** 연애 점괘 (the original interview + love engine) */
+export type LoveMode = "solo" | "couple";
+/** 사주·운세 점괘: their own short interview, chart-based readings */
+export type FortuneMode = "saju" | "daeun" | "reunion" | "spouse";
+export type Mode = LoveMode | FortuneMode;
 
 export type RelationshipStatus = "crush" | "dating" | "slump" | "breakup";
 
@@ -152,6 +156,35 @@ export interface StoryCard {
   couple: { matchScore: number; coupleTitle: string } | null;
 }
 
+/** One card in a 사주·운세 reading. */
+export type FortuneCard =
+  | { kind: "chart" }
+  | { kind: "basis"; rows: [string, string][]; note?: string }
+  | { kind: "text"; icon: string; title: string; body: string }
+  | { kind: "score"; label: string; score: number; headline: string; body?: string }
+  | { kind: "timeline"; title: string; items: { age: string; ganji: string; hanja: string; score: number; current: boolean; god: string }[] }
+  | { kind: "keywords"; title: string; items: string[]; body?: string };
+
+export interface FortuneBeat {
+  say: string;
+  mood: "talk" | "smug" | "wow" | "happy";
+  card?: FortuneCard;
+  /** label of the button that reveals the next beat */
+  next: string;
+}
+
+/** Free part of a 사주·운세 reading; the paid part is a FullReport. */
+export interface FortuneTeaser {
+  mode: FortuneMode;
+  /** "김지은의 사주 감정서" */
+  title: string;
+  saju: SajuSummary | null;
+  beats: FortuneBeat[];
+  /** 냥신's line right before the paywall */
+  paywall: string;
+  locked: LockedPreview[];
+}
+
 export interface TeaserReport {
   mode: Mode;
   myType: TypeInfo;
@@ -195,6 +228,11 @@ export type UnlockLevel = "share" | "full";
 
 export interface AnalyzeResponse {
   teaser: TeaserReport;
+  inputHash: string;
+}
+
+export interface FortuneAnalyzeResponse {
+  teaser: FortuneTeaser;
   inputHash: string;
 }
 

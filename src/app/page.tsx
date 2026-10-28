@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { Backdrop } from "@/components/Backdrop";
 import { Footer } from "@/components/Footer";
+import { FortuneResultView } from "@/components/FortuneResultView";
 import { Landing } from "@/components/Landing";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { MyPage } from "@/components/MyPage";
 import { Questionnaire } from "@/components/Questionnaire";
 import { ResultView } from "@/components/ResultView";
 import { StoryScreen } from "@/components/StoryScreen";
+import { isFortune } from "@/lib/config";
 import { readHandoff } from "@/lib/handoff";
 import { accountApi } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
@@ -22,6 +24,7 @@ const LOGIN_NOTICE: Record<string, string> = {
 export default function Home() {
   const screen = useAppStore((s) => s.screen);
   const loadMe = useAppStore((s) => s.loadMe);
+  const fortune = useAppStore((s) => isFortune(s.input.mode));
   // The store rehydrates from sessionStorage on the client; render after mount to avoid a hydration mismatch.
   const [mounted, setMounted] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -33,7 +36,7 @@ export default function Home() {
     if (handoff) {
       window.history.replaceState(null, "", "/");
       if (handoff.kind === "input")
-        useAppStore.setState({ input: handoff.input, screen: "loading", step: 0, teaser: null, report: null, level: "none", error: null });
+        useAppStore.setState({ input: handoff.input, screen: "loading", step: 0, teaser: null, fortune: null, report: null, level: "none", error: null });
       else useAppStore.setState({ story: { ...handoff.share, insta: handoff.then === "insta" }, screen: "story", error: null });
     }
     // Back from /api/auth/*/callback with ?login=ok|fail|cancel|off — read it once, then clean the URL.
@@ -73,7 +76,7 @@ export default function Home() {
       {screen === "landing" && <Landing />}
       {screen === "form" && <Questionnaire />}
       {screen === "loading" && <LoadingScreen />}
-      {screen === "result" && <ResultView />}
+      {screen === "result" && (fortune ? <FortuneResultView /> : <ResultView />)}
       {screen === "my" && <MyPage />}
       {screen === "story" && <StoryScreen />}
       {(screen === "landing" || screen === "result" || screen === "my" || screen === "story") && <Footer />}

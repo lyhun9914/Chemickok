@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { FullReport, PersonInput, TeaserReport } from "@/models/types";
+import type { FortuneTeaser, FullReport, PersonInput, TeaserReport } from "@/models/types";
 
 export interface DbUser {
   id: string;
@@ -18,7 +18,7 @@ export interface ReadingRow {
   mode: string;
   title: string;
   names: { me: string; partner: string };
-  teaser: TeaserReport;
+  teaser: TeaserReport | FortuneTeaser;
   report: FullReport;
   order_id: string | null;
   created_at: string;

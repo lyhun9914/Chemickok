@@ -15,7 +15,7 @@ import type {
   Tell,
 } from "@/models/types";
 
-export function ScoreRing({ score, label = "궁합 지수" }: { score: number; label?: string }) {
+export function ScoreRing({ score, label = "궁합 지수", unit = "%" }: { score: number; label?: string; unit?: string }) {
   const r = 52;
   const c = 2 * Math.PI * r;
   return (
@@ -42,7 +42,10 @@ export function ScoreRing({ score, label = "궁합 지수" }: { score: number; l
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-black">{score}%</span>
+        <span className="text-4xl font-black">
+          {score}
+          {unit}
+        </span>
         <span className="text-xs text-muted">{label}</span>
       </div>
     </div>
@@ -260,7 +263,7 @@ export function HiddenCard({ personal, onLocked }: { personal: PersonalReadingT;
 }
 
 /** 냥신 talking: each sentence its own short hanji bubble, the cat avatar on the first one. */
-function NyangSays({ text, mood = "talk", max = 99 }: { text: string; mood?: "talk" | "smug" | "wow"; max?: number }) {
+export function NyangSays({ text, mood = "talk", max = 99 }: { text: string; mood?: "talk" | "smug" | "wow"; max?: number }) {
   const lines = text.split("\n").flatMap((l) => sentences(l)).slice(0, max);
   return (
     <div className="flex items-start gap-2">

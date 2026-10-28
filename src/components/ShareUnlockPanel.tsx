@@ -12,7 +12,7 @@ interface Props {
   toast: (m: string) => void;
 }
 
-/** "친구에게 테스트 추천하고 무료로 보기" — sharing unlocks the first locked section for free. */
+/** "친구에게 냥신 점집 알려 주고 무료로 보기" — sharing unlocks the first locked section for free. */
 export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Props) {
   const share = async () => {
     const outcome = await shareService.shareLink({
@@ -39,7 +39,7 @@ export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Prop
         onClick={share}
         className="mt-3 w-full rounded-xl border border-peach/50 py-3 text-sm font-bold text-peach active:scale-[0.98]"
       >
-        친구에게 테스트 추천하고 무료로 보기
+        친구에게 냥신 점집 알려 주고 무료로 보기
       </button>
     </div>
   );

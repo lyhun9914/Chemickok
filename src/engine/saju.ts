@@ -2,13 +2,13 @@ import "server-only";
 import type { ElementKey, Pillar, SajuSummary } from "@/models/types";
 
 // 천간(天干) / 지지(地支)
-const STEMS_HANJA = "甲乙丙丁戊己庚辛壬癸";
-const STEMS_HANGUL = "갑을병정무기경신임계";
-const BRANCHES_HANJA = "子丑寅卯辰巳午未申酉戌亥";
-const BRANCHES_HANGUL = "자축인묘진사오미신유술해";
+export const STEMS_HANJA = "甲乙丙丁戊己庚辛壬癸";
+export const STEMS_HANGUL = "갑을병정무기경신임계";
+export const BRANCHES_HANJA = "子丑寅卯辰巳午未申酉戌亥";
+export const BRANCHES_HANGUL = "자축인묘진사오미신유술해";
 
-const STEM_ELEMENT: ElementKey[] = ["wood", "wood", "fire", "fire", "earth", "earth", "metal", "metal", "water", "water"];
-const BRANCH_ELEMENT: ElementKey[] = [
+export const STEM_ELEMENT: ElementKey[] = ["wood", "wood", "fire", "fire", "earth", "earth", "metal", "metal", "water", "water"];
+export const BRANCH_ELEMENT: ElementKey[] = [
   "water", "earth", "wood", "wood", "earth", "fire", "fire", "earth", "metal", "metal", "earth", "water",
 ];
 
@@ -21,7 +21,7 @@ export const ELEMENT_LABEL: Record<ElementKey, string> = {
 };
 
 /** 상생: key generates value */
-const GENERATES: Record<ElementKey, ElementKey> = {
+export const GENERATES: Record<ElementKey, ElementKey> = {
   wood: "fire",
   fire: "earth",
   earth: "metal",
@@ -29,7 +29,7 @@ const GENERATES: Record<ElementKey, ElementKey> = {
   water: "wood",
 };
 /** 상극: key controls value */
-const CONTROLS: Record<ElementKey, ElementKey> = {
+export const CONTROLS: Record<ElementKey, ElementKey> = {
   wood: "earth",
   earth: "water",
   water: "fire",
@@ -62,7 +62,7 @@ function jdn(y: number, m: number, d: number): number {
   return d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
 }
 
-const mod = (n: number, m: number) => ((n % m) + m) % m;
+export const mod = (n: number, m: number) => ((n % m) + m) % m;
 
 /** 60갑자 index of a calendar day (0 = 甲子). 2000-01-01 → 戊午. */
 export function dayCycleIndex(y: number, m: number, d: number): number {
@@ -79,7 +79,7 @@ function pillar(label: Pillar["label"], stem: number, branch: number): Pillar {
 
 // Approximate start days of each solar month (절입일). ±1 day is accepted precision for this app.
 // [month, day, branchIndex]
-const SOLAR_TERMS: [number, number, number][] = [
+export const SOLAR_TERMS: [number, number, number][] = [
   [1, 6, 1], [2, 4, 2], [3, 6, 3], [4, 5, 4], [5, 6, 5], [6, 6, 6],
   [7, 7, 7], [8, 8, 8], [9, 8, 9], [10, 8, 10], [11, 7, 11], [12, 7, 0],
 ];
@@ -94,7 +94,7 @@ export interface DayMasterInfo {
 export const ANIMALS = ["쥐", "소", "호랑이", "토끼", "용", "뱀", "말", "양", "원숭이", "닭", "개", "돼지"];
 
 /** 삼합(三合) groups */
-const SAMHAP = [
+export const SAMHAP = [
   [8, 0, 4],
   [2, 6, 10],
   [5, 9, 1],

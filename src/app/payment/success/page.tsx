@@ -20,8 +20,8 @@ function Confirm() {
     const orderId = params.get("orderId");
     const amount = Number(params.get("amount"));
     // Answers survive the PG round-trip in sessionStorage.
-    const { input, teaser } = useAppStore.getState();
-    if (!paymentKey || !orderId || !teaser) {
+    const { input, teaser, fortune } = useAppStore.getState();
+    if (!paymentKey || !orderId || !(teaser || fortune)) {
       setError("결제 정보 또는 진단 결과가 없어요. 같은 브라우저 창에서 다시 시도해 주세요.");
       return;
     }

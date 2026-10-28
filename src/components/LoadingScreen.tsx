@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { isFortune } from "@/lib/config";
+import { josa } from "@/lib/josa";
+import type { FortuneMode } from "@/models/types";
 import { accountApi, api } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
 import { Nyang } from "./Nyang";
 
 const MIN_DURATION_MS = 4200;
+
+const FORTUNE_LINES: Record<FortuneMode, (p: string) => string[]> = {
+  saju: () => ["십성(十星)을 하나씩 짚는 중이다냥", "신강인지 신약인지… 용신이 보인다냥", "타고난 그릇의 크기가 보인다냥"],
+  daeun: () => ["대운수를 세는 중이다냥", "10년마다 바뀌는 물줄기가 보인다냥", "지나온 대운과 네 답을 맞춰 보는 중이다냥"],
+  reunion: (p) => [`${josa(p, "과/와")} 이어진 끈을 찾는 중이다냥`, `${p}의 지금 마음이 비친다냥… 🙊`, "연락해도 되는 날을 고르는 중이다냥"],
+  spouse: () => ["배우자 자리(일지)를 펼치는 중이다냥", "배우자 별이 들어오는 해를 세는 중이다냥", "…네 짝의 얼굴이 비친다냥"],
+};
 
 export function LoadingScreen() {
   const { input, setTeaser, setScreen, setError, error } = useAppStore();
@@ -14,7 +24,15 @@ export function LoadingScreen() {
   const started = useRef(false);
 
   const solo = input.mode === "solo";
-  const messages = [
+  const fortune = isFortune(input.mode);
+  const messages = fortune
+    ? [
+        "…향을 피웠다냥. 숨 고르고 가만히 있어라냥",
+        `만세력을 펼쳐 ${input.me.name}의 원국을 세우는 중이다냥`,
+        ...FORTUNE_LINES[input.mode as FortuneMode](input.partner.name || "그 사람"),
+        "…감정서를 다 적었다냥. 각오는 됐냥?",
+      ]
+    : [
     "…향을 피웠다냥. 숨 고르고 가만히 있어라냥",
     `${input.me.name}의 사주 여덟 글자를 펼치는 중이다냥`,
     "촛불이 흔들린다냥… 일주(日柱)에 뭔가 보인다냥",
@@ -36,15 +54,18 @@ export function LoadingScreen() {
     if (started.current) return;
     started.current = true;
     const minWait = new Promise((r) => setTimeout(r, MIN_DURATION_MS));
-    Promise.all([api.analyze(input), minWait])
-      .then(([res]) => {
+    const request = isFortune(input.mode)
+      ? api.fortune(input).then((res) => () => useAppStore.getState().setFortune(res.teaser, res.inputHash))
+      : api.analyze(input).then((res) => () => setTeaser(res.teaser, res.inputHash));
+    Promise.all([request, minWait])
+      .then(([show]) => {
         setProgress(100);
         // Logged in without saved 기본 정보: keep what was just typed so the next interview skips it.
         const { me, setMe } = useAppStore.getState();
         if (me && !me.profile && input.me.birthdate) {
           accountApi.saveProfile(input.me).then((r) => setMe({ ...me, profile: r.profile })).catch(() => null);
         }
-        setTimeout(() => setTeaser(res.teaser, res.inputHash), 300);
+        setTimeout(show, 300);
       })
       .catch((e: Error) => setError(e.message));
   }, [input, setTeaser, setError]);

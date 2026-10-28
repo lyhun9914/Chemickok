@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PRODUCTS, won } from "@/lib/config";
+import { PRODUCTS, isFortune, won } from "@/lib/config";
 import type { Mode } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { enterThroughDoors } from "./Backdrop";
@@ -15,6 +15,11 @@ const PREVIEW_TYPES = [
   { emoji: "📡", name: "츤데레 질투 레이더" },
   { emoji: "💣", name: "속으로 타는 시한폭탄" },
   { emoji: "🌙", name: "새벽 3시 감성 소설가" },
+];
+
+const MENU: { title: string; sub: string; modes: Mode[] }[] = [
+  { title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
+  { title: "📜 사주 · 운세 감정", sub: "만세력으로 원국을 세워 십성 · 용신 · 신살 · 대운까지 짚는 정통 감정서", modes: ["saju", "daeun"] },
 ];
 
 export function Landing() {
@@ -72,34 +77,41 @@ export function Landing() {
       </button>
       <p className="mt-3 text-center text-xs text-muted">⏱ 약 4분 · 회원가입 없음 · 기본 점괘 무료 · 거짓말은 통하지 않는다냥</p>
 
-      <section className="fade-up mt-10" style={{ animationDelay: "0.1s" }}>
-        <h2 className="mb-3 text-sm font-semibold text-muted">📜 오늘 펼칠 수 있는 점괘</h2>
-        <div className="space-y-3">
-          {(Object.keys(PRODUCTS) as Mode[]).map((m) => {
-            const pr = PRODUCTS[m];
-            return (
-              <button
-                key={m}
-                onClick={() => start(m)}
-                className="flex w-full items-center gap-4 rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]"
-              >
-                <span className="text-4xl">{pr.emoji}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-bold">{pr.name}</span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-muted">{pr.pitch}</span>
-                  <span className="mt-1.5 block text-xs">
-                    <span className="rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
-                    <span className="ml-1.5 font-semibold text-peach">전체 풀이 {won(pr.price)}</span>
-                  </span>
-                </span>
-                <span className="text-muted" aria-hidden>
-                  →
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      {MENU.map((group, gi) => (
+        <section key={group.title} className={`fade-up ${gi ? "mt-8" : "mt-10"}`} style={{ animationDelay: `${0.1 + gi * 0.05}s` }}>
+          <h2 className="text-[17px]">{group.title}</h2>
+          <p className="mb-3 mt-0.5 text-xs text-muted">{group.sub}</p>
+          <div className="space-y-3">
+            {(Object.keys(PRODUCTS) as Mode[])
+              .filter((m) => group.modes.includes(m))
+              .map((m) => {
+                const pr = PRODUCTS[m];
+                return (
+                  <button
+                    key={m}
+                    onClick={() => start(m)}
+                    className="flex w-full items-center gap-4 rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.98]"
+                  >
+                    <span className="text-4xl">{pr.emoji}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold">{pr.name}</span>
+                      <span className="mt-0.5 block text-xs leading-relaxed text-muted">{pr.pitch}</span>
+                      <span className="mt-1.5 block text-xs">
+                        <span className="rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
+                        <span className="ml-1.5 font-semibold text-peach">
+                          {isFortune(m) ? "전체 감정서" : "전체 풀이"} {won(pr.price)}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="text-muted" aria-hidden>
+                      →
+                    </span>
+                  </button>
+                );
+              })}
+          </div>
+        </section>
+      ))}
 
       <section className="fade-up mt-8" style={{ animationDelay: "0.15s" }}>
         <h2 className="mb-3 text-sm font-semibold text-muted">가볍게 한 점 🎴</h2>
@@ -132,6 +144,7 @@ export function Landing() {
       <section className="fade-up mb-10 mt-8 space-y-3" style={{ animationDelay: "0.35s" }}>
         {[
           ["🕯️", "촛불 앞에서 냥신이 묻는 이상한 질문들… 다 이유가 있다"],
+          ["📜", "원국 · 십성 · 용신 · 대운, 감정 근거까지 적어 주는 감정서"],
           ["😳", "\"이거 나 몰래 본 거 아니냥?\" 소름 돋는 일간 해석"],
           ["🃏", "카드를 뒤집으면 나오는 나의 연애 유형"],
           ["💘", "너랑 찰떡인 사람 vs 절대 만나면 안 되는 사람"],

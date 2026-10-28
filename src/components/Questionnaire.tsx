@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
-import type { Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
-import { productOf } from "@/lib/config";
+import { FORTUNE_INTERVIEW } from "@/lib/fortuneQuestions";
+import type { FortuneMode, Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
+import { isFortune, productOf } from "@/lib/config";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { flareCandles } from "./Backdrop";
@@ -18,12 +19,21 @@ type Turn =
   | { kind: "ritual"; id: "incense" | "orb" }
   | { kind: "q"; q: InterviewQuestion; part: "self" | "partner"; num: number };
 
+/** The questions for a product: the love interview, or the 사주·운세 consultation (lib/fortuneQuestions). */
+const selfQs = (mode: Mode): InterviewQuestion[] => (isFortune(mode) ? FORTUNE_INTERVIEW[mode] : selfInterview(mode));
+
 /**
  * `saved`: 기본 정보 is already known (logged in, or "다른 사람이랑 궁합" after a reading), so name/birth/MBTI
  * aren't asked again. `modeKnown`: the product was picked on the landing page; 냥신 still greets in that turn.
  */
 function turnsFor(mode: Mode, saved: boolean): Turn[] {
-  const self: Turn[] = selfInterview(mode).map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
+  const self: Turn[] = selfQs(mode).map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
+  if (isFortune(mode)) {
+    // The chart needs name · gender (대운 direction) · birth; no MBTI. 재회운 also asks who the ex is.
+    const info: Turn[] = saved ? [{ kind: "mode" }] : [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }];
+    const ex: Turn[] = mode === "reunion" ? [{ kind: "pname" }, { kind: "pbirth" }] : [];
+    return [...info, ...ex, { kind: "ritual", id: "incense" }, ...self, { kind: "end" }];
+  }
   const info: Turn[] = saved
     ? [{ kind: "mode" }]
     : [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }, { kind: "mbti" }];
@@ -83,6 +93,34 @@ const STATUS_REACT: Record<RelationshipStatus, string> = {
 
 const n = (text: string, mood: Mood = "talk", node?: React.ReactNode) => ({ text, mood, node });
 
+/** 사주·운세 lines, per product. {p} is the ex (재회운). */
+const FORTUNE_SCRIPT: Record<FortuneMode, { intro: string; welcome: [string, Mood]; ritual: string[]; end: string }> = {
+  saju: {
+    intro: "사주는 태어난 해·달·날·시, 여덟 글자로 본다냥. 한 글자만 틀려도 풀이가 틀어진다냥.",
+    welcome: ["좋다냥. 여덟 글자, 하나도 안 빼고 읽어 주겠다냥.", "smug"],
+    ritual: ["원국을 세웠다냥.", "이제 점집에서 묻는 걸 그대로 묻겠다냥. 맞히려고 묻는 게 아니다냥. 네 사주랑 맞춰 보려고 묻는 거다냥 😼"],
+    end: "원국이랑 네 답이 다 맞춰졌다냥. 감정서를 펼쳐 볼까냥?",
+  },
+  daeun: {
+    intro: "대운은 10년마다 갈아타는 운의 물줄기다냥. 생일과 성별로 방향과 대운수가 정해진다냥.",
+    welcome: ["좋다냥. 지나온 10년, 앞으로 올 10년, 다 짚어 주겠다냥.", "smug"],
+    ritual: ["대운수를 셌다냥.", "지나온 날부터 묻겠다냥. 지나온 게 맞아야 앞날도 믿을 수 있는 법이다냥 😼"],
+    end: "지나온 대운이랑 네 답이 맞아떨어진다냥. 인생 그래프를 펼쳐 볼까냥?",
+  },
+  reunion: {
+    intro: "그 사람이랑 다시 이어질지, 언제 어떻게 연락해야 하는지 보겠다냥.",
+    welcome: ["…다시 만나고 싶구냥. 얼굴에 다 써 있다냥.", "wow"],
+    ritual: ["{p}… 이름을 들으니 끈이 하나 보인다냥.", "헤어진 얘기, 아픈 데까지 묻겠다냥. 솔직해야 날짜가 정확해진다냥 😼"],
+    end: "너랑 {p} 사이의 끈이 다 보인다냥. 감정서를 펼쳐 볼까냥?",
+  },
+  spouse: {
+    intro: "네 사주의 배우자 자리에 누가 앉아 있는지 보겠다냥.",
+    welcome: ["좋다냥. 네 짝이 지금 어디서 뭘 하고 있는지 보자냥 😼", "smug"],
+    ritual: ["배우자 자리를 펼쳤다냥.", "몇 가지만 묻겠다냥. 네가 끌리는 사람과 네가 결혼할 사람은 다를 수 있다냥 😼"],
+    end: "배우자 자리에 앉은 사람이 보인다냥. 감정서를 펼쳐 볼까냥?",
+  },
+};
+
 interface Ctx {
   saved: boolean;
   modeKnown: boolean;
@@ -90,11 +128,38 @@ interface Ctx {
 
 function asks(t: Turn, i: QuestionnaireInput, { saved, modeKnown }: Ctx): ReturnType<typeof n>[] {
   const p = i.partner.name || "그 사람";
+  if (isFortune(i.mode)) {
+    const f = FORTUNE_SCRIPT[i.mode];
+    switch (t.kind) {
+      case "mode":
+        return [
+          saved ? n(`${iGuNyang(i.me.name)}. 또 왔냥? …올 줄 알았다냥 🕯️`, "happy") : n("…왔구냥. 앉아라냥. 여기서 거짓말하면 촛불이 먼저 안다냥 🕯️", "smug"),
+          n(`오늘은 ${iGuNyang(`'${productOf(i.mode).name}'`)}. ${f.intro}`),
+          ...(saved ? [n("생년월일은 기억하고 있으니 바로 시작하겠다냥.")] : []),
+        ];
+      case "name":
+        return [n("좋다냥. 먼저 이름부터 대라냥."), n("감정서 맨 위에 적을 이름이다냥.", "smug")];
+      case "gender":
+        return [n("성별은? 대운이 도는 방향이 성별로 갈린다냥.")];
+      case "birth":
+        return [n("생년월일을 대라냥. 양력으로."), n("음력 생일이면 양력으로 바꿔서 넣어라냥. 하루만 달라도 일주가 바뀐다냥.", "smug")];
+      case "time":
+        return [n("태어난 시간을 알면 시주(時柱)까지, 여덟 글자를 다 본다냥. 모르면 '몰라' 눌러라냥. 여섯 글자로도 본다냥.")];
+      case "pname":
+        return [n("이제 그 사람 차례다냥."), n("헤어진 그 사람, 이름이 뭐냥?", "smug")];
+      case "pbirth":
+        return [n(`${p} 생일 알면 대라냥. 두 사람 일간 궁합까지 본다냥. 몰라도 된다냥.`)];
+      case "ritual":
+        return [...f.ritual.map((l, k) => n(fill(l, p), k ? "smug" : "talk")), n("향에 불을 붙여라냥.")];
+      case "end":
+        return [n("…됐다냥.", "wow"), n(fill(f.end, p), "smug")];
+    }
+  }
   switch (t.kind) {
     case "mode": {
       const hello = saved ? n(`${iGuNyang(i.me.name)}. 또 왔냥? …올 줄 알았다냥 🕯️`, "happy") : n("…왔구냥. 앉아라냥. 여기서 거짓말하면 촛불이 먼저 안다냥 🕯️", "smug");
       if (modeKnown) {
-        return [hello, n(`오늘은 '${productOf(i.mode).name}'이구냥. ${saved ? "생년월일은 기억하고 있으니 바로 시작하겠다냥." : "좋다냥, 몇 가지만 물어보겠다냥."}`)];
+        return [hello, n(`오늘은 ${iGuNyang(`'${productOf(i.mode).name}'`)}. ${saved ? "생년월일은 기억하고 있으니 바로 시작하겠다냥." : "좋다냥, 몇 가지만 물어보겠다냥."}`)];
       }
       return [hello, n(saved ? "생년월일은 기억하고 있으니 바로 시작하겠다냥. 오늘은 누구 연애를 봐 줄까냥?" : "오늘은 누구 연애를 봐 줄까냥?")];
     }
@@ -166,7 +231,7 @@ function answerOf(t: Turn, i: QuestionnaireInput, { modeKnown }: Ctx): string {
       return t.id === "incense" ? "🕯️ (향에 불을 붙였다)" : "🔮 (떠올렸다)";
     case "q": {
       const answers = t.part === "self" ? i.self : i.partnerObs;
-      return fill(answerLabel(t.part === "self" ? selfInterview(i.mode) : PARTNER_INTERVIEW, t.q.id, answers[t.q.id]), i.partner.name);
+      return fill(answerLabel(t.part === "self" ? selfQs(i.mode) : PARTNER_INTERVIEW, t.q.id, answers[t.q.id]), i.partner.name);
     }
     case "end":
       return "";
@@ -186,6 +251,7 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
   const p = i.partner.name || "그 사람";
   switch (t.kind) {
     case "mode":
+      if (isFortune(i.mode)) return [n(...FORTUNE_SCRIPT[i.mode].welcome)];
       return [i.mode === "solo" ? n("혼자 왔구냥. 오히려 좋다냥. 너를 샅샅이 보겠다냥.", "smug") : n("오호~ 그 사람이 있구냥? 둘 다 탈탈 털어 주겠다냥 😼", "smug")];
     case "name":
       return [n(`${iGuNyang(i.me.name)}. 이름에 뭔가 보인다냥…`, "wow")];
@@ -196,8 +262,10 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
     case "mbti":
       return [i.me.mbti ? n(`${i.me.mbti}… 그럴 줄 알았다냥 😼`, "smug") : n("몰라도 된다냥. 냥신 눈이 더 정확하다냥.", "smug")];
     case "pname":
-      return [n(`${iGuNyang(p)}… 흠.`, "smug")];
+      return [n(i.mode === "reunion" ? `${iGuNyang(p)}… 흠, 아직 끈이 붙어 있다냥.` : `${iGuNyang(p)}… 흠.`, "smug")];
     case "pbirth":
+      if (i.mode === "reunion")
+        return [i.partner.birthdate ? n(`${animalOf(i.partner.birthdate)}띠구냥. 두 사람 일간을 나란히 놓고 보겠다냥.`, "wow") : n("괜찮다냥. 네 사주와 네 답으로 보겠다냥.")];
       return [
         i.partner.birthdate
           ? n(`${animalOf(i.partner.birthdate)}띠구냥. 너랑은… 이따 말해 주겠다냥 🤐`, "wow")
@@ -212,7 +280,7 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
         ? [n("…연기가 오른다냥. 시작하겠다냥.", "talk", <Incense />)]
         : [n(`…보인다냥. ${p}의 기운이.`, "wow", <Orb name={p} />)];
     case "q": {
-      const qs = t.part === "self" ? selfInterview(i.mode) : PARTNER_INTERVIEW;
+      const qs = t.part === "self" ? selfQs(i.mode) : PARTNER_INTERVIEW;
       const a = (t.part === "self" ? i.self : i.partnerObs)[t.q.id];
       const o = optionOf(qs, t.q.id, a);
       const out =
@@ -223,7 +291,7 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
             : o
               ? [n(o.react, o.mood ?? "smug")]
               : [];
-      if (t.part === "self" && t.num === Math.ceil(selfInterview(i.mode).length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
+      if (t.part === "self" && t.num === Math.ceil(selfQs(i.mode).length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
       return out;
     }
     default:
@@ -449,6 +517,7 @@ export function Questionnaire() {
     document.documentElement.style.setProperty("--progress", String(Math.min(1, (step + 1) / turns.length)));
   }, [step, turns.length]);
   const p = input.partner.name || "그 사람";
+  const fortune = isFortune(input.mode);
 
   const qTurns = turns.filter((t) => t.kind === "q");
   const qDone = turns.slice(0, step).filter((t) => t.kind === "q").length;
@@ -477,7 +546,7 @@ export function Questionnaire() {
         <TextDock
           initial={input.me.name}
           placeholder="예: 김지민"
-          hint="💡 실제 성함을 넣으면 이름 획수 기운까지 분석해서 더 디테일해져요"
+          hint={fortune ? "💡 감정서에 이 이름이 적혀요" : "💡 실제 성함을 넣으면 이름 획수 기운까지 분석해서 더 디테일해져요"}
           onSend={(v) => {
             s.updateMe({ name: v });
             advance();
@@ -488,8 +557,8 @@ export function Questionnaire() {
     case "gender":
       dock = (
         <Chips
-          cols={3}
-          items={(Object.keys(GENDER_LABEL) as Gender[]).map((g) => ({ id: g, label: GENDER_LABEL[g] }))}
+          cols={fortune ? 2 : 3}
+          items={(Object.keys(GENDER_LABEL) as Gender[]).filter((g) => !fortune || g !== "other").map((g) => ({ id: g, label: GENDER_LABEL[g] }))}
           onPick={(g) => {
             s.updateMe({ gender: g as Gender });
             advance();
@@ -611,7 +680,7 @@ export function Questionnaire() {
     case "end":
       dock = (
         <button onClick={() => setScreen("loading")} className="btn-primary glow shine chip-pop w-full py-4 text-[17px]">
-          🔮 점괘 보기
+          {fortune ? "📜 감정 결과 보기" : "🔮 점괘 보기"}
         </button>
       );
       break;
@@ -630,7 +699,7 @@ export function Questionnaire() {
             <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg bg-pink shadow-[0_0_6px_var(--pink)]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-ritual text-[16px] leading-tight">냥신 점집 · 촛불 앞 면담</p>
+            <p className="font-ritual text-[16px] leading-tight">{fortune ? `냥신 점집 · ${productOf(input.mode).name} 감정` : "냥신 점집 · 촛불 앞 면담"}</p>
             <p className="text-xs text-muted">{typing ? "냥신이 입력 중…" : inQ || qDone ? `질문 ${Math.min(qDone + 1, qTurns.length)} / ${qTurns.length}` : "기본 정보 확인 중"}</p>
           </div>
           <span className="flicker text-xl" aria-hidden>

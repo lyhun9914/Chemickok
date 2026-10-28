@@ -3,8 +3,10 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { StoryShare } from "@/lib/handoff";
-import { accountApi, type LoginProvider, type Me } from "@/services/apiClient";
+import { isFortune } from "@/lib/config";
+import { accountApi, type LoginProvider, type Me, type SavedReading } from "@/services/apiClient";
 import type {
+  FortuneTeaser,
   FullReport,
   Mode,
   PersonInput,
@@ -24,6 +26,8 @@ interface AppState {
   input: QuestionnaireInput;
   inputHash: string | null;
   teaser: TeaserReport | null;
+  /** free part of a 사주·대운·재회·배우자 reading (input.mode is a FortuneMode) */
+  fortune: FortuneTeaser | null;
   report: FullReport | null;
   level: "none" | "share" | "full";
   error: string | null;
@@ -47,6 +51,7 @@ interface AppState {
   setSelf: (id: string, v: string) => void;
   setPartnerObs: (id: string, v: string) => void;
   setTeaser: (teaser: TeaserReport, inputHash: string) => void;
+  setFortune: (fortune: FortuneTeaser, inputHash: string) => void;
   applyUnlock: (u: UnlockResponse) => void;
   setError: (e: string | null) => void;
   reset: () => void;
@@ -56,7 +61,7 @@ interface AppState {
   /** start a fresh interview; `mode` from a product card, `me` from saved 기본 정보 or the previous reading */
   startInterview: (opts?: { mode?: Mode; me?: PersonInput | null }) => void;
   /** open a saved reading from 내 점괘함 */
-  openSaved: (r: { mode: Mode; names: { me: string; partner: string }; teaser: TeaserReport; report: FullReport }) => void;
+  openSaved: (r: Pick<SavedReading, "mode" | "names" | "teaser" | "report">) => void;
 }
 
 const initialInput = (): QuestionnaireInput => ({
@@ -73,6 +78,7 @@ const initial = {
   step: 0,
   inputHash: null,
   teaser: null,
+  fortune: null as FortuneTeaser | null,
   report: null,
   level: "none" as const,
   error: null,
@@ -99,7 +105,9 @@ export const useAppStore = create<AppState>()(
       setPartnerObs: (id, v) =>
         set((s) => ({ input: { ...s.input, partnerObs: { ...s.input.partnerObs, [id]: v } } })),
       setTeaser: (teaser, inputHash) =>
-        set({ teaser, inputHash, report: null, level: "none", screen: "result" }),
+        set({ teaser, fortune: null, inputHash, report: null, level: "none", screen: "result" }),
+      setFortune: (fortune, inputHash) =>
+        set({ fortune, teaser: null, inputHash, report: null, level: "none", screen: "result" }),
       // Never downgrade: a later "share" unlock must not hide an already-paid full report.
       applyUnlock: ({ level, report }) => set((s) => (s.level === "full" ? {} : { level, report })),
       setError: (error) => set({ error }),
@@ -124,9 +132,11 @@ export const useAppStore = create<AppState>()(
       },
       openSaved: ({ mode, names, teaser, report }) => {
         const base = initialInput();
+        const fortune = isFortune(mode);
         set({
           input: { ...base, mode, me: { ...base.me, name: names.me }, partner: { ...base.partner, name: names.partner } },
-          teaser,
+          teaser: fortune ? null : (teaser as TeaserReport),
+          fortune: fortune ? (teaser as FortuneTeaser) : null,
           report,
           level: "full",
           inputHash: "saved",
@@ -138,7 +148,7 @@ export const useAppStore = create<AppState>()(
       name: "love-chemistry-v6",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ screen, step, input, inputHash, teaser, report, level, resumePay, preset, story }) => ({
+      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, preset, story }) => ({
         story,
         resumePay,
         preset,
@@ -147,6 +157,7 @@ export const useAppStore = create<AppState>()(
         input,
         inputHash,
         teaser,
+        fortune,
         report,
         level,
       }),

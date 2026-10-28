@@ -1,4 +1,4 @@
-import type { AnalyzeResponse, FullReport, PersonInput, QuestionnaireInput, TeaserReport, UnlockResponse } from "@/models/types";
+import type { AnalyzeResponse, FortuneAnalyzeResponse, FortuneTeaser, FullReport, Mode, PersonInput, QuestionnaireInput, TeaserReport, UnlockResponse } from "@/models/types";
 
 async function post<T>(url: string, body: unknown, method = "POST"): Promise<T> {
   const res = await fetch(url, {
@@ -13,6 +13,7 @@ async function post<T>(url: string, body: unknown, method = "POST"): Promise<T> 
 
 export const api = {
   analyze: (input: QuestionnaireInput) => post<AnalyzeResponse>("/api/analyze", { input }),
+  fortune: (input: QuestionnaireInput) => post<FortuneAnalyzeResponse>("/api/fortune", { input }),
 
   unlock: (body: {
     input: QuestionnaireInput;
@@ -49,8 +50,18 @@ export interface Me {
 
 export interface ReadingSummary {
   id: string;
-  mode: "solo" | "couple";
+  mode: Mode;
   title: string;
+  created_at: string;
+}
+
+export interface SavedReading {
+  id: string;
+  mode: Mode;
+  title: string;
+  names: { me: string; partner: string };
+  teaser: TeaserReport | FortuneTeaser;
+  report: FullReport;
   created_at: string;
 }
 
@@ -68,7 +79,7 @@ export const accountApi = {
   logout: () => post<{ ok: true }>("/api/auth/logout", undefined),
   readings: () => get<{ readings: ReadingSummary[] }>("/api/readings"),
   reading: (id: string) =>
-    get<{ reading: { id: string; mode: "solo" | "couple"; title: string; names: { me: string; partner: string }; teaser: TeaserReport; report: FullReport; created_at: string } }>(`/api/readings/${id}`),
+    get<{ reading: SavedReading }>(`/api/readings/${id}`),
   deleteReading: (id: string) => post<{ ok: true }>(`/api/readings/${id}`, undefined, "DELETE"),
   /** Full-page redirect to the provider; `pay` reopens the payment sheet on return. */
   loginUrl: (p: LoginProvider, next: "pay" | "" = "") => `/api/auth/${p}/login${next ? `?next=${next}` : ""}`,

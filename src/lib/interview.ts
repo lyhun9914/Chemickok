@@ -1,3 +1,4 @@
+import type { Mode } from "@/models/types";
 import type { Mood } from "@/components/Nyang";
 import { josa } from "./josa";
 
@@ -568,7 +569,8 @@ export const COUPLE_INTERVIEW: InterviewQuestion[] = pick(
   ["c1", "c2", "c3", "c4", "c5", "s6", "c6", "c7", "c9", "c10", "s12", "c11", "c12", "c13"],
 );
 
-export const selfInterview = (mode: "solo" | "couple") => (mode === "solo" ? SOLO_INTERVIEW : COUPLE_INTERVIEW);
+/** Love interviews only; the 사주·운세 products have their own questions (lib/fortuneQuestions). */
+export const selfInterview = (mode: Mode) => (mode === "couple" ? COUPLE_INTERVIEW : SOLO_INTERVIEW);
 
 /** Replaces {p} and {p:이/가}-style particles with the partner's name. */
 export function fill(text: string, partnerName: string): string {

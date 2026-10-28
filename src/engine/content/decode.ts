@@ -1,4 +1,5 @@
 import "server-only";
+import type { Mode } from "@/models/types";
 import type { AxisKey } from "@/models/types";
 
 // Server-only: how each interview answer is scored and what 냥신 reads from it.
@@ -478,7 +479,7 @@ const pickDecode = (pool: Record<string, Decoded>, ids: string[]) => Object.from
 /** Keys and order mirror SOLO_INTERVIEW / COUPLE_INTERVIEW in lib/interview.ts. */
 export const SOLO_DECODE = pickDecode({ ...BASE_DECODE, ...SOLO_ONLY_DECODE }, ["s1", "s2", "s3", "n1", "s4", "n2", "s6", "s7", "n3", "s10", "n4", "s12", "s13", "s14"]);
 export const COUPLE_DECODE = pickDecode({ ...BASE_DECODE, ...COUPLE_ONLY_DECODE }, ["c1", "c2", "c3", "c4", "c5", "s6", "c6", "c7", "c9", "c10", "s12", "c11", "c12", "c13"]);
-export const selfDecode = (mode: "solo" | "couple") => (mode === "solo" ? SOLO_DECODE : COUPLE_DECODE);
+export const selfDecode = (mode: Mode) => (mode === "couple" ? COUPLE_DECODE : SOLO_DECODE);
 
 export const HIDDEN_META: Record<HiddenKey, { label: string; icon: string }> = {
   linger: { label: "미련 지수", icon: "🌙" },

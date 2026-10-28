@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { PRODUCTS } from "@/lib/config";
 import { MBTI_TYPES } from "@/lib/questions";
 import type { Gender, PersonInput } from "@/models/types";
 import { accountApi, type ReadingSummary } from "@/services/apiClient";
@@ -155,7 +156,7 @@ export function MyPage() {
           <ul className="space-y-2">
             {readings.map((r) => (
               <li key={r.id} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4">
-                <span className="text-2xl">{r.mode === "solo" ? "🐾" : "💞"}</span>
+                <span className="text-2xl">{PRODUCTS[r.mode]?.emoji ?? "📜"}</span>
                 <button onClick={() => open(r.id)} className="min-w-0 flex-1 text-left">
                   <p className="truncate font-semibold">{r.title}</p>
                   <p className="text-xs text-muted">{fmt(r.created_at)}</p>
