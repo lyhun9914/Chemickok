@@ -1,4 +1,5 @@
-import { Say } from "./Nyang";
+import { sentences } from "@/lib/tone";
+import { Nyang, Say } from "./Nyang";
 import type {
   AxisResult,
   ElementKey,
@@ -197,12 +198,10 @@ export function TellCard({ tell }: { tell: Tell }) {
   return (
     <Card className="border-pink/30">
       <p className="text-xs font-semibold text-pink">🔍 냥신이 그 질문을 한 이유</p>
-      <p className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm leading-relaxed text-muted">
-        「{tell.question}」
-        <br />→ <b className="text-ink">{tell.answer}</b>
-      </p>
-      <p className="mt-3 text-sm leading-relaxed text-violet">💭 {tell.why}</p>
-      <p className="mt-2 text-[15px] leading-relaxed">{tell.read}</p>
+      <p className="mt-2 text-[12px] leading-relaxed text-muted">「{tell.question}」 · {tell.why}</p>
+      <div className="mt-3">
+        <AnswerExchange text={`\n→ ${tell.answer}\n🔮 ${tell.read}`} />
+      </div>
     </Card>
   );
 }
@@ -213,8 +212,9 @@ export function ComboCard({ combo }: { combo: string }) {
   return (
     <Card className="border-violet/40">
       <p className="text-xs font-semibold text-violet">🔗 {pair.includes(" × ") ? "너와 그 사람의 답을 같이 보면" : "네 답 두 개를 같이 보면"}</p>
-      <p className="mt-3 rounded-xl bg-white/[0.04] p-3 text-sm leading-relaxed text-muted">{pair.replace(/^🔗 /, "")}</p>
-      <p className="mt-3 text-[15px] leading-relaxed">{rest.join(" ")}</p>
+      <div className="mt-3">
+        <PairExchange text={[pair.replace(/^🔗 /, ""), ...rest].join("\n")} />
+      </div>
     </Card>
   );
 }
@@ -223,7 +223,9 @@ export function ColorCard({ reading }: { reading: string }) {
   return (
     <Card className="border-peach/30">
       <p className="text-xs font-semibold text-peach">🎨 네가 고른 색 × 네 사주</p>
-      <p className="mt-2 text-[15px] leading-relaxed">{reading}</p>
+      <div className="mt-3">
+        <NyangSays text={reading} />
+      </div>
     </Card>
   );
 }
@@ -257,20 +259,76 @@ export function HiddenCard({ personal, onLocked }: { personal: PersonalReadingT;
   );
 }
 
+/** 냥신 talking: each sentence its own short hanji bubble, the cat avatar on the first one. */
+function NyangSays({ text, mood = "talk", max = 99 }: { text: string; mood?: "talk" | "smug" | "wow"; max?: number }) {
+  const lines = text.split("\n").flatMap((l) => sentences(l)).slice(0, max);
+  return (
+    <div className="flex items-start gap-2">
+      <Nyang mood={mood} size={30} className="mt-0.5 shrink-0" />
+      <div className="min-w-0 space-y-1.5">
+        {lines.map((l, i) => (
+          <p key={i} className="hanji w-fit rounded-2xl rounded-tl-md px-3.5 py-2 text-[14.5px] leading-snug">
+            {l}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One interview answer replayed as a mini consultation: the question, your answer, 냥신's verdict. */
+function AnswerExchange({ text }: { text: string }) {
+  const [head, ...rest] = text.split("\n");
+  const answer = rest.find((l) => l.startsWith("→"))?.slice(1).trim() ?? "";
+  const read = rest.filter((l) => l.startsWith("🔮")).map((l) => l.slice(2).trim()).join(" ");
+  return (
+    <div className="space-y-2">
+      {head && <p className="text-[11px] text-muted">{head}</p>}
+      {answer && (
+        <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-md border border-pink/40 bg-pink/15 px-3.5 py-2 text-[14px] font-semibold">
+          {answer}
+        </p>
+      )}
+      {read && <NyangSays text={read} />}
+    </div>
+  );
+}
+
+/** Two answers read together: the pair as a small tag, then 냥신's line. */
+function PairExchange({ text }: { text: string }) {
+  const [head, ...rest] = text.split("\n");
+  return (
+    <div className="space-y-2">
+      <p className="w-fit rounded-full border border-violet/40 px-3 py-1 text-[12px] text-violet">{head}</p>
+      <NyangSays text={rest.join(" ")} mood="smug" max={2} />
+    </div>
+  );
+}
+
 export function SectionCard({ icon, section, delay = 0 }: { icon: string; section: ReportSection; delay?: number }) {
   return (
     <Card delay={delay}>
       <div className="mb-2 text-2xl">{icon}</div>
       <h3 className="text-xs font-semibold tracking-wide text-muted">{section.title}</h3>
-      <p className="mt-1 text-[17px] font-bold leading-snug">{section.headline}</p>
-      <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink/90">{section.body}</p>
-      <ul className="mt-4 space-y-2">
-        {section.bullets.map((b) => (
-          <li key={b} className="whitespace-pre-line rounded-xl bg-white/[0.04] px-3 py-2 text-sm leading-relaxed">
-            {b}
-          </li>
-        ))}
-      </ul>
+      <p className="font-ritual mt-1 text-[19px] leading-snug">{section.headline}</p>
+      {section.body && (
+        <div className="mt-4">
+          <NyangSays text={section.body} />
+        </div>
+      )}
+      <div className="mt-5 space-y-5">
+        {section.bullets.map((b) =>
+          /^Q\d+\./.test(b) ? (
+            <AnswerExchange key={b} text={b} />
+          ) : b.startsWith("🔗") ? (
+            <PairExchange key={b} text={b} />
+          ) : (
+            <p key={b} className="whitespace-pre-line rounded-xl border border-line bg-white/[0.03] px-3 py-2 text-sm leading-relaxed">
+              {b}
+            </p>
+          ),
+        )}
+      </div>
     </Card>
   );
 }

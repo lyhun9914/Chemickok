@@ -6,7 +6,7 @@ import type { Decoded, Trait, Weights } from "./content/decode";
 import * as T from "./content/insight";
 import { resolve, type Resolved } from "./freeText";
 import { josa } from "@/lib/josa";
-import { core, punch } from "./tone";
+import { core, punch } from "@/lib/tone";
 import { AXES as PROFILE_AXES, hiddenPct, type Profile } from "./profile";
 
 // Readings that depend on the whole person, not just one answer: every decoded answer is tied to the
@@ -188,7 +188,7 @@ function typeLine(set: AnswerSet, it: Item, t: Trait, s: number, short: (m: stri
 /** The decoded reading for one answer, tied to the rest of the person. */
 function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => string): string {
   // The answer itself is shown right above, so skip the echo and keep the reading to its core.
-  const parts = [core(it.r.read, 2)];
+  const parts = [core(it.r.read, 1)];
   if (it.predicted && it.unknown) {
     parts.push(sub(set.aboutPartner ? T.PREDICT_PARTNER : T.PREDICT, { label: it.predicted.label, read: punch(it.predicted.read, 1) }));
   } else if (it.predicted) {
@@ -234,7 +234,7 @@ export function decodeBullets(set: AnswerSet, short: (m: string) => string): str
   const tells = decodeTells(set, short);
   return set.qs.flatMap((q, i) => {
     const t = tells.get(q.id);
-    return t ? [`Q${i + 1}. ${t.question}\n→ ${t.answer}\n💭 ${t.why}\n🔮 ${t.read}`] : [];
+    return t ? [`Q${i + 1}. ${t.question}\n→ ${t.answer}\n🔮 ${t.read}`] : [];
   });
 }
 

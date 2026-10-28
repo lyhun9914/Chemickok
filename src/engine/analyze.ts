@@ -38,7 +38,7 @@ import * as SOLO from "./content/solo";
 import { isValidAnswer, normalizeAnswer, resolve } from "./freeText";
 import { crossCombos, decodeBullets, decodeTells, partnerCombos, selfCombos, traitEvidence, type AnswerSet } from "./insight";
 import { MBTI_LOVE, bestMbti, hardMbti, mbtiPair, mbtiShort, normalizeMbti } from "./mbti";
-import { core as coreOf, punch } from "./tone";
+import { core as coreOf, punch } from "@/lib/tone";
 import { AXES, hiddenPct, reliability, scoreProfile, seedOf, tellingOrder, type Profile } from "./profile";
 import {
   ELEMENT_LABEL,
