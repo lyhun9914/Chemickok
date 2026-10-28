@@ -1,4 +1,3 @@
-import { toBlob } from "html-to-image";
 import { KAKAO_JS_KEY } from "@/lib/config";
 import { loadScript } from "@/lib/loadScript";
 
@@ -15,7 +14,7 @@ declare global {
 
 const KAKAO_SDK_URL = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js";
 
-export type ShareOutcome = "shared" | "copied" | "downloaded" | "cancelled" | "desktopImage" | "storyCamera" | "desktopInsta";
+export type ShareOutcome = "shared" | "copied" | "cancelled" | "unsupported";
 
 /** Phones and tablets (incl. iPadOS, which reports itself as a Mac). PC gets popup / download flows instead of OS share sheets. */
 export function isMobile(): boolean {
@@ -33,13 +32,6 @@ async function copyText(text: string): Promise<ShareOutcome> {
 }
 
 export const shareService = {
-  /** Renders a DOM node (the type card) to a PNG blob. */
-  async captureCard(node: HTMLElement): Promise<Blob> {
-    const blob = await toBlob(node, { pixelRatio: 3, cacheBust: true, style: { margin: "0" } });
-    if (!blob) throw new Error("이미지 생성에 실패했어요.");
-    return blob;
-  },
-
   /** Load and init the Kakao SDK ahead of time, so the share popup opens inside the click (popup blockers allow only that). */
   async prepareKakao(): Promise<void> {
     if (!KAKAO_JS_KEY) return;
@@ -83,49 +75,15 @@ export const shareService = {
   },
 
   /**
-   * Instagram has no web API for stories. Phones: the OS share sheet with the image file (pick Instagram →
-   * 스토리). Where that isn't available (in-app browsers, older phones) or fails: save the image and jump straight
-   * into Instagram's story camera, where the saved card is the first photo. PC: just save the image.
-   * Must be called synchronously from the tap with a ready blob, or the browser refuses the share sheet.
+   * Instagram story: the OS share sheet with the story image (Instagram → 스토리). Must be called right in the tap
+   * with the image already drawn, or the phone refuses to open the sheet.
    */
-  shareImage(blob: Blob, fileName = "nyangsin-card.png"): Promise<ShareOutcome> {
-    const file = new File([blob], fileName, { type: "image/png" });
-    if (!isMobile()) {
-      this.download(blob, fileName);
-      return Promise.resolve("desktopInsta");
-    }
-    if (navigator.canShare?.({ files: [file] })) {
-      return navigator.share({ files: [file] }).then(
-        () => "shared" as const,
-        (e: Error) => (e.name === "AbortError" ? ("cancelled" as const) : this.toStoryCamera(blob, fileName)),
-      );
-    }
-    return Promise.resolve(this.toStoryCamera(blob, fileName));
-  },
-
-  /**
-   * PC: Instagram's website can't post stories (only feed posts via 만들기), so open it in a new tab right
-   * away (must happen inside the click, before anything async) and save the card for upload there.
-   */
-  openInstagramWeb() {
-    window.open("https://www.instagram.com/", "_blank", "noopener");
-  },
-
-  /** Save the card, then open Instagram's story camera (app deep link). */
-  toStoryCamera(blob: Blob, fileName: string): ShareOutcome {
-    this.download(blob, fileName);
-    setTimeout(() => {
-      window.location.href = "instagram://story-camera";
-    }, 600);
-    return "storyCamera";
-  },
-
-  download(blob: Blob, fileName: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  shareStory(blob: Blob): Promise<ShareOutcome> {
+    const file = new File([blob], "nyangsin-story.jpg", { type: blob.type || "image/jpeg" });
+    if (!navigator.canShare?.({ files: [file] })) return Promise.resolve("unsupported");
+    return navigator.share({ files: [file] }).then(
+      () => "shared" as const,
+      (e: Error) => (e.name === "AbortError" ? ("cancelled" as const) : ("unsupported" as const)),
+    );
   },
 };

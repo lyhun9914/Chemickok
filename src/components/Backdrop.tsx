@@ -36,7 +36,9 @@ export function Backdrop({ scene }: { scene: Scene }) {
       // Capped: long result pages would otherwise drag the scenery off screen.
       raf = requestAnimationFrame(() => root.current?.style.setProperty("--sy", String(Math.min(window.scrollY, 420))));
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
+    // Phones skip scroll parallax: restyling the whole scene on every scroll frame is what made them stutter.
+    const coarse = window.matchMedia?.("(max-width: 760px), (pointer: coarse)").matches;
+    if (!coarse) window.addEventListener("scroll", onScroll, { passive: true });
     const onDoor = () => setDoor("closing");
     window.addEventListener(DOOR_EVENT, onDoor);
     let flareT: ReturnType<typeof setTimeout>;
@@ -99,9 +101,14 @@ function Particles({ kind }: { kind: "embers" | "dust" }) {
     let w = 0;
     let h = 0;
     const dpr = phone ? 1 : Math.min(2, window.devicePixelRatio || 1);
+    // Phones fire resize whenever the address bar slides; reallocating the canvas then blanks it for a frame.
+    // Only resize when the width changes or the height grows past what we have.
     const resize = () => {
-      w = cv.clientWidth;
-      h = cv.clientHeight;
+      const nw = cv.clientWidth;
+      const nh = cv.clientHeight;
+      if (nw === w && nh <= h) return;
+      w = nw;
+      h = Math.max(nh, h);
       cv.width = w * dpr;
       cv.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

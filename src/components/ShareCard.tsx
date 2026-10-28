@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import type { TeaserReport } from "@/models/types";
 import { Nyang } from "./Nyang";
 
-/** The shareable "Type Card" — rendered to PNG by html-to-image (9:16-ish for IG stories). */
+/** The type card shown above the share buttons (the Instagram image itself is drawn in lib/storyImage). */
 export const ShareCard = forwardRef<HTMLDivElement, { teaser: TeaserReport; myName: string; partnerName: string }>(
   function ShareCard({ teaser, myName, partnerName }, ref) {
     const ritual = "'Song Myung', 'Nanum Myeongjo', serif";

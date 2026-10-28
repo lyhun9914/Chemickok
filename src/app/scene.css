@@ -21,7 +21,7 @@
 .backdrop .layer-far { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.04px), 0); }
 .backdrop .layer-mid { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.1px), 0); }
 .backdrop .layer-near { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.22px), 0); }
-.particles { position: absolute; inset: 0; width: 100%; height: 100%; mix-blend-mode: screen; }
+.particles { position: absolute; left: 0; top: 0; width: 100%; height: 100lvh; mix-blend-mode: screen; }
 
 /* 화면 전체에 촛불이 숨 쉬듯 */
 .atmos-layer::before { animation: candle 6s ease-in-out infinite; }
@@ -443,5 +443,10 @@
   .candle .halo { animation: none; opacity: 0.8; }
   .screen-fold { transition: none; }
   .incense:nth-child(n + 2) { display: none; }
-  .incense { filter: blur(10px); }
+  .incense { filter: none; }
+  .atmos-layer::after { display: none; }
+  /* no camera dolly: scaling the whole room re-rasterizes it every step on phones; light and candles still change */
+  .dolly { transform: none; transition: none; }
+  .backdrop .layer-far, .backdrop .layer-mid, .backdrop .layer-near { transform: none; }
+  .lantern, .obang span, .scroll-painting, .signboard, .sindae, .bells, .branch { will-change: transform; }
 }
