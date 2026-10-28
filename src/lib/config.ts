@@ -33,7 +33,8 @@ export const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 export const isTestMode = process.env.NEXT_PUBLIC_PAYMENT_TEST_MODE !== "false";
 
 export const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "";
-export const KAKAO_JS_KEY = process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? "";
+/** Kakao JavaScript key (public by design: it ships in the page and is locked to the registered web domains). */
+export const KAKAO_JS_KEY = process.env.NEXT_PUBLIC_KAKAO_JS_KEY || "25000b6441c29a58f1ce4ede8d0726f7";
 
 export const BUSINESS = {
   company: "넥스트원",
