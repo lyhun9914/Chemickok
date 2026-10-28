@@ -1,4 +1,4 @@
-import type { TeaserReport } from "@/models/types";
+import type { StoryCard } from "@/models/types";
 
 /**
  * The Instagram-story image (1080×1920), drawn straight onto a canvas: a lacquered talisman card in a dark,
@@ -52,7 +52,7 @@ async function catImage(): Promise<HTMLImageElement | null> {
   }
 }
 
-export async function drawStoryImage(teaser: TeaserReport, myName: string, partnerName: string): Promise<Blob> {
+export async function drawStoryImage(teaser: StoryCard, myName: string, partnerName: string): Promise<Blob> {
   await Promise.all([document.fonts?.load(`80px ${RITUAL}`), document.fonts?.load(`40px ${SANS}`)].map((p) => p?.catch(() => null)));
   const cv = document.createElement("canvas");
   cv.width = W;

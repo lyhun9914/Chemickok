@@ -8,6 +8,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { MyPage } from "@/components/MyPage";
 import { Questionnaire } from "@/components/Questionnaire";
 import { ResultView } from "@/components/ResultView";
+import { StoryScreen } from "@/components/StoryScreen";
 import { SHARE_INSTA_FLAG } from "@/components/ShareButtons";
 import { readHandoff } from "@/lib/handoff";
 import { accountApi } from "@/services/apiClient";
@@ -39,7 +40,9 @@ export default function Home() {
           /* storage blocked */
         }
       }
-      useAppStore.setState({ input: handoff.input, screen: "loading", step: 0, teaser: null, report: null, level: "none", error: null });
+      if (handoff.kind === "input")
+        useAppStore.setState({ input: handoff.input, screen: "loading", step: 0, teaser: null, report: null, level: "none", error: null });
+      else useAppStore.setState({ story: handoff.share, screen: "story", error: null });
     }
     // Back from /api/auth/*/callback with ?login=ok|fail|cancel|off — read it once, then clean the URL.
     const q = new URLSearchParams(window.location.search);
@@ -80,7 +83,8 @@ export default function Home() {
       {screen === "loading" && <LoadingScreen />}
       {screen === "result" && <ResultView />}
       {screen === "my" && <MyPage />}
-      {(screen === "landing" || screen === "result" || screen === "my") && <Footer />}
+      {screen === "story" && <StoryScreen />}
+      {(screen === "landing" || screen === "result" || screen === "my" || screen === "story") && <Footer />}
       {notice && (
         <div className="fade-up fixed inset-x-0 top-4 z-[60] mx-auto w-fit max-w-[90%] rounded-full bg-ink px-4 py-2 text-sm font-semibold text-bg shadow-lg">
           {notice}

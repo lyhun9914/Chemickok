@@ -144,6 +144,14 @@ export interface SoloTeaser {
   loveLuckHeadline: string;
 }
 
+/** What the share card / story image need — a TeaserReport fits it, and it can travel alone in a handoff URL. */
+export interface StoryCard {
+  myType: TypeInfo;
+  match: { myMbti: string | null; bestType: Pick<TypeInfo, "name" | "emoji">; bestMbti: string[]; goodAnimals: string[] };
+  saju: { dayMaster: { hangul: string; hanja: string } } | null;
+  couple: { matchScore: number; coupleTitle: string } | null;
+}
+
 export interface TeaserReport {
   mode: Mode;
   myType: TypeInfo;

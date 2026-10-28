@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { StoryShare } from "@/lib/handoff";
 import { accountApi, type LoginProvider, type Me } from "@/services/apiClient";
 import type {
   FullReport,
@@ -13,7 +14,7 @@ import type {
   UnlockResponse,
 } from "@/models/types";
 
-export type Screen = "landing" | "form" | "loading" | "result" | "my";
+export type Screen = "landing" | "form" | "loading" | "result" | "my" | "story";
 
 const emptyPerson: PersonInput = { name: "", gender: "female", birthdate: "", birthtime: "", mbti: "" };
 
@@ -34,6 +35,8 @@ interface AppState {
   resumePay: boolean;
   /** what the interview already knows: the product picked on the landing page, and 기본 정보 */
   preset: { mode: boolean; me: boolean };
+  /** a share card handed over from another device without its answers (screen "story") */
+  story: StoryShare | null;
 
   setScreen: (s: Screen) => void;
   setStep: (n: number) => void;
@@ -75,6 +78,7 @@ const initial = {
   error: null,
   resumePay: false,
   preset: { mode: false, me: false },
+  story: null as StoryShare | null,
 };
 
 export const useAppStore = create<AppState>()(
@@ -134,7 +138,8 @@ export const useAppStore = create<AppState>()(
       name: "love-chemistry-v6",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ screen, step, input, inputHash, teaser, report, level, resumePay, preset }) => ({
+      partialize: ({ screen, step, input, inputHash, teaser, report, level, resumePay, preset, story }) => ({
+        story,
         resumePay,
         preset,
         screen: screen === "loading" ? "form" : screen,

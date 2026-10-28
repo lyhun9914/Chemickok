@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { handoffUrl, inAppBrowser, openExternally } from "@/lib/handoff";
 import { drawStoryImage } from "@/lib/storyImage";
-import type { TeaserReport } from "@/models/types";
+import type { StoryCard } from "@/models/types";
 import { isMobile, shareService, siteUrl, type ShareOutcome } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { ShareCard } from "./ShareCard";
@@ -18,7 +18,7 @@ const OUTCOME_MSG: Partial<Record<ShareOutcome, string>> = {
 export const SHARE_INSTA_FLAG = "nyang-then-insta";
 
 interface Props {
-  teaser: TeaserReport;
+  teaser: StoryCard;
   myName: string;
   partnerName: string;
   toast: (m: string) => void;
@@ -29,7 +29,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
   const section = useRef<HTMLElement>(null);
   const story = useRef<Blob | null>(null);
   const [ready, setReady] = useState(false);
-  const [qr, setQr] = useState<string | null>(null);
+  const [qr, setQr] = useState<{ img: string; url: string } | null>(null);
   const [iosGuide, setIosGuide] = useState<string | null>(null);
   const [beckon, setBeckon] = useState(false);
 
@@ -84,14 +84,14 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
   const onInsta = () => {
     setBeckon(false);
     if (!isMobile()) {
-      const url = handoffUrl(input, "insta");
+      const url = handoffUrl(input, { card: teaser, me: myName, partner: partnerName }, "insta");
       QRCode.toDataURL(url, { margin: 1, width: 360, errorCorrectionLevel: "L", color: { dark: "#1a0f08", light: "#e9dcbd" } })
-        .then(setQr)
+        .then((img) => setQr({ img, url }))
         .catch(() => toast("QR을 만들지 못했다냥"));
       return;
     }
     if (inAppBrowser()) {
-      const url = handoffUrl(input, "insta");
+      const url = handoffUrl(input, { card: teaser, me: myName, partner: partnerName }, "insta");
       if (!openExternally(url)) setIosGuide(url);
       return;
     }
@@ -138,7 +138,19 @@ export function ShareButtons({ teaser, myName, partnerName, toast }: Props) {
             버튼 한 번이면 스토리로 간다냥.
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={qr} alt="폰으로 이어 보기 QR" width={220} height={220} className="mx-auto mt-4 rounded-xl" />
+          <img src={qr.img} alt="폰으로 이어 보기 QR" width={240} height={240} className="mx-auto mt-4 rounded-xl" />
+          <button
+            data-handoff={qr.url}
+            onClick={() =>
+              navigator.clipboard
+                ?.writeText(qr.url)
+                .then(() => toast("링크 복사했다냥! 카톡 '나와의 채팅'으로 폰에 보내라냥"))
+                .catch(() => toast("복사를 못 했다냥"))
+            }
+            className="mt-3 w-full rounded-2xl border border-line py-3 text-sm font-semibold"
+          >
+            📋 QR이 안 찍히면 링크 복사해서 폰으로 보내기
+          </button>
         </Sheet>
       )}
       {iosGuide && (

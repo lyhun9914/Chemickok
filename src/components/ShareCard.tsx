@@ -1,11 +1,11 @@
 "use client";
 
 import { forwardRef } from "react";
-import type { TeaserReport } from "@/models/types";
+import type { StoryCard } from "@/models/types";
 import { Nyang } from "./Nyang";
 
 /** The type card shown above the share buttons (the Instagram image itself is drawn in lib/storyImage). */
-export const ShareCard = forwardRef<HTMLDivElement, { teaser: TeaserReport; myName: string; partnerName: string }>(
+export const ShareCard = forwardRef<HTMLDivElement, { teaser: StoryCard; myName: string; partnerName: string }>(
   function ShareCard({ teaser, myName, partnerName }, ref) {
     const ritual = "'Song Myung', 'Nanum Myeongjo', serif";
     const meta = [teaser.myType.code, teaser.match.myMbti, teaser.saju && `${teaser.saju.dayMaster.hangul}${teaser.saju.dayMaster.hanja}일간`]
