@@ -21,6 +21,8 @@ const EVENT = "nyang:sound";
 const LEVEL = 0.8;
 const AHEAD = 2.5; // seconds scheduled ahead
 const TICK_MS = 700;
+/** Effects loud or meaningful enough that the background should make room. */
+const DUCK = new Set<Sfx>(["match", "bells", "flip", "unlock", "reveal", "stamp"]);
 
 class Layer {
   private els: Element[] = [];
@@ -29,6 +31,7 @@ class Layer {
   private hallSend: GainNode;
   private roomSend: GainNode;
   private muffler: BiquadFilterNode;
+  private ducker: GainNode;
 
   constructor(
     private ctx: AudioContext,
@@ -47,7 +50,8 @@ class Layer {
       g.gain.setValueAtTime(0, t);
       g.gain.linearRampToValueAtTime(1, t + 2.5);
     }
-    this.muffler.connect(this.dry).connect(master);
+    this.ducker = ctx.createGain();
+    this.muffler.connect(this.ducker).connect(this.dry).connect(master);
     this.hallSend.connect(hall);
     this.roomSend.connect(room);
   }
@@ -67,6 +71,16 @@ class Layer {
       if (el.next < now - 1) el.next = now + Math.random() * 2;
       while (el.next < now + AHEAD) el.next += Math.max(0.05, el.fire(el.next));
     }
+  }
+
+  /** Make room for an effect: the background dips ~4 dB and comes back over a second, like a mixer riding a fader. */
+  duck() {
+    const g = this.ducker.gain;
+    const t = this.ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(0.62, t + 0.06);
+    g.setTargetAtTime(1, t + 0.5, 0.45);
   }
 
   /** The doors slid shut: the outside goes dull and far. */
@@ -176,8 +190,12 @@ class SoundEngine {
 
   setScene(scene: Scene) {
     if (scene === this.scene && this.layer) return;
+    const from = this.scene;
     this.scene = scene;
-    if (this.ctx) this.startLayer();
+    if (!this.ctx) return;
+    this.startLayer();
+    // The reading has been drawn: mark the moment it lands.
+    if (from === "loading" && scene === "result") this.play("reveal");
   }
 
   private startLayer() {
@@ -190,6 +208,7 @@ class SoundEngine {
   private door() {
     if (!this.ready()) return;
     const t = this.ctx!.currentTime + 0.02;
+    this.layer?.duck();
     playSfx(this.sfx, "doorClose", t);
     playSfx(this.sfx, "doorOpen", t + 0.84);
     this.layer?.muffle();
@@ -204,6 +223,7 @@ class SoundEngine {
 
   play(name: Sfx) {
     if (!this.ready()) return;
+    if (DUCK.has(name)) this.layer?.duck();
     playSfx(this.sfx, name, this.ctx!.currentTime + 0.01);
   }
 

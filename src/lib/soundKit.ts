@@ -5,12 +5,13 @@
  * Built to sound like a place, not a synth:
  *   - air is brown noise under a low lowpass (a soft rumble), never white hiss;
  *   - the night is crickets, a 소쩍새, now and then a 부엉이 or a far 뻐꾸기, and a 풍경 under the eaves;
- *   - under it a slow minor pad, quiet enough to be felt more than heard;
+ *   - under it a slow minor pad, and now and then a 가야금 phrase in 계면조 with 농현 (plucked-string synthesis);
+ *   - things answer each other: a second 소쩍새 replies, a gust rustles leaves and rings the 풍경;
  *   - every sound is placed (left/right, near/far: far is darker and wetter) and sent through a generated reverb.
  */
 
 export type Scene = "gate" | "inside" | "loading" | "result";
-export type Sfx = "doorClose" | "doorOpen" | "candle" | "match" | "bells" | "page" | "flip" | "slide" | "stamp" | "tap" | "bowl" | "unlock" | "pung";
+export type Sfx = "doorClose" | "doorOpen" | "candle" | "match" | "bells" | "page" | "flip" | "slide" | "stamp" | "tap" | "bowl" | "unlock" | "pung" | "reveal";
 
 type Ctx = BaseAudioContext;
 
@@ -269,9 +270,27 @@ function note(b: Bus, out: AudioNode, t: number, pts: [number, number][], dur: n
   }
 }
 
-/** 소쩍새: "소-쩍" — a longer, rounded note and a short clipped one a little higher. */
-function scopsOwl(b: Bus, t: number, f: number, p: Place) {
+/** 소쩍새: "소-쩍" — a longer, rounded note and a short clipped one a little higher; now and then "소쩍-다". */
+function scopsOwl(b: Bus, t: number, f0: number, p: Place) {
   const out = place(b, p);
+  // No two calls are the same: a little pitch and level drift per call.
+  const f = f0 * rr(0.985, 1.015);
+  if (R() < 0.2)
+    note(
+      b,
+      out,
+      t + 0.4,
+      [
+        [0, f * 0.96],
+        [0.07, f * 0.93],
+      ],
+      0.07,
+      0.008,
+      0.02,
+      0.55,
+      0.05,
+      1.4,
+    );
   note(
     b,
     out,
@@ -376,6 +395,121 @@ function cuckoo(b: Bus, t: number, f: number, p: Place) {
   );
 }
 
+// ───────────── 가야금 ─────────────
+
+const PLUCKS = new WeakMap<Ctx, Map<number, AudioBuffer>>();
+
+/**
+ * One plucked silk string, Karplus–Strong: a soft noise burst circulating in a delay line one period long, averaged
+ * each pass (which is what makes a real string lose its highs first). Rendered once per pitch and reused.
+ */
+function pluckBuffer(ctx: Ctx, f: number, t60 = 3.2): AudioBuffer {
+  let m = PLUCKS.get(ctx);
+  if (!m) PLUCKS.set(ctx, (m = new Map()));
+  const key = Math.round(f * 10);
+  const have = m.get(key);
+  if (have) return have;
+  const sr = ctx.sampleRate;
+  const len = Math.floor(sr * 3.6);
+  const buf = ctx.createBuffer(1, len, sr);
+  const d = buf.getChannelData(0);
+  const N = Math.max(2, Math.round(sr / f - 0.5));
+  const line = new Float32Array(N);
+  // A finger on silk, not a plectrum: lowpassed excitation, plucked about a fifth of the way along (comb).
+  let lp = 0;
+  for (let i = 0; i < N; i++) {
+    lp += 0.45 * (R() * 2 - 1 - lp);
+    line[i] = lp;
+  }
+  const off = Math.max(1, Math.round(N / 5));
+  const shaped = line.map((v, i) => v - 0.6 * line[(i + off) % N]);
+  line.set(shaped);
+  const rho = Math.pow(10, -3 / (f * t60));
+  let idx = 0;
+  for (let i = 0; i < len; i++) {
+    const cur = line[idx];
+    const nxt = line[(idx + 1) % N];
+    d[i] = cur;
+    line[idx] = rho * 0.5 * (cur + nxt);
+    idx = (idx + 1) % N;
+  }
+  normalize(d, 0.8);
+  m.set(key, buf);
+  return buf;
+}
+
+type Pluck = "plain" | "long" | "slideIn" | "fall";
+
+/**
+ * A 가야금 note. `long` adds 농현 (vibrato that grows after the attack); `slideIn` comes up into the pitch; `fall`
+ * lets the note sag a semitone at its end (퇴성).
+ */
+function pluck(b: Bus, t: number, f: number, p: Place, kind: Pluck) {
+  const { ctx } = b;
+  const src = ctx.createBufferSource();
+  src.buffer = pluckBuffer(ctx, f);
+  const body = filter(ctx, "peaking", 230, 1.1);
+  body.gain.value = 4;
+  src
+    .connect(filter(ctx, "highpass", 70, 0.5))
+    .connect(body)
+    .connect(filter(ctx, "lowpass", 3200, 0.5))
+    .connect(place(b, p));
+  const pr = src.playbackRate;
+  if (kind === "slideIn") {
+    pr.setValueAtTime(0.955, t);
+    pr.linearRampToValueAtTime(1, t + 0.17);
+  } else pr.setValueAtTime(1, t);
+  if (kind === "fall") {
+    pr.setValueAtTime(1, t + 0.75);
+    pr.linearRampToValueAtTime(0.944, t + 1.15);
+  }
+  if (kind === "long") {
+    const lfo = osc(ctx, "sine", rr(4.6, 5.6), t, t + 3.5);
+    const depth = gainNode(ctx, 0);
+    depth.gain.setValueAtTime(0, t + 0.35);
+    depth.gain.linearRampToValueAtTime(0.014, t + 1.1);
+    lfo.connect(depth).connect(pr);
+  }
+  src.start(t);
+  src.stop(t + 3.5);
+}
+
+/** 계면조 (D · F · G · A · C) phrases: falling, sighing lines; the last note rings with 농현. */
+const D3n = 146.83;
+const F3n = 174.61;
+const G3n = 196;
+const A3n = 220;
+const C4n = 261.63;
+const D4n = 293.66;
+const F4n = 349.23;
+const PHRASES = {
+  dark: [
+    [A3n, G3n, F3n, D3n],
+    [D4n, C4n, A3n],
+    [F3n, G3n, A3n],
+    [A3n, D4n, C4n, A3n],
+    [D3n, F3n, G3n],
+    [C4n, A3n, G3n, A3n],
+  ],
+  light: [
+    [F3n, A3n, C4n, A3n],
+    [C4n, D4n, F4n],
+    [A3n, C4n, D4n, C4n],
+    [D4n, C4n, A3n, C4n],
+  ],
+};
+
+function phrase(b: Bus, t: number, notes: number[], p: Place): number {
+  let s = t;
+  notes.forEach((f, i) => {
+    const last = i === notes.length - 1;
+    pluck(b, s, f, { ...p, gain: p.gain * rr(0.75, 1) * (i === 0 ? 1.1 : 1) }, last ? (R() < 0.3 ? "fall" : "long") : R() < 0.25 ? "slideIn" : "plain");
+    s += last ? 0 : rr(0.85, 1.5);
+  });
+  return s - t + 3.2;
+}
+
 // ───────────── bells · bowls ─────────────
 
 /** A struck metal partial set; `pair` detunes the low partials into slow beats, as real bells have. */
@@ -471,6 +605,23 @@ function bells(b: Bus, t: number, p: Place, shakes = 3) {
     }
     s += rr(0.2, 0.26);
   }
+}
+
+/** 문고리: the iron ring handle of a 한옥 door knocking against its plate. */
+function ring(b: Bus, t: number, p: Place, f: number, vel: number) {
+  metal(
+    b,
+    place(b, p),
+    t,
+    f,
+    [
+      [1, 1, 0.22],
+      [2.4, 0.5, 0.12],
+      [4.1, 0.25, 0.07],
+    ],
+    vel,
+    0,
+  );
 }
 
 // ───────────── wood · paper · fire ─────────────
@@ -670,12 +821,70 @@ function drum(b: Bus, t: number, p: Place, vel = 1) {
   const g = gainNode(ctx, 0);
   strike(g.gain, t, 1, 0.004, 0.2);
   o.connect(g).connect(out);
+  // the drum's body an octave up, so phone speakers (which drop everything under ~150 Hz) still hear the beat
+  const o2 = osc(ctx, "sine", 160, t, t + 0.6);
+  o2.frequency.exponentialRampToValueAtTime(115, t + 0.15);
+  const g2 = gainNode(ctx, 0);
+  strike(g2.gain, t, 0.35, 0.003, 0.07);
+  o2.connect(g2).connect(out);
   const n = noiseSrc(ctx, "pink", t, t + 0.1);
   const ng = gainNode(ctx, 0);
   strike(ng.gain, t, 0.3, 0.002, 0.014);
   n.connect(filter(ctx, "lowpass", 500, 0.5))
     .connect(ng)
     .connect(out);
+}
+
+/** 냥신의 그르릉: brown noise pulsed ~25 times a second, louder and lower on the out-breath. */
+function purr(b: Bus, t: number, dur: number, p: Place) {
+  const { ctx } = b;
+  const end = t + dur + 0.6;
+  const n = noiseSrc(ctx, "brown", t, end);
+  const lp = filter(ctx, "lowpass", 300, 0.7);
+  const am = gainNode(ctx, 0.5);
+  const lfo = osc(ctx, "sine", rr(23, 27), t, end);
+  lfo.connect(gainNode(ctx, 0.5)).connect(am.gain);
+  const br = gainNode(ctx, 0);
+  br.gain.setValueAtTime(0, t);
+  for (let s = t; s < t + dur; ) {
+    const inhale = rr(0.7, 0.9);
+    const exhale = rr(0.95, 1.2);
+    br.gain.linearRampToValueAtTime(0.45, s + 0.15);
+    lp.frequency.setTargetAtTime(420, s, 0.1);
+    br.gain.linearRampToValueAtTime(0.4, s + inhale);
+    br.gain.linearRampToValueAtTime(0.08, s + inhale + 0.06);
+    br.gain.linearRampToValueAtTime(1, s + inhale + 0.2);
+    lp.frequency.setTargetAtTime(260, s + inhale, 0.1);
+    br.gain.linearRampToValueAtTime(0.85, s + inhale + exhale);
+    br.gain.linearRampToValueAtTime(0.08, s + inhale + exhale + 0.06);
+    s += inhale + exhale + 0.06;
+  }
+  br.gain.setTargetAtTime(0, t + dur, 0.15);
+  n.connect(lp).connect(am).connect(br).connect(place(b, p));
+}
+
+/** Dry leaves stirred by the wind: sparse crinkle grains in a soft swell. */
+function rustle(b: Bus, t: number, dur: number, p: Place) {
+  const { ctx } = b;
+  const n = noiseSrc(ctx, "pink", t, t + dur + 0.3);
+  const g = gainNode(ctx, 0);
+  g.gain.setValueAtTime(0, t);
+  for (let s = t; s < t + dur; ) {
+    const v = rr(0.15, 1) * Math.sin((Math.PI * (s - t)) / dur);
+    g.gain.linearRampToValueAtTime(v, s + 0.004);
+    s += rr(0.015, 0.06);
+    g.gain.linearRampToValueAtTime(v * 0.15, s);
+  }
+  g.gain.setTargetAtTime(0, t + dur, 0.05);
+  n.connect(filter(ctx, "bandpass", rr(3000, 4200), 0.7))
+    .connect(g)
+    .connect(place(b, p));
+}
+
+/** A step on a wooden 마루: a soft low thud and a short give in the boards. */
+function step(b: Bus, t: number, p: Place) {
+  knock(b, t, p, 0.55, 0.42);
+  creak(b, t + 0.02, { ...p, gain: p.gain * 0.5 }, rr(0.15, 0.22));
 }
 
 /** A slow pad chord: detuned triangles under a lowpass that breathes. */
@@ -714,7 +923,6 @@ const G2 = 98;
 const A2 = 110;
 const Bb1 = 58.27;
 const C3 = 130.81;
-const Cs3 = 138.59;
 const D3 = 146.83;
 const E3 = 164.81;
 const F3 = 174.61;
@@ -731,7 +939,7 @@ const PADS: Record<Scene, { chords: number[][]; level: number; bright: number; e
       [D2, A2, F3, A3],
       [Bb1, F2, D3, A3],
       [G2, D3, F3, Bb3],
-      [A2, E3, A3, Cs3 * 2],
+      [A2, E3, G3, D3 * 2],
     ],
     level: 0.022,
     bright: 650,
@@ -742,7 +950,7 @@ const PADS: Record<Scene, { chords: number[][]; level: number; bright: number; e
       [D2, D3, F3, A3],
       [Bb1, Bb2, D3, F3],
       [G2, D3, F3, Bb3],
-      [A2, Cs3, E3, A3],
+      [A2, E3, G3, C3 * 2],
     ],
     level: 0.021,
     bright: 800,
@@ -850,13 +1058,24 @@ export function sceneElements(b: Bus, scene: Scene, t0: number): { els: Element[
     const air = airBed(b, t0, { gain: 0.032, far: 0.3 }, 320);
     stops.push(air.stop);
     els.push(air.swell);
+    const bellF = rr(1700, 2050);
+    const bellAt: Place = { gain: 0.03, pan: 0.45, far: 0.5 };
+    // A gust rustles the dry leaves and, at its height, often rings the 풍경.
     els.push(
       every(
         t0 + rr(6, 10),
         () => rr(12, 24),
-        (t) => gust(b, t, { gain: 0.045, pan: rr(-0.7, 0.7), far: 0.45 }),
+        (t) => {
+          const pan = rr(-0.7, 0.7);
+          const dur = gust(b, t, { gain: 0.045, pan, far: 0.45 });
+          rustle(b, t + dur * 0.25, dur * 0.4, { gain: 0.035, pan, far: 0.5 });
+          if (R() < 0.6) windBell(b, t + dur * rr(0.35, 0.55), bellF, bellAt);
+          return dur;
+        },
       ),
     );
+    // far insects behind the near ones
+    for (let k = 0; k < 4; k++) els.push(cricketAgent(b, t0, { gain: 0.006, pan: rr(-1, 1), far: 0.95 }));
     for (const [pan, far, gain] of [
       [-0.7, 0.45, 0.016],
       [0.55, 0.6, 0.013],
@@ -872,9 +1091,12 @@ export function sceneElements(b: Bus, scene: Scene, t0: number): { els: Element[
         () => rr(22, 40),
         (t) => {
           const n = 4 + Math.floor(R() * 6);
+          // Sometimes a second bird answers from the other side, a little lower, in the gaps.
+          const answer = R() < 0.4;
           let s = t;
           for (let k = 0; k < n; k++) {
             scopsOwl(b, s, owlF, { gain: 0.05, pan: owlPan, far: 0.62 });
+            if (answer && k > 0 && k < n - 1) scopsOwl(b, s + rr(0.9, 1.1), owlF * 0.94, { gain: 0.032, pan: -owlPan * 0.8, far: 0.8 });
             s += rr(1.8, 2.3);
           }
           return s - t;
@@ -891,8 +1113,13 @@ export function sceneElements(b: Bus, scene: Scene, t0: number): { els: Element[
           const pan = rr(-0.9, 0.9);
           let s = t;
           for (let k = 0; k < n; k++) {
-            hoot(b, s, f, { gain: 0.07, pan, far: 0.6 });
+            hoot(b, s, f, { gain: 0.05, pan, far: 0.62 });
             s += rr(7, 10);
+          }
+          // …and another owl replies from far away.
+          if (R() < 0.35) {
+            hoot(b, s - rr(3, 4.5), f * 0.92, { gain: 0.036, pan: -pan, far: 0.85 });
+            s += 2;
           }
           return s - t;
         },
@@ -915,12 +1142,18 @@ export function sceneElements(b: Bus, scene: Scene, t0: number): { els: Element[
         },
       ),
     );
-    const bellF = rr(1700, 2050);
     els.push(
       every(
-        t0 + rr(8, 13),
-        () => rr(16, 30),
-        (t) => windBell(b, t, bellF, { gain: 0.03, pan: 0.45, far: 0.5 }),
+        t0 + rr(10, 16),
+        () => rr(30, 55),
+        (t) => windBell(b, t, bellF, bellAt),
+      ),
+    );
+    els.push(
+      every(
+        t0 + rr(12, 20),
+        () => rr(26, 48),
+        (t) => phrase(b, t, PHRASES.dark[Math.floor(R() * PHRASES.dark.length)], { gain: 0.11, pan: rr(-0.25, 0.25), far: 0.35 }),
       ),
     );
   } else {
@@ -967,15 +1200,41 @@ export function sceneElements(b: Bus, scene: Scene, t0: number): { els: Element[
           (t) => creak(b, t, { gain: 0.05, pan: rr(-0.8, 0.8), far: 0.55, space: "room" }),
         ),
       );
-    }
-    if (scene === "loading")
       els.push(
         every(
-          t0 + 0.4,
-          () => 1.45,
-          (t) => (drum(b, t, { gain: 0.11, far: 0.2, space: "room" }), drum(b, t + 0.3, { gain: 0.11, far: 0.2, space: "room" }, 0.55)),
+          t0 + rr(18, 28),
+          () => rr(34, 58),
+          (t) => phrase(b, t, PHRASES.dark[Math.floor(R() * PHRASES.dark.length)], { gain: 0.1, pan: rr(-0.3, 0.3), far: 0.2, space: "room", wet: 0.3 }),
         ),
       );
+      // 냥신 settles beside you now and then.
+      els.push(
+        every(
+          t0 + rr(40, 60),
+          () => rr(70, 120),
+          (t) => {
+            const d = rr(4, 6.5);
+            purr(b, t, d, { gain: 0.05, pan: rr(-0.4, 0.4), far: 0.15, space: "room" });
+            return d;
+          },
+        ),
+      );
+    }
+    if (scene === "loading") {
+      // The heartbeat quickens a little with every beat while the reading is drawn.
+      let beat = 1.5;
+      els.push({
+        next: t0 + 0.4,
+        fire: (t) => {
+          drum(b, t, { gain: 0.085, far: 0.2, space: "room" });
+          drum(b, t + beat * 0.2, { gain: 0.085, far: 0.2, space: "room" }, 0.55);
+          beat = Math.max(0.95, beat * 0.93);
+          return beat;
+        },
+      });
+      // 냥신 concentrating
+      els.push({ next: t0 + 0.6, fire: (t) => (purr(b, t, 14, { gain: 0.04, pan: 0.2, far: 0.2, space: "room" }), 999) });
+    }
     if (scene === "result") {
       const bellF = rr(1700, 2050);
       els.push(
@@ -990,6 +1249,13 @@ export function sceneElements(b: Bus, scene: Scene, t0: number): { els: Element[
           t0 + rr(25, 35),
           () => rr(45, 75),
           (t) => bowl(b, t, { gain: 0.04, pan: rr(-0.3, 0.3), far: 0.3, space: "room" }),
+        ),
+      );
+      els.push(
+        every(
+          t0 + rr(9, 14),
+          () => rr(24, 42),
+          (t) => phrase(b, t, PHRASES.light[Math.floor(R() * PHRASES.light.length)], { gain: 0.09, pan: rr(-0.3, 0.3), far: 0.25, space: "room", wet: 0.35 }),
         ),
       );
     }
@@ -1009,12 +1275,18 @@ export function playSfx(b: Bus, name: Sfx, t: number) {
       slideDoor(b, t + 0.01, 0.49, { ...near, gain: 0.2, pan: 0.25 }, [0, 0.5, 0.95, 0.45, 0.08]);
       knock(b, t + 0.49, { ...near, gain: 0.08 }, 1);
       knock(b, t + 0.515, { ...near, gain: 0.08, pan: 0.15 }, 0.4, 1.12);
+      ring(b, t + 0.5, { ...near, gain: 0.05, pan: -0.15 }, 2150, 0.7);
+      ring(b, t + 0.535, { ...near, gain: 0.05, pan: 0.15 }, 2330, 0.45);
       break;
     case "doorOpen":
       slideDoor(b, t, 1.25, { ...near, gain: 0.16, pan: -0.45 }, [0, 0.25, 1, 0.45, 0]);
       slideDoor(b, t + 0.02, 1.23, { ...near, gain: 0.15, pan: 0.45 }, [0, 0.22, 0.95, 0.4, 0]);
+      ring(b, t + 0.05, { ...near, gain: 0.035, pan: -0.2 }, 2150, 0.35);
       knock(b, t + 1.24, { ...near, gain: 0.06, pan: -0.5 }, 0.5, 0.9);
       knock(b, t + 1.26, { ...near, gain: 0.06, pan: 0.5 }, 0.45, 0.95);
+      // and you step in
+      step(b, t + 1.55, { ...near, gain: 0.1, pan: -0.1, far: 0.15 });
+      step(b, t + 2.2, { ...near, gain: 0.085, pan: 0.1, far: 0.15 });
       break;
     case "candle":
       candlePuff(b, t, { ...near, gain: 0.16, pan: rr(-0.2, 0.2) });
@@ -1052,6 +1324,12 @@ export function playSfx(b: Bus, name: Sfx, t: number) {
       break;
     case "pung":
       windBell(b, t, rr(1750, 1950), { gain: 0.04, pan: 0.3, far: 0.35 });
+      break;
+    case "reveal":
+      // the reading lands: a deep bowl, one soft shake of 방울, and the 가야금's low D ringing with 농현
+      bowl(b, t, { ...near, gain: 0.06, far: 0.25 }, D3n);
+      bells(b, t + 0.05, { ...near, gain: 0.03, far: 0.3 }, 1);
+      pluck(b, t + 0.6, D3n, { ...near, gain: 0.12, far: 0.25, wet: 0.35 }, "long");
       break;
   }
 }
