@@ -54,13 +54,38 @@ export const CONTACT: { sign: Sign; now: string; heart: string; advice: string }
   { sign: "go", now: "한 바퀴 돌아 완성되는 흐름이다냥.", heart: "너와의 관계를 꽤 진지하게 생각한다냥.", advice: "이번엔 결론이 나는 대화를 해라냥. 만날 날짜를 잡아라냥." },
 ];
 
-export type ContactQ = "send" | "heart" | "notice" | "back";
+export type ContactQ = "send" | "confess" | "meet" | "ex" | "date";
 
-export const CONTACT_Q: { id: ContactQ; emoji: string; label: string; verdict: Record<Sign, string> }[] = [
+/**
+ * 할까? 말까? — five decisions people actually stall on. Each has its own answer per sign; the deeper ones (고백,
+ * 사귈까) also carry their own advice, since a card's texting tip doesn't fit them.
+ */
+export const CONTACT_Q: { id: ContactQ; emoji: string; label: string; verdict: Record<Sign, string>; advice?: Record<Sign, string> }[] = [
   { id: "send", emoji: "📨", label: "선톡 보낼까 말까?", verdict: { go: "보내라냥!", wait: "하루만 더 기다려라냥", stop: "오늘은 참아라냥" } },
-  { id: "heart", emoji: "💭", label: "그 사람, 지금 내 생각 할까?", verdict: { go: "꽤 자주 한다냥", wait: "가끔 떠올린다냥", stop: "지금은 자기 일로 바쁘다냥" } },
-  { id: "notice", emoji: "👀", label: "내 마음, 눈치챘을까?", verdict: { go: "이미 눈치챘다냥", wait: "반쯤 눈치챘다냥", stop: "아직 모른다냥" } },
-  { id: "back", emoji: "🔁", label: "그 사람한테 다시 연락 올까?", verdict: { go: "온다냥", wait: "시간이 좀 걸린다냥", stop: "먼저 오진 않는다냥" } },
+  {
+    id: "confess",
+    emoji: "💌",
+    label: "고백할까 말까?",
+    verdict: { go: "해라냥!", wait: "한 번만 더 가까워지고 해라냥", stop: "아직은 때가 아니다냥" },
+    advice: {
+      go: "분위기 좋은 날, 길게 말고 한 문장으로 해라냥. 답을 재촉하지는 마라냥.",
+      wait: "고백 전에 둘만의 약속을 한 번 더 만들어라냥. 그날 반응이 답이다냥.",
+      stop: "지금은 마음을 접는 게 아니라 아끼는 거다냥. 자주 웃게 해 주는 것부터 해라냥.",
+    },
+  },
+  { id: "meet", emoji: "☕", label: "먼저 만나자고 할까 말까?", verdict: { go: "먼저 말해라냥!", wait: "가볍게 떠보고 정해라냥", stop: "이번 주는 넘겨라냥" } },
+  { id: "ex", emoji: "🔁", label: "헤어진 그 사람한테 연락할까 말까?", verdict: { go: "연락해 봐라냥", wait: "조금만 더 시간을 둬라냥", stop: "지금은 하지 마라냥" } },
+  {
+    id: "date",
+    emoji: "💞",
+    label: "이 사람이랑 사귈까 말까?",
+    verdict: { go: "사귀어라냥!", wait: "조금 더 알아보고 정해라냥", stop: "아직은 아니다냥" },
+    advice: {
+      go: "망설임은 상대도 느낀다냥. 마음이 정해졌으면 확실하게 말해 줘라냥.",
+      wait: "세 번은 더 만나 보고 정해라냥. 불편한 순간에 어떻게 하는지가 진짜다냥.",
+      stop: "끌림과 확신은 다르다냥. 지금 느낌이 한 달 뒤에도 같으면 그때 다시 물어봐라냥.",
+    },
+  },
 ];
 
 export const POSITIONS = ["지금 흐름", "그 사람 마음", "냥신의 조언"] as const;

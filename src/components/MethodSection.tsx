@@ -85,18 +85,24 @@ export function MethodSection() {
         ))}
       </ol>
 
-      <div className="mt-8 rounded-2xl hanji px-5 py-4 text-[#2b1d16]">
-        <p className="text-[12px] tracking-[0.35em] text-[#8a5a3a]">約 束</p>
-        <p className="font-ritual text-[17px]">냥신의 약속</p>
-        <ul className="mt-2 divide-y divide-[#2b1d16]/15">
+      {/* Dark lacquer with a brass edge and a red seal, so it sits in the night instead of glowing like paper. */}
+      <div className="relative mt-8 overflow-hidden rounded-2xl border border-violet/40 bg-gradient-to-b from-[#24130d] to-[#120a07] px-5 py-4 shadow-[inset_0_1px_0_rgba(240,207,138,0.12)]">
+        <p className="text-[12px] tracking-[0.35em] text-violet">約 束</p>
+        <p className="font-ritual text-[17px] text-peach">냥신의 약속</p>
+        <span className="seal absolute right-4 top-4 opacity-80" aria-hidden>
+          猫神
+          <br />
+          之印
+        </span>
+        <ul className="mt-2 divide-y divide-violet/20">
           {PROMISES.map(([icon, title, body]) => (
             <li key={title} className="flex gap-3 py-2.5">
               <span className="text-[18px]" aria-hidden>
                 {icon}
               </span>
               <span className="min-w-0">
-                <span className="block text-[14px] font-bold">{title}</span>
-                <span className="mt-0.5 block text-[13px] leading-relaxed text-[#5a4130]">{body}</span>
+                <span className="block text-[14px] font-bold text-ink">{title}</span>
+                <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">{body}</span>
               </span>
             </li>
           ))}

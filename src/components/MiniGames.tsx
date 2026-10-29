@@ -1,34 +1,43 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BLOOD_EXAM, BLOOD_LOVE } from "@/lib/blood";
 import { drawBujeok } from "@/lib/bujeok";
 import { CONTACT, CONTACT_Q, POSITIONS, type ContactQ, verdictOf } from "@/lib/contactTarot";
 import { checkIn, contactToday, saveContact, saveTarot, tarotToday } from "@/lib/daily";
 import { nameCompat, nameCompatComment, type NameCompatResult } from "@/lib/nameCompat";
 import { sound } from "@/lib/sound";
-import { TAROT } from "@/lib/tarot";
+import { TAROT, tarotPair } from "@/lib/tarot";
 import type { FortuneStoryCard, Mode } from "@/models/types";
 import { dailyApi, todayApi, type DailyFortuneResponse, type ExamDayResponse, type IljuResponse, type TodayFortuneResponse, type ZodiacTodayResponse } from "@/services/apiClient";
 import { shareService, siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
+import { type BasicInfo, InfoGate, useSavedInfo } from "./InfoGate";
 import { Say } from "./Nyang";
 import { ShareButtons } from "./ShareButtons";
 
-/** Share a link; on PC (or when the sheet is unavailable) it's copied, so say so. */
-function ShareLinkButton({ label, title, description }: { label: string; title: string; description: string }) {
+/**
+ * KakaoTalk share (the friend / chat picker; a Kakao popup on PC). The SDK is readied on mount so the popup opens
+ * straight from the tap. Without the SDK it falls back to the share sheet on phones, or copying the link on PC.
+ */
+function KakaoShareButton({ label, title, description }: { label: string; title: string; description: string }) {
   const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    shareService.prepareKakao().catch(() => {});
+  }, []);
   return (
     <>
       <button
         onClick={() =>
           shareService
-            .shareLink({ title, description, url: siteUrl() })
-            .then((o) => o === "copied" && setNote("링크를 복사했다냥! 붙여넣어서 보내라냥 📋"))
+            .shareKakao({ title, description, url: siteUrl() })
+            .then((o) => o === "copied" && setNote("카톡 공유 창을 못 열어서 링크를 복사했다냥. 붙여넣어서 보내라냥 📋"))
             .catch(() => setNote("공유를 못 했다냥. 다시 눌러라냥"))
         }
-        className="w-full rounded-2xl border border-line py-3.5 text-sm font-semibold"
+        className="share-plaque share-kakao w-full py-3.5 transition active:scale-[0.98]"
       >
+        <span className="share-icon bg-[#fee500] text-[#191919]">💬</span>
         {label}
       </button>
       {note && <p className="fade-up -mt-2 text-center text-xs text-peach">{note}</p>}
@@ -68,18 +77,19 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
 const inputCls = "w-full rounded-xl border border-line bg-surface-2 px-4 py-3.5 text-[15px] text-ink outline-none placeholder:text-muted/60 focus:border-pink/60";
 
 function DailyFortune({ onStart }: { onStart: () => void }) {
-  const saved = useAppStore((st) => st.me?.profile?.birthdate ?? st.input.me.birthdate);
-  const [birthdate, setBirthdate] = useState(saved ?? "");
+  const [info, setInfo] = useState<BasicInfo | null>(null);
   const [result, setResult] = useState<DailyFortuneResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const go = async () => {
+  const go = async (who: BasicInfo) => {
     setBusy(true);
     setError(null);
+    setInfo(who);
     try {
-      const [r] = await Promise.all([dailyApi.get(birthdate), new Promise((res) => setTimeout(res, 900))]);
+      const [r] = await Promise.all([dailyApi.get(who.birthdate), new Promise((res) => setTimeout(res, 900))]);
       setResult(r);
+      sound().play("page");
     } catch (e) {
       setError(e instanceof Error ? e.message : "다시 시도해 주세요");
     } finally {
@@ -87,15 +97,11 @@ function DailyFortune({ onStart }: { onStart: () => void }) {
     }
   };
 
-  if (!result) {
+  if (!result || !info) {
     return (
-      <div className="space-y-4">
-        <Say mood="smug">생일만 대라냥. 오늘 연애운 10초 컷이다냥.</Say>
-        <DateTimeSelects type="date" initial={saved ?? ""} onChange={setBirthdate} />
+      <div className="space-y-3">
+        <InfoGate ask="오늘 연애운, 10초 컷이다냥. 이름이랑 생일, 혈액형만 대라냥." purpose="오늘 연애운을 보겠다냥" cta="오늘의 연애운 보기 🔮" busy={busy} onReady={go} />
         {error && <p className="text-sm text-pink">{error}</p>}
-        <button onClick={go} disabled={!birthdate || busy} className="btn-primary w-full py-4">
-          {busy ? "냥신이 하늘을 보는 중…" : "오늘의 연애운 보기 🔮"}
-        </button>
       </div>
     );
   }
@@ -103,7 +109,9 @@ function DailyFortune({ onStart }: { onStart: () => void }) {
   return (
     <div className="space-y-4">
       <div className="rounded-3xl bg-chemi p-5 text-center">
-        <p className="text-xs text-white/80">{result.date} 오늘의 연애운</p>
+        <p className="text-xs text-white/80">
+          {info.name}의 {result.date} 연애운
+        </p>
         <p className="mt-2 text-5xl font-black">{result.score}점</p>
         <p className="mt-2 text-lg font-bold">{result.title}</p>
         <div className="mt-4 flex justify-center gap-2 text-xs">
@@ -112,7 +120,13 @@ function DailyFortune({ onStart }: { onStart: () => void }) {
         </div>
       </div>
       <Say mood="happy">{result.line}</Say>
-      <ShareLinkButton label="친구한테 오늘 운세 보내기 📤" title="냥신 오늘의 연애운" description={`오늘 내 연애운 ${result.score}점 - ${result.title} 🕯️ 너도 봐 봐!`} />
+      {info.blood && (
+        <p className="rounded-2xl bg-white/[0.04] px-4 py-3 text-[14px] leading-relaxed">
+          <span className="text-muted">🩸 {info.blood}형의 연애 기질 · </span>
+          {BLOOD_LOVE[info.blood]}
+        </p>
+      )}
+      <KakaoShareButton label="카카오톡으로 연애운 보내기" title="냥신 오늘의 연애운" description={`오늘 내 연애운 ${result.score}점 - ${result.title} 🕯️ 너도 봐 봐!`} />
       <button onClick={onStart} className="btn-primary w-full py-4">
         내 연애 유형까지 제대로 보기 🐾
       </button>
@@ -181,7 +195,7 @@ function NameMatch({ onStart }: { onStart: () => void }) {
                 <span className="text-gradient">{result.score}%</span>
               </p>
               <Say mood={result.score >= 75 ? "wow" : result.score >= 40 ? "smug" : "happy"}>{nameCompatComment(result.score)}</Say>
-              <ShareLinkButton label="결과 공유하기 📤" title="냥신 이름 궁합" description={`${a} ♥ ${b} 이름 궁합 ${result.score}% 😳 너도 해 봐!`} />
+              <KakaoShareButton label="카카오톡으로 궁합 결과 보내기" title="냥신 이름 궁합" description={`${a} ♥ ${b} 이름 궁합 ${result.score}% 😳 너도 해 봐!`} />
               <button onClick={() => setResult(null)} className="w-full py-2 text-sm text-muted">
                 다른 이름으로 다시 하기
               </button>
@@ -203,7 +217,7 @@ const TITLES: Record<MiniGame, string> = {
   zodiac: "🐾 띠별 오늘의 운세",
   name: "✍️ 이름 궁합",
   ilju: "🐈 일주 고양이 도감",
-  contact: "📨 연락할까 말까? 타로",
+  contact: "🃏 할까? 말까?",
   exam: "🧧 냥신 합격 부적",
 };
 
@@ -276,22 +290,22 @@ function Bar({ label, score, line }: { label: string; score: number; line: strin
 }
 
 function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
-  const saved = useAppStore((st) => st.me?.profile?.birthdate || st.input.me.birthdate);
-  const [birthdate, setBirthdate] = useState(saved ?? "");
+  const [info, setInfo] = useState<BasicInfo | null>(null);
   const [result, setResult] = useState<TodayFortuneResponse | null>(null);
   const [stamp, setStamp] = useState<ReturnType<typeof checkIn> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const go = async () => {
+  const go = async (who: BasicInfo) => {
     setBusy(true);
     setError(null);
+    setInfo(who);
     try {
-      const [r] = await Promise.all([todayApi.fortune(birthdate), new Promise((res) => setTimeout(res, 900))]);
+      const [r] = await Promise.all([todayApi.fortune(who.birthdate, who.blood), new Promise((res) => setTimeout(res, 900))]);
       setResult(r);
-      const s = checkIn();
-      setStamp(s);
-      sound().play(s.fresh ? "stamp" : "page");
+      const st = checkIn();
+      setStamp(st);
+      sound().play(st.fresh ? "stamp" : "page");
     } catch (e) {
       setError(e instanceof Error ? e.message : "다시 시도해 주세요");
     } finally {
@@ -299,15 +313,17 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
     }
   };
 
-  if (!result) {
+  if (!result || !info) {
     return (
-      <div className="space-y-4">
-        <Say mood="smug">하루 한 번, 오늘의 일진을 짚어 주겠다냥. 생일만 대라냥.</Say>
-        <DateTimeSelects type="date" initial={saved ?? ""} onChange={setBirthdate} />
+      <div className="space-y-3">
+        <InfoGate
+          ask="하루 한 번, 오늘의 일진을 네 사주에 맞대 보겠다냥. 이름, 생일, 혈액형만 대라냥."
+          purpose="오늘의 일진을 짚겠다냥"
+          cta="오늘의 운세 보기 📅"
+          busy={busy}
+          onReady={go}
+        />
         {error && <p className="text-sm text-pink">{error}</p>}
-        <button onClick={go} disabled={!birthdate || busy} className="btn-primary w-full py-4">
-          {busy ? "오늘의 일진을 펼치는 중…" : "오늘의 운세 보기 📅"}
-        </button>
       </div>
     );
   }
@@ -317,7 +333,7 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
       {stamp && <Stamps stamps={stamp.stamps} streak={stamp.streak} />}
       <div className="rounded-3xl border border-line bg-white/[0.03] p-5 text-center">
         <p className="text-[13px] text-muted">
-          {result.date} · {result.ganji}
+          {info.name}의 오늘 · {result.date} · {result.ganji}
         </p>
         <p className="mt-2 text-5xl font-black">
           <span className="text-gradient">{result.score}점</span>
@@ -325,6 +341,12 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
         <p className="font-ritual mt-2 text-[21px]">{result.title}</p>
       </div>
       <Say mood="talk">{result.line}</Say>
+      {result.bloodLine && (
+        <p className="rounded-2xl border border-pink/30 bg-pink/5 px-4 py-3 text-[14px] leading-relaxed">
+          <span className="font-semibold text-pink">🩸 {info.blood}형 × 오늘의 일진 · </span>
+          {result.bloodLine}
+        </p>
+      )}
       <div className="space-y-3 rounded-2xl border border-line p-4">
         {result.cats.map((c) => (
           <Bar key={c.key} label={c.label} score={c.score} line={c.line} />
@@ -368,7 +390,7 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
         <span className="rounded-full bg-violet/10 px-3 py-1.5">🔢 {result.number}</span>
         <span className="rounded-full bg-violet/10 px-3 py-1.5">⏰ {result.time}</span>
       </div>
-      <ShareLinkButton label="친구한테 오늘 운세 보내기 📤" title="냥신 오늘의 운세" description={`오늘 내 운세 ${result.score}점 - ${result.title} 🕯️ 너도 봐 봐!`} />
+      <KakaoShareButton label="카카오톡으로 오늘 운세 보내기" title="냥신 오늘의 운세" description={`오늘 내 운세 ${result.score}점 - ${result.title} 🕯️ 너도 봐 봐!`} />
       <button onClick={() => onStart("saju")} className="btn-primary w-full py-4">
         타고난 사주 팔자까지 보기 📜
       </button>
@@ -378,59 +400,104 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
 
 // ───────────── 오늘의 타로 ─────────────
 
+const DECK = 15;
+
+/** 오늘의 타로: fifteen cards face down, pick two — today's mood and today's move — read together. Fixed for the day. */
 function TarotDraw({ onStart }: { onStart: (mode?: Mode) => void }) {
-  const [card, setCard] = useState<number | null>(null);
-  const [picked, setPicked] = useState<number | null>(null);
-  // Today's card is fixed once drawn (read after mount: localStorage isn't there during SSR).
+  const [cards, setCards] = useState<number[] | null>(null);
+  const [picks, setPicks] = useState<number[]>([]);
+  const [shown, setShown] = useState(0);
+  const [again, setAgain] = useState(false);
+  // Today's draw stays put (read after mount: localStorage isn't there during SSR).
   useEffect(() => {
     const c = tarotToday();
-    if (c !== null) {
-      setCard(c);
-      setPicked(1);
+    if (c) {
+      setCards(c);
+      setShown(2);
+      setAgain(true);
     }
   }, []);
   const pick = (slot: number) => {
-    if (picked !== null) return;
-    const c = Math.floor(Math.random() * TAROT.length);
-    saveTarot(c);
-    setPicked(slot);
+    if (cards || picks.includes(slot) || picks.length >= 2) return;
     sound().play("slide");
+    const next = [...picks, slot];
+    setPicks(next);
+    if (next.length < 2) return;
+    const deck = [...TAROT.keys()].sort(() => Math.random() - 0.5).slice(0, 2);
+    saveTarot(deck);
     setTimeout(() => {
-      setCard(c);
-      sound().play("bowl");
-    }, 650);
+      setCards(deck);
+      [1, 2].forEach((n) =>
+        setTimeout(() => {
+          setShown(n);
+          sound().play(n === 2 ? "bowl" : "page");
+        }, n * 650),
+      );
+    }, 450);
   };
-  const t = card !== null ? TAROT[card] : null;
+  const pair = cards && shown >= 2 ? tarotPair(cards[0], cards[1]) : null;
   return (
     <div className="space-y-4">
-      <Say mood="smug">{t ? "오늘 네 카드다냥. 하루에 한 장뿐이다냥." : "숨 한 번 고르고, 끌리는 카드 한 장만 골라라냥."}</Say>
-      {!t && (
-        <div className="grid grid-cols-3 gap-3">
-          {[0, 1, 2].map((slot) => (
-            <button
-              key={slot}
-              onClick={() => pick(slot)}
-              className={`aspect-[2/3] rounded-2xl border-2 border-peach/40 bg-card-front transition duration-500 ${picked === slot ? "-translate-y-3 scale-105 shadow-[0_0_30px_rgba(240,207,138,0.5)]" : picked !== null ? "opacity-30" : "active:scale-95"}`}
-              aria-label={`${slot + 1}번 카드`}
-            >
-              <span className="text-3xl">🐾</span>
-            </button>
-          ))}
+      <Say mood="smug">
+        {cards
+          ? again
+            ? "오늘 뽑은 두 장이다냥. 하루에 한 번뿐이다냥."
+            : "두 장이 나왔다냥. 하나는 오늘의 기운, 하나는 오늘의 한 수다냥."
+          : picks.length === 0
+            ? "숨 한 번 고르고, 열다섯 장 중에 끌리는 두 장을 골라라냥."
+            : "한 장 더."}
+      </Say>
+      {!cards && (
+        <div className="grid grid-cols-5 gap-2">
+          {Array.from({ length: DECK }, (_, slot) => {
+            const order = picks.indexOf(slot);
+            return (
+              <button
+                key={slot}
+                onClick={() => pick(slot)}
+                disabled={order >= 0}
+                className={`grid aspect-[2/3] place-items-center rounded-lg border-2 bg-card-front transition duration-300 ${order >= 0 ? "-translate-y-1.5 border-peach shadow-[0_0_18px_rgba(240,207,138,0.5)]" : picks.length >= 2 ? "border-peach/20 opacity-40" : "border-peach/35 active:scale-95"}`}
+                aria-label={`${slot + 1}번 카드`}
+              >
+                <span className="text-[15px]">{order >= 0 ? ["①", "②"][order] : "🐾"}</span>
+              </button>
+            );
+          })}
         </div>
       )}
-      {t && (
-        <div className="chip-pop rounded-3xl border border-peach/40 bg-white/[0.03] p-6 text-center">
-          <p className="text-[13px] tracking-[0.3em] text-violet">{t.no}</p>
-          <div className="mt-2 text-6xl">{t.emoji}</div>
-          <p className="font-ritual mt-3 text-[24px] text-peach">{t.name}</p>
-          <p className="mt-3 text-[15px] leading-relaxed">{t.line}</p>
-          <p className="mt-3 rounded-xl bg-white/[0.05] px-3 py-2 text-[14px] font-semibold">🐾 오늘의 한 수: {t.advice}</p>
+      {cards && (
+        <div className="grid grid-cols-2 gap-2.5">
+          {cards.map((c, i) => {
+            const t = TAROT[c];
+            return i < shown ? (
+              <div key={i} className="chip-pop rounded-2xl border border-peach/40 bg-white/[0.03] p-4 text-center">
+                <p className="text-[11.5px] font-semibold text-violet">{i === 0 ? "① 오늘의 기운" : "② 오늘의 한 수"}</p>
+                <div className="mt-2 text-4xl">{t.emoji}</div>
+                <p className="mt-1 text-[11px] tracking-[0.2em] text-violet">{t.no}</p>
+                <p className="font-ritual text-[19px] text-peach">{t.name}</p>
+                <p className="mt-2 text-left text-[13.5px] leading-relaxed">{i === 0 ? t.line : t.advice}</p>
+              </div>
+            ) : (
+              <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl border-2 border-peach/30 bg-card-front" />
+            );
+          })}
         </div>
       )}
-      {t && (
+      {pair && (
+        <div className="chip-pop rounded-3xl border-2 border-peach/45 bg-chemi p-5 text-center">
+          <p className="text-[12px] tracking-[0.3em] text-peach/80">두 장을 겹쳐 보면</p>
+          <p className="font-ritual mt-1.5 text-[22px] text-white">{pair.title}</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-white/85">{pair.line}</p>
+        </div>
+      )}
+      {pair && cards && (
         <>
           <p className="text-center text-[13px] text-muted">내일 다시 오면 새 카드를 뽑을 수 있다냥.</p>
-          <ShareLinkButton label="오늘 내 카드 공유하기 📤" title="냥신 오늘의 타로" description={`오늘 내 타로는 '${t.name}' ${t.emoji} — ${t.advice} 너도 뽑아 봐!`} />
+          <KakaoShareButton
+            label="카카오톡으로 내 카드 보내기"
+            title="냥신 오늘의 타로"
+            description={`오늘 내 타로는 '${TAROT[cards[0]].name}' + '${TAROT[cards[1]].name}' — ${pair.title} 🃏 너도 뽑아 봐!`}
+          />
           <button onClick={() => onStart()} className="btn-primary w-full py-4">
             내 연애 팔자도 보기 🐾
           </button>
@@ -453,6 +520,7 @@ function animalOf(date: string): string | null {
 }
 
 function ZodiacList({ onStart }: { onStart: (mode?: Mode) => void }) {
+  const saved = useSavedInfo();
   const birth = useAppStore((st) => st.me?.profile?.birthdate || st.input.me.birthdate);
   const mine = animalOf(birth ?? "");
   const [data, setData] = useState<ZodiacTodayResponse | null>(null);
@@ -465,6 +533,7 @@ function ZodiacList({ onStart }: { onStart: (mode?: Mode) => void }) {
   const list = mine ? [...data.list.filter((z) => z.animal === mine), ...data.list.filter((z) => z.animal !== mine)] : data.list;
   return (
     <div className="space-y-3">
+      {saved && mine && <Say mood="happy">{`${saved.name}, 또 왔냥? ${mine}띠는 맨 위에 올려 뒀다냥 🐾`}</Say>}
       <p className="text-center text-[13px] text-muted">
         {data.date} · {data.ganji}
       </p>
@@ -492,20 +561,17 @@ function ZodiacList({ onStart }: { onStart: (mode?: Mode) => void }) {
 // ───────────── 일주 고양이 도감 ─────────────
 
 function IljuDex({ onStart }: { onStart: (mode?: Mode) => void }) {
-  const savedDate = useAppStore((st) => st.me?.profile?.birthdate || st.input.me.birthdate);
-  const savedName = useAppStore((st) => st.me?.profile?.name || st.input.me.name);
-  const [birthdate, setBirthdate] = useState(savedDate ?? "");
+  const [info, setInfo] = useState<BasicInfo | null>(null);
   const [card, setCard] = useState<IljuResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const me = savedName || "나";
 
-  const go = async () => {
+  const go = async (who: BasicInfo) => {
     setBusy(true);
     setError(null);
+    setInfo(who);
     try {
-      const [r] = await Promise.all([todayApi.ilju(birthdate), new Promise((res) => setTimeout(res, 800))]);
+      const [r] = await Promise.all([todayApi.ilju(who.birthdate), new Promise((res) => setTimeout(res, 800))]);
       setCard(r);
       sound().play("bowl");
     } catch (e) {
@@ -515,20 +581,27 @@ function IljuDex({ onStart }: { onStart: (mode?: Mode) => void }) {
     }
   };
 
-  if (!card) {
+  if (!card || !info) {
     return (
-      <div className="space-y-4">
-        <Say mood="smug">태어난 날의 기둥, 일주(日柱)가 곧 너다냥. 60일주마다 고양이가 하나씩 산다냥. 네 고양이는 누구냥?</Say>
-        <DateTimeSelects type="date" initial={savedDate ?? ""} onChange={setBirthdate} />
+      <div className="space-y-3">
+        <InfoGate
+          ask="태어난 날의 기둥, 일주(日柱)가 곧 너다냥. 60일주마다 고양이가 하나씩 산다냥. 이름, 생일, 혈액형을 대라냥."
+          purpose="네 일주 고양이를 찾겠다냥"
+          cta="내 일주 고양이 찾기 🐈"
+          busy={busy}
+          onReady={go}
+        />
         {error && <p className="text-sm text-pink">{error}</p>}
-        <button onClick={go} disabled={!birthdate || busy} className="btn-primary w-full py-4">
-          {busy ? "도감을 넘기는 중…" : "내 일주 고양이 찾기 🐈"}
-        </button>
-        <p className="text-center text-[12px] text-muted">일주는 만세력 기준 태어난 날의 간지다냥. 시간은 몰라도 된다냥.</p>
+        <p className="text-center text-[12px] text-muted">일주는 만세력 기준 태어난 날의 간지다냥. 태어난 시간은 몰라도 된다냥.</p>
       </div>
     );
   }
+  return <IljuCard card={card} info={info} onStart={onStart} />;
+}
 
+function IljuCard({ card, info, onStart }: { card: IljuResponse; info: BasicInfo; onStart: (mode?: Mode) => void }) {
+  const [note, setNote] = useState<string | null>(null);
+  const me = info.name;
   const story: FortuneStoryCard = {
     kind: "fortune",
     label: `${me}의 일주 고양이`,
@@ -551,7 +624,8 @@ function IljuDex({ onStart }: { onStart: (mode?: Mode) => void }) {
         </div>
         <p className="font-ritual mt-3 text-[24px] leading-snug text-white">{card.name}</p>
         <p className="mt-1 text-[14px] text-white/75">
-          {card.ganji}일주 · {card.hanja}
+          {me} · {card.ganji}일주 · {card.hanja}
+          {info.blood ? ` · ${info.blood}형` : ""}
         </p>
         <div className="mt-3 flex flex-wrap justify-center gap-1.5">
           {card.keys.map((k) => (
@@ -585,6 +659,7 @@ function IljuDex({ onStart }: { onStart: (mode?: Mode) => void }) {
         <div className="rounded-xl bg-white/[0.04] p-3">
           <p className="text-xs text-muted">💘 연애할 때</p>
           <p className="mt-1 font-semibold leading-snug">{card.love}</p>
+          {info.blood && <p className="mt-1.5 text-[12.5px] leading-snug text-muted">🩸 {BLOOD_LOVE[info.blood]}</p>}
         </div>
         <div className="rounded-xl bg-white/[0.04] p-3">
           <p className="text-xs text-muted">🤝 찰떡 일주</p>
@@ -604,7 +679,7 @@ function IljuDex({ onStart }: { onStart: (mode?: Mode) => void }) {
   );
 }
 
-// ───────────── 연락할까 말까? 타로 ─────────────
+// ───────────── 할까? 말까? 타로 ─────────────
 
 function ContactTarot({ onStart }: { onStart: (mode?: Mode) => void }) {
   const [q, setQ] = useState<ContactQ | null>(null);
@@ -647,7 +722,7 @@ function ContactTarot({ onStart }: { onStart: (mode?: Mode) => void }) {
   if (!q || !question) {
     return (
       <div className="space-y-3">
-        <Say mood="smug">손가락이 메시지 창 위에서 멈췄지? 질문 하나만 골라라냥. 카드 세 장으로 답해 주겠다냥.</Say>
+        <Say mood="smug">할까 말까 망설이는 거, 딱 하나만 골라라냥. 카드 세 장으로 답해 주겠다냥.</Say>
         {CONTACT_Q.map((x) => (
           <button
             key={x.id}
@@ -706,7 +781,9 @@ function ContactTarot({ onStart }: { onStart: (mode?: Mode) => void }) {
                   <p className="text-[12px] font-semibold text-violet">
                     {["①", "②", "③"][i]} {POSITIONS[i]} · {TAROT[c].name}
                   </p>
-                  <p className="mt-1 text-[14.5px] leading-relaxed">{i === 0 ? CONTACT[c].now : i === 1 ? CONTACT[c].heart : CONTACT[c].advice}</p>
+                  <p className="mt-1 text-[14.5px] leading-relaxed">
+                    {i === 0 ? CONTACT[c].now : i === 1 ? CONTACT[c].heart : (question.advice?.[CONTACT[c].sign] ?? CONTACT[c].advice)}
+                  </p>
                 </div>
               </div>
             ) : (
@@ -730,9 +807,9 @@ function ContactTarot({ onStart }: { onStart: (mode?: Mode) => void }) {
       )}
       {cards && shown >= 3 && verdict && (
         <>
-          <ShareLinkButton label="친구한테 결과 보내기 📤" title="냥신 연락 타로" description={`'${question.label}' 냥신의 답: ${question.verdict[verdict]} 🃏 너도 물어봐!`} />
-          <button onClick={() => onStart(q === "back" ? "reunion" : "couple")} className="btn-primary w-full py-4">
-            {q === "back" ? "재회 가능성 제대로 보기 🔁" : "그 사람 속마음까지 보기 💞"}
+          <KakaoShareButton label="카카오톡으로 결과 보내기" title="냥신 할까? 말까?" description={`'${question.label}' 냥신의 답: ${question.verdict[verdict]} 🃏 너도 물어봐!`} />
+          <button onClick={() => onStart(q === "ex" ? "reunion" : "couple")} className="btn-primary w-full py-4">
+            {q === "ex" ? "재회 가능성 제대로 보기 🔁" : "그 사람 속마음까지 보기 💞"}
           </button>
           <button onClick={() => setQ(null)} className="w-full py-2 text-[13px] text-muted">
             ← 다른 질문 하기
@@ -759,11 +836,9 @@ export function suneungDday(): number | null {
 }
 
 function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
-  const savedDate = useAppStore((st) => st.me?.profile?.birthdate || st.input.me.birthdate);
-  const savedName = useAppStore((st) => st.me?.profile?.name || st.input.me.name);
   const dday = suneungDday();
-  const [name, setName] = useState(savedName ?? "");
-  const [birthdate, setBirthdate] = useState(savedDate ?? "");
+  const [info, setInfo] = useState<BasicInfo | null>(null);
+  const [retype, setRetype] = useState(false);
   const [exam, setExam] = useState<string>(dday !== null ? "수능" : "자격증 시험");
   const [date, setDate] = useState(dday !== null ? SUNEUNG : "");
   const [result, setResult] = useState<ExamDayResponse | null>(null);
@@ -772,13 +847,15 @@ function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => () => void (img && URL.revokeObjectURL(img.url)), [img]);
+  const name = info?.name ?? "";
 
   const go = async () => {
+    if (!info) return;
     setBusy(true);
     setError(null);
     try {
-      const [r] = await Promise.all([todayApi.exam(birthdate, date), new Promise((res) => setTimeout(res, 900))]);
-      const blob = await drawBujeok({ name: name.trim(), exam, dateLabel: r.date, ganji: r.ganji, site: siteUrl() });
+      const [r] = await Promise.all([todayApi.exam(info.birthdate, date), new Promise((res) => setTimeout(res, 900))]);
+      const blob = await drawBujeok({ name, exam, dateLabel: r.date, ganji: r.ganji, site: siteUrl() });
       setResult(r);
       setImg({ url: URL.createObjectURL(blob), blob });
       sound().play("stamp");
@@ -795,19 +872,30 @@ function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
       // PC / no share sheet: download the PNG instead.
       const a = document.createElement("a");
       a.href = img.url;
-      a.download = `냥신-합격부적-${name.trim() || "나"}.png`;
+      a.download = `냥신-합격부적-${name || "나"}.png`;
       a.click();
       setNote("부적을 저장했다냥! 배경화면으로 써라냥 🧧");
     });
   };
 
+  if (!info) {
+    return (
+      <InfoGate
+        ask={`${dday !== null ? `수능까지 D-${dday}다냥. ` : ""}시험 보는 사람의 이름, 생일, 혈액형을 대라냥. 냥신이 직접 부적을 써 주겠다냥 🧧`}
+        purpose="부적을 쓰겠다냥. 시험만 골라라냥"
+        cta="다음 — 시험 고르기 →"
+        busy={false}
+        startManual={retype}
+        onReady={setInfo}
+      />
+    );
+  }
+
   if (!result || !img) {
-    const ok = name.trim() && birthdate && /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= kstToday();
+    const ok = /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= kstToday();
     return (
       <div className="space-y-4">
-        <Say mood="smug">{dday !== null ? `수능까지 D-${dday}다냥. ` : ""}시험 보는 사람 이름이랑 생일, 시험 날짜를 대라냥. 냥신이 직접 부적을 써 주겠다냥 🧧</Say>
-        <input value={name} onChange={(e) => setName(e.target.value.slice(0, 10))} placeholder="시험 보는 사람 이름" className={inputCls} />
-        <DateTimeSelects type="date" initial={savedDate ?? ""} onChange={setBirthdate} />
+        <Say mood="smug">{`${name}의 시험은 뭐냥? ${dday !== null ? `수능이면 D-${dday}다냥. ` : ""}날짜까지 대라냥.`}</Say>
         <div className="flex flex-wrap gap-2">
           {EXAMS.map((x) => (
             <button
@@ -832,6 +920,15 @@ function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
         <button onClick={go} disabled={!ok || busy} className="btn-primary w-full py-4">
           {busy ? "냥신이 부적을 쓰는 중…" : "합격 부적 받기 🧧"}
         </button>
+        <button
+          onClick={() => {
+            setRetype(true);
+            setInfo(null);
+          }}
+          className="w-full py-1 text-[13px] text-muted underline underline-offset-4"
+        >
+          ← 다른 사람 부적 쓰기
+        </button>
       </div>
     );
   }
@@ -852,6 +949,7 @@ function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
         </p>
         <p className="mt-2 text-[14.5px] leading-relaxed">{result.line}</p>
         <p className="mt-3 rounded-xl bg-white/[0.05] px-3 py-2 text-[14px] font-semibold">🐾 냥신의 한 수: {result.tip}</p>
+        {info.blood && <p className="mt-2 rounded-xl bg-white/[0.05] px-3 py-2 text-[14px]">🩸 {BLOOD_EXAM[info.blood]}</p>}
       </div>
       <div className="flex flex-wrap justify-center gap-2 text-[13px]">
         <span className="rounded-full bg-violet/10 px-3 py-1.5">🎨 {result.item}</span>

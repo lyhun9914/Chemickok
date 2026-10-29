@@ -1,6 +1,7 @@
 import "server-only";
 import { ANIMALS, SAMHAP, branchRelation, dayCycleIndex } from "./saju";
 import { type TenGod, BRANCHES_HANGUL, BRANCH_ELEMENT, GROUP_OF, STEMS_HANGUL, buildChart, elementValue, tenGod } from "./fortune/chart";
+import { BLOOD_DAY, normalizeBlood } from "@/lib/blood";
 import { LUCK } from "./fortune/common";
 import { seedOf } from "./profile";
 
@@ -119,6 +120,8 @@ export interface TodayFortune {
   slots: { label: string; score: number; line: string }[];
   outfit: string;
   food: string;
+  /** 혈액형 × 오늘의 일진, when given */
+  bloodLine: string | null;
 }
 
 export interface ZodiacToday {
@@ -138,7 +141,7 @@ function today(now: Date) {
 
 const clamp = (n: number) => Math.max(42, Math.min(98, Math.round(n)));
 
-export function todayFortune(birthdate: string, now = new Date()): TodayFortune | null {
+export function todayFortune(birthdate: string, blood?: unknown, now = new Date()): TodayFortune | null {
   const c = buildChart(birthdate, "", "female");
   if (!c) return null;
   const t = today(now);
@@ -183,6 +186,7 @@ export function todayFortune(birthdate: string, now = new Date()): TodayFortune 
     }),
     outfit: `${L.color.split("·")[0]} 포인트 하나 — 양말·가방·폰 케이스면 충분하다냥`,
     food: L.food,
+    bloodLine: normalizeBlood(blood) ? BLOOD_DAY[normalizeBlood(blood) as keyof typeof BLOOD_DAY][GROUP_OF[god]] : null,
   };
 }
 

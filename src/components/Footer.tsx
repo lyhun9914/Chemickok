@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { BUSINESS } from "@/lib/config";
+import { InquirySheet } from "./InquirySheet";
 import { LegalModal, type LegalDoc } from "./LegalModal";
 
 export function Footer() {
   const [doc, setDoc] = useState<LegalDoc | null>(null);
+  const [ask, setAsk] = useState(false);
   return (
     <footer className="mt-auto border-t border-line px-5 pb-10 pt-6 text-[12px] leading-relaxed text-muted/80">
       <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-muted">
@@ -17,9 +19,9 @@ export function Footer() {
           개인정보처리방침
         </button>
         <span aria-hidden>|</span>
-        <a href={`mailto:${BUSINESS.email}`} className="underline-offset-2 hover:underline">
+        <button onClick={() => setAsk(true)} className="underline-offset-2 hover:underline">
           고객문의
-        </a>
+        </button>
       </div>
 
       {/* 전자상거래법 제10조 표시사항 — collapsed by default to keep the page clean */}
@@ -50,6 +52,7 @@ export function Footer() {
       </p>
       <p className="mt-1">ⓒ {BUSINESS.company}. 본 콘텐츠는 엔터테인먼트 목적으로 제공됩니다.</p>
       <LegalModal doc={doc} onClose={() => setDoc(null)} />
+      <InquirySheet open={ask} onClose={() => setAsk(false)} />
     </footer>
   );
 }

@@ -31,3 +31,45 @@ export const TAROT: TarotCard[] = [
   { no: "XX", name: "심판", emoji: "📯", line: "다시 부르는 카드다냥. 지난 인연이나 일이 돌아온다냥.", advice: "옛 연락 하나 반갑게 받아라냥." },
   { no: "XXI", name: "세계", emoji: "🌍", line: "완성의 카드다냥. 하던 일이 마무리된다냥.", advice: "끝낸 걸 축하해라냥. 다음 판이 열린다냥." },
 ];
+
+/** How a card sits in the day: bright (go), calm (steady), shadow (careful). Used to read two cards together. */
+const TONE: ("bright" | "calm" | "shadow")[] = [
+  "bright", // 바보
+  "bright", // 마법사
+  "calm", // 여사제
+  "bright", // 여황제
+  "calm", // 황제
+  "calm", // 교황
+  "bright", // 연인
+  "bright", // 전차
+  "calm", // 힘
+  "calm", // 은둔자
+  "bright", // 운명의 수레바퀴
+  "calm", // 정의
+  "shadow", // 매달린 사람
+  "shadow", // 죽음
+  "calm", // 절제
+  "shadow", // 악마
+  "shadow", // 탑
+  "bright", // 별
+  "shadow", // 달
+  "bright", // 태양
+  "calm", // 심판
+  "bright", // 세계
+];
+
+/** Two cards read together: the day's mood (first) and today's move (second). */
+export function tarotPair(a: number, b: number): { title: string; line: string } {
+  const ta = TONE[a];
+  const tb = TONE[b];
+  const has = (t: string) => ta === t || tb === t;
+  const shadow = ta === "shadow" ? TAROT[a] : TAROT[b];
+  if (ta === "bright" && tb === "bright") return { title: "밀어붙여도 되는 날", line: "두 장 모두 밝은 카드다냥. 오늘은 망설이지 말고 먼저 움직여라냥." };
+  if (ta === "shadow" && tb === "shadow")
+    return { title: "버티면 이기는 날", line: "흔들리는 카드가 두 장이다냥. 그래도 끝이 아니라 바뀌는 중이다냥. 오늘은 버티기만 해도 이긴 거다냥." };
+  if (has("bright") && has("shadow"))
+    return { title: "함정 하나만 피하면 되는 날", line: `흐름은 좋은데 '${shadow.name}' 카드가 함정 하나를 알려 준다냥. 그것만 피하면 오늘은 네 편이다냥.` };
+  if (has("bright")) return { title: "천천히 가도 닿는 날", line: "기운은 밝은데 속도는 천천히 가라는 날이다냥. 서두르지 않으면 원하는 데 닿는다냥." };
+  if (has("shadow")) return { title: "지키는 게 버는 날", line: "조심하는 만큼 지켜지는 날이다냥. 무리한 약속과 충동은 내일로 미뤄라냥." };
+  return { title: "조용히 정리하는 날", line: "차분한 카드가 두 장이다냥. 큰일보다 작은 마무리가 운을 부르는 날이다냥." };
+}

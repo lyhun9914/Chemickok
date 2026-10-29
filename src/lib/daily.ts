@@ -18,7 +18,8 @@ interface Saved {
   streak: number;
   /** day numbers checked in during the current streak (last 7 shown as stamps) */
   days: number[];
-  tarot?: { day: string; card: number };
+  /** 오늘의 타로: the two cards drawn today (older saves held one `card`, which no longer counts) */
+  tarot?: { day: string; card?: number; cards?: number[] };
   /** 연락 타로: today's three cards per question */
   contact?: { day: string; draws: Record<string, number[]> };
 }
@@ -63,14 +64,14 @@ export function checkIn(): { streak: number; stamps: boolean[]; fresh: boolean }
   return { streak: next.streak, stamps, fresh };
 }
 
-/** Today's tarot card, fixed for the day once drawn. */
-export function tarotToday(): number | null {
+/** Today's two tarot cards, fixed for the day once drawn. */
+export function tarotToday(): number[] | null {
   const s = read();
-  return s?.tarot?.day === todayKey() ? s.tarot.card : null;
+  return s?.tarot?.day === todayKey() && s.tarot.cards?.length === 2 ? s.tarot.cards : null;
 }
-export function saveTarot(card: number) {
+export function saveTarot(cards: number[]) {
   const s = read() ?? { last: "", streak: 0, days: [] };
-  write({ ...s, tarot: { day: todayKey(), card } });
+  write({ ...s, tarot: { day: todayKey(), cards } });
 }
 
 /** 연락할까 말까 타로: one spread per question per day, so asking again shows the same answer. */
