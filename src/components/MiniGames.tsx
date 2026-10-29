@@ -291,7 +291,7 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
       setResult(r);
       const s = checkIn();
       setStamp(s);
-      sound().play(s.fresh ? "stamp" : "reveal");
+      sound().play(s.fresh ? "stamp" : "page");
     } catch (e) {
       setError(e instanceof Error ? e.message : "다시 시도해 주세요");
     } finally {
@@ -394,10 +394,10 @@ function TarotDraw({ onStart }: { onStart: (mode?: Mode) => void }) {
     const c = Math.floor(Math.random() * TAROT.length);
     saveTarot(c);
     setPicked(slot);
-    sound().play("reveal");
+    sound().play("slide");
     setTimeout(() => {
       setCard(c);
-      sound().play("chime");
+      sound().play("bowl");
     }, 650);
   };
   const t = card !== null ? TAROT[card] : null;
@@ -507,7 +507,7 @@ function IljuDex({ onStart }: { onStart: (mode?: Mode) => void }) {
     try {
       const [r] = await Promise.all([todayApi.ilju(birthdate), new Promise((res) => setTimeout(res, 800))]);
       setCard(r);
-      sound().play("chime");
+      sound().play("bowl");
     } catch (e) {
       setError(e instanceof Error ? e.message : "다시 시도해 주세요");
     } finally {
@@ -637,7 +637,7 @@ function ContactTarot({ onStart }: { onStart: (mode?: Mode) => void }) {
         [1, 2, 3].forEach((n) =>
           setTimeout(() => {
             setShown(n);
-            sound().play(n === 3 ? "chime" : "reveal");
+            sound().play(n === 3 ? "bowl" : "page");
           }, n * 700),
         );
       }, 400);

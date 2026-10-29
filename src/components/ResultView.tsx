@@ -118,7 +118,7 @@ export function ResultView() {
         <FlipCard
           flipped={flipped}
           onFlip={() => {
-            sound().play("chime");
+            sound().play("flip");
             setFlipped(true);
           }}
           back={
@@ -270,7 +270,7 @@ export function ResultView() {
   if (!teaser || !inputHash) return null;
 
   const advance = () => {
-    sound().play("reveal");
+    sound().play("page");
     setShown((n) => n + 1);
     setTyping(true);
   };
@@ -282,7 +282,7 @@ export function ResultView() {
 
   const onUnlocked = (u: UnlockResponse) => {
     applyUnlock(u);
-    sound().play("chime");
+    sound().play("unlock");
     setPayOpen(false);
     setFlipped(true);
     setShown(Number.MAX_SAFE_INTEGER);

@@ -11,6 +11,7 @@ import { MethodSection } from "./MethodSection";
 import { MiniGameSheet, type MiniGame, suneungDday } from "./MiniGames";
 import { Nyang } from "./Nyang";
 import { SoundToggle } from "./SoundToggle";
+import { sound } from "@/lib/sound";
 import { Talisman } from "./Talisman";
 import { TypeCarousel } from "./TypeCarousel";
 
@@ -171,7 +172,10 @@ export function Landing() {
           {MINI.map((g) => (
             <button
               key={g.id}
-              onClick={() => setGame(g.id)}
+              onClick={() => {
+                sound().play("slide");
+                setGame(g.id);
+              }}
               className={`relative rounded-2xl border bg-surface p-4 text-left transition hover:border-peach/50 active:scale-[0.98] ${g.wide ? "col-span-2 flex items-center gap-4 border-violet/40" : "border-line"}`}
             >
               <div className="text-3xl">{g.emoji}</div>

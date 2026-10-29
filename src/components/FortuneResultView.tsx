@@ -150,7 +150,7 @@ export function FortuneResultView() {
   const price = product.price;
 
   const advance = () => {
-    sound().play("reveal");
+    sound().play("page");
     setShown((n) => n + 1);
     setTyping(true);
   };
@@ -160,7 +160,7 @@ export function FortuneResultView() {
   };
   const onUnlocked = (u: UnlockResponse) => {
     applyUnlock(u);
-    sound().play("chime");
+    sound().play("unlock");
     setPayOpen(false);
     setShown(Number.MAX_SAFE_INTEGER);
     toast.show(u.level === "full" ? (u.readingId ? "🐾 복채 잘 받았다냥! 내 점괘함에 보관해 뒀다냥" : "🐾 복채 잘 받았다냥!") : "🔓 하나는 공짜로 알려주겠다냥!");

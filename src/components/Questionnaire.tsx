@@ -8,6 +8,7 @@ import { BLOOD_CHIP, BLOOD_HINT, BLOOD_REACT, BLOOD_TYPES } from "@/lib/blood";
 import { FORTUNE_INTERVIEW } from "@/lib/fortuneQuestions";
 import type { BloodType, FortuneMode, Gender, Mode, QuestionnaireInput, RelationshipStatus } from "@/models/types";
 import { isFortune, productOf } from "@/lib/config";
+import { sound } from "@/lib/sound";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { flareCandles } from "./Backdrop";
@@ -704,7 +705,14 @@ export function Questionnaire() {
       break;
     case "ritual":
       dock = (
-        <button onClick={advance} className="btn-primary glow chip-pop w-full py-4 text-[16px]">
+        <button
+          onClick={() => {
+            // 향: a match struck; 그 사람 떠올리기: a bowl rung once.
+            sound().play(cur.id === "incense" ? "match" : "bowl");
+            advance();
+          }}
+          className="btn-primary glow chip-pop w-full py-4 text-[16px]"
+        >
           {cur.id === "incense" ? "🕯️ 향 피우기" : `🔮 ${josa(p, "을/를")} 떠올렸다`}
         </button>
       );
@@ -726,7 +734,13 @@ export function Questionnaire() {
     }
     case "end":
       dock = (
-        <button onClick={() => setScreen("loading")} className="btn-primary glow shine chip-pop w-full py-4 text-[17px]">
+        <button
+          onClick={() => {
+            sound().play("bells");
+            setScreen("loading");
+          }}
+          className="btn-primary glow shine chip-pop w-full py-4 text-[17px]"
+        >
           {fortune ? "📜 감정 결과 보기" : "🔮 점괘 보기"}
         </button>
       );
