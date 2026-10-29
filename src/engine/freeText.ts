@@ -121,7 +121,8 @@ export function resolve(d: Decoded, qid: string, a: string | undefined): Resolve
   const text = customText(a);
   const tw = textWeights(text);
   const quote = quoteOf(text);
-  const pick = <T,>(list: T[]) => list[[...text].reduce((h, ch) => h + ch.charCodeAt(0), 0) % list.length];
+  // Seeded by the question too, so the same words typed into several questions don't read back identically.
+  const pick = <T,>(list: T[]) => list[[...(text + qid)].reduce((h, ch) => h + ch.charCodeAt(0), 0) % list.length];
 
   if (UNKNOWN.test(text)) {
     return { oid: null, label: `✏️ ${text}`, w: {}, read: `${quote} ${unknownRead(d, partner, qid)}`, custom: true, unknown: true };
@@ -169,7 +170,7 @@ export function resolve(d: Decoded, qid: string, a: string | undefined): Resolve
   const toneLines = toneOf(text, partner).slice(0, 2);
   const body = [...traitLines, ...toneLines];
   const read = body.length
-    ? `${quote} 보기엔 없던 답이라 냥신이 따로 읽어 봤다냥. ${body.join(" ")} ${pick(partner ? CLOSE_PARTNER : CLOSE_SELF)}`
+    ? `${quote} ${pick(OPEN_CUSTOM)} ${body.join(" ")} ${pick(partner ? CLOSE_PARTNER : CLOSE_SELF)}`
     : `${quote} ${pick(partner ? FALLBACK_PARTNER : FALLBACK_SELF)}`;
   return { oid: null, label: `✏️ ${text}`, w: tw, read, custom: true, unread: !Object.keys(tw).length };
 }
@@ -192,6 +193,8 @@ const TONE: [Test, string, string][] = [
 function toneOf(text: string, partner: boolean): string[] {
   return TONE.filter(([re]) => (typeof re === "function" ? re(text) : re.test(text))).map(([, self, other]) => (partner ? other : self));
 }
+
+const OPEN_CUSTOM = ["보기엔 없던 답이라 냥신이 따로 읽어 봤다냥.", "보기에 없는 답이다냥. 그래서 더 잘 보인다냥.", "네 말 그대로 읽어 봤다냥."];
 
 const CLOSE_SELF = [
   "이 답 하나로 네 연애 습관이 꽤 많이 보인다냥.",

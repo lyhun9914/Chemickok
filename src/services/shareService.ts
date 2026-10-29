@@ -26,6 +26,14 @@ export function siteUrl(): string {
   return window.location.origin + "/";
 }
 
+let refCode: string | null = null;
+/** Set when a member is known: their shares carry their 초대 code, so a friend who joins through one counts as invited. */
+export const setShareRef = (code: string | null) => {
+  refCode = code;
+};
+/** The link to share: the site, with the sharer's 초대 code when logged in. */
+export const shareUrl = () => siteUrl() + (refCode ? `?ref=${refCode}` : "");
+
 async function copyText(text: string): Promise<ShareOutcome> {
   await navigator.clipboard.writeText(text);
   return "copied";

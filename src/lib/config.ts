@@ -1,17 +1,44 @@
 import type { FortuneMode, Mode } from "@/models/types";
 
-const price = (v: string | undefined, fallback: number) => {
-  const n = Number(v);
-  return Number.isInteger(n) && n >= 100 ? n : fallback;
-};
-
 /**
- * 상품 · 가격. Change the numbers here, or override per deploy without code changes with
- * NEXT_PUBLIC_PRICE_SOLO / _COUPLE / _NEWYEAR / _SAJU / _DAEUN / _REUNION / _SPOUSE in Vercel (takes effect on the next deploy).
+ * 복채는 냥(兩)으로 낸다: the old coin unit, and what a cat says. Coins are charged into a 복주머니 in packs and spent
+ * one reading at a time; a guest can also buy exactly what one reading costs, on the spot.
+ * Change the packs and costs here (next deploy).
  */
+export interface CoinPack {
+  id: string;
+  coins: number;
+  /** 원 */
+  price: number;
+  tag?: string;
+}
+
+export const COIN_PACKS: CoinPack[] = [
+  { id: "n1", coins: 1, price: 990 },
+  { id: "n2", coins: 2, price: 1490, tag: "궁합 한 번" },
+  { id: "n5", coins: 5, price: 3490, tag: "인기" },
+  { id: "n10", coins: 10, price: 5990, tag: "최대 혜택" },
+];
+export const packOf = (id: unknown) => COIN_PACKS.find((p) => p.id === id) ?? null;
+/** What a guest pays to open one reading that costs `coins` (the smallest pack of exactly that size). */
+const directPrice = (coins: number) => COIN_PACKS.find((p) => p.coins === coins)?.price ?? coins * COIN_PACKS[0].price;
+/** Smallest pack that covers a shortfall. */
+export const packFor = (need: number) => COIN_PACKS.find((p) => p.coins >= need) ?? COIN_PACKS[COIN_PACKS.length - 1];
+export const nyang = (n: number) => `${n}냥`;
+/** The part of a user id in a 충전 orderId (`c{coins}-{tag}-…`), binding the payment to whoever started it. */
+export const chargeTag = (uid: string) => uid.replaceAll("-", "").slice(0, 10);
+
+/** Gifts, given once. Only to accounts made with Kakao / Naver / Google, which can't be mass-produced like emails. */
+export const WELCOME_COINS = 1;
+/** 친구 초대: both get this when a friend's first social login came through your link; at most INVITE_LIMIT friends. */
+export const INVITE_COINS = 1;
+export const INVITE_LIMIT = 20;
+
+/** 상품. `coins` is what one full reading costs; `price` is the same reading bought directly by a guest. */
 export interface Product {
   name: string;
   emoji: string;
+  coins: number;
   price: number;
   orderName: string;
   pitch: string;
@@ -33,7 +60,8 @@ export const PRODUCTS: Record<Mode, Product> = {
   solo: {
     name: "내 연애 팔자",
     emoji: "🐾",
-    price: price(process.env.NEXT_PUBLIC_PRICE_SOLO, 990),
+    coins: 1,
+    price: directPrice(1),
     orderName: "냥신 점괘 · 내 연애 팔자",
     pitch: "내 연애 유형 · 찰떡 궁합 · 반복하는 실수 · 이번 달 인연 날짜",
     category: "love",
@@ -41,7 +69,8 @@ export const PRODUCTS: Record<Mode, Product> = {
   couple: {
     name: "그 사람과 궁합",
     emoji: "💞",
-    price: price(process.env.NEXT_PUBLIC_PRICE_COUPLE, 1490),
+    coins: 2,
+    price: directPrice(2),
     orderName: "냥신 점괘 · 그 사람과 궁합",
     pitch: "궁합 점수 · 그 사람 속마음 · 보내지 못한 편지 · 이별 위기",
     category: "love",
@@ -49,7 +78,8 @@ export const PRODUCTS: Record<Mode, Product> = {
   reunion: {
     name: "재회운",
     emoji: "🔁",
-    price: price(process.env.NEXT_PUBLIC_PRICE_REUNION, 990),
+    coins: 1,
+    price: directPrice(1),
     orderName: "냥신 점괘 · 재회운",
     pitch: "다시 만날 가능성 · 그 사람 마음 온도 · 연락해도 되는 날짜 · 첫 문장",
     category: "love",
@@ -57,7 +87,8 @@ export const PRODUCTS: Record<Mode, Product> = {
   spouse: {
     name: "미래 배우자운",
     emoji: "💍",
-    price: price(process.env.NEXT_PUBLIC_PRICE_SPOUSE, 990),
+    coins: 1,
+    price: directPrice(1),
     orderName: "냥신 점괘 · 미래 배우자운",
     pitch: "배우자 자리로 보는 성격·외모·직업 · 만나는 해와 달 · 만나는 곳",
     category: "love",
@@ -65,7 +96,8 @@ export const PRODUCTS: Record<Mode, Product> = {
   newyear: {
     name: `${NY} 신년운세`,
     emoji: "🎍",
-    price: price(process.env.NEXT_PUBLIC_PRICE_NEWYEAR, 990),
+    coins: 1,
+    price: directPrice(1),
     orderName: `냥신 점괘 · ${NY} 신년운세`,
     pitch: `${NY} ${yearGanji(NY)}년 총운 · 12달 흐름 · 좋은 달·조심할 달 · 삼재 · 재물·연애·일·건강`,
     category: "fortune",
@@ -73,7 +105,8 @@ export const PRODUCTS: Record<Mode, Product> = {
   saju: {
     name: "타고난 사주 팔자",
     emoji: "📜",
-    price: price(process.env.NEXT_PUBLIC_PRICE_SAJU, 990),
+    coins: 1,
+    price: directPrice(1),
     orderName: "냥신 점괘 · 타고난 사주 팔자",
     pitch: "타고난 그릇 · 재물 · 일과 적성 · 건강 · 귀인 · 올해·내년 · 개운법",
     category: "fortune",
@@ -81,7 +114,8 @@ export const PRODUCTS: Record<Mode, Product> = {
   daeun: {
     name: "인생 대운 흐름",
     emoji: "🌊",
-    price: price(process.env.NEXT_PUBLIC_PRICE_DAEUN, 990),
+    coins: 1,
+    price: directPrice(1),
     orderName: "냥신 점괘 · 인생 대운 흐름",
     pitch: "10년마다 바뀌는 운 · 지금 대운 · 황금기와 고비 · 교운기 · 앞으로 3년",
     category: "fortune",

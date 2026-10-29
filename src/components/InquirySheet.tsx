@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useBack } from "@/lib/back";
 import { BUSINESS } from "@/lib/config";
 import { Say } from "./Nyang";
 
@@ -86,6 +87,7 @@ export function InquirySheet({ open, onClose }: { open: boolean; onClose: () => 
   const [body, setBody] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const device = useMemo(deviceLine, []);
+  useBack(open, onClose);
 
   useEffect(() => {
     if (!open) return;

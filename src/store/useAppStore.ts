@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { StoryShare } from "@/lib/handoff";
 import { isFortune } from "@/lib/config";
 import { accountApi, type LoginProvider, type Me, type SavedReading } from "@/services/apiClient";
+import { setShareRef } from "@/services/shareService";
 import type {
   FortuneTeaser,
   FullReport,
@@ -37,6 +38,8 @@ interface AppState {
   meLoaded: boolean;
   /** reopen the payment sheet after returning from the login redirect */
   resumePay: boolean;
+  /** a 충전 left for Toss from the paywall: open the reading with the new 냥 when it comes back */
+  pendingSpend: boolean;
   /** what the interview already knows: the product picked on the landing page, and 기본 정보 */
   preset: { mode: boolean; me: boolean };
   /** a share card handed over from another device without its answers (screen "story") */
@@ -58,6 +61,9 @@ interface AppState {
   loadMe: () => Promise<Me | null>;
   setMe: (me: Me | null) => void;
   setResumePay: (v: boolean) => void;
+  setPendingSpend: (v: boolean) => void;
+  /** 복주머니 balance changed (charge, spend) */
+  setCoins: (n: number) => void;
   /** start a fresh interview; `mode` from a product card, `me` from saved 기본 정보 or the previous reading */
   startInterview: (opts?: { mode?: Mode; me?: PersonInput | null }) => void;
   /** open a saved reading from 내 점괘함 */
@@ -83,6 +89,7 @@ const initial = {
   level: "none" as const,
   error: null,
   resumePay: false,
+  pendingSpend: false,
   preset: { mode: false, me: false },
   story: null as StoryShare | null,
 };
@@ -109,16 +116,26 @@ export const useAppStore = create<AppState>()(
       setFortune: (fortune, inputHash) =>
         set({ fortune, teaser: null, inputHash, report: null, level: "none", screen: "result" }),
       // Never downgrade: a later "share" unlock must not hide an already-paid full report.
-      applyUnlock: ({ level, report }) => set((s) => (s.level === "full" ? {} : { level, report })),
+      applyUnlock: ({ level, report, coins }) =>
+        set((s) => ({
+          ...(s.level === "full" ? {} : { level, report }),
+          ...(coins !== undefined && s.me ? { me: { ...s.me, coins } } : {}),
+        })),
       setError: (error) => set({ error }),
       reset: () => set({ ...initial, input: initialInput() }),
       loadMe: async () => {
         const r = await accountApi.me().catch(() => ({ user: null, providers: [] as LoginProvider[] }));
         set({ me: r.user, providers: r.providers, meLoaded: true });
+        setShareRef(r.user?.refCode ?? null);
         return r.user;
       },
-      setMe: (me) => set({ me }),
+      setMe: (me) => {
+        setShareRef(me?.refCode ?? null);
+        set({ me });
+      },
       setResumePay: (resumePay) => set({ resumePay }),
+      setPendingSpend: (pendingSpend) => set({ pendingSpend }),
+      setCoins: (coins) => set((s) => (s.me ? { me: { ...s.me, coins } } : {})),
       startInterview: (opts = {}) => {
         const base = initialInput();
         const me = opts.me?.name && opts.me.birthdate ? opts.me : null;
@@ -128,6 +145,12 @@ export const useAppStore = create<AppState>()(
           step: 0,
           screen: "form",
           error: null,
+          // a new interview replaces the last reading (the landing's "보던 점괘" would otherwise pair it with new answers)
+          teaser: null,
+          fortune: null,
+          report: null,
+          level: "none",
+          inputHash: null,
         });
       },
       openSaved: ({ mode, names, teaser, report }) => {
@@ -148,9 +171,10 @@ export const useAppStore = create<AppState>()(
       name: "love-chemistry-v6",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, preset, story }) => ({
+      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, pendingSpend, preset, story }) => ({
         story,
         resumePay,
+        pendingSpend,
         preset,
         screen: screen === "loading" ? "form" : screen,
         step,

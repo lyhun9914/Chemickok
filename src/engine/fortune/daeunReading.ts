@@ -376,7 +376,7 @@ const DECISION: Record<string, { label: string; gods: TenGod[] }> = {
   love: { label: "결혼·관계 정리", gods: ["정관", "정재", "식신", "편관"] },
   money: { label: "투자·큰돈", gods: ["정재", "편재", "식신"] },
   study: { label: "진학·공부·자격증", gods: ["정인", "편인", "정관"] },
-  family: { label: "자식·가족 일", gods: ["정인", "식신", "정관", "정재"] },
+  family: { label: "가족 일", gods: ["정인", "식신", "정관", "정재"] },
   retire: { label: "은퇴·노후 준비", gods: ["정인", "정재", "식신", "비견"] },
 };
 
@@ -457,7 +457,7 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
           `${next.age}세, 운이 갈아탄다냥`,
           lines(
             describe(next),
-            `대운이 바뀌기 전후 1~2년(${next.age - 1}~${next.age}세)은 교운기(交運期)다냥. ${next.age >= 60 ? "몸과 집안에 변화가 이때 몰린다냥." : "이사·이직·이별이 이때 몰린다냥."}`,
+            `대운이 바뀌기 전후 1~2년(${next.age - 1}~${next.age}세)은 교운기(交運期)다냥. ${next.age >= 60 ? "몸과 집안에 변화가 이때 몰린다냥." : next.age <= 20 ? "이사·전학·진로 변화가 이때 몰린다냥." : "이사·이직·이별이 이때 몰린다냥."}`,
             !cur
               ? null
               : next.score > cur.score + 8

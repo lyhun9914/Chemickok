@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { devLoginEnabled, getDb } from "@/services/server/db";
+import { REF_COOKIE, giftNewUser, giftQuery } from "@/services/server/gifts";
 import { authorizeUrl, enabledProviders, isProvider } from "@/services/server/oauth";
 import { authConfigured, randomToken, setSession, setStateCookie } from "@/services/server/session";
 
@@ -13,8 +14,12 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/auth/[provid
 
   // Local testing without real OAuth apps (AUTH_DEV_LOGIN=1, never on Vercel production).
   if (provider === "dev" && devLoginEnabled()) {
-    const user = await db.upsertUser({ provider: "dev", providerId: "dev-user", nickname: "테스트냥", email: null });
-    const res = back("login=ok");
+    // ?as=… makes a separate test account (for 친구 초대 tests)
+    const providerId = `dev-${(req.nextUrl.searchParams.get("as") ?? "user").replace(/\W/g, "").slice(0, 20)}`;
+    const existed = await db.findUser("dev", providerId);
+    const user = await db.upsertUser({ provider: "dev", providerId, nickname: "테스트냥", email: null });
+    const gifts = existed ? { welcome: 0, invited: 0 } : await giftNewUser(db, user, req.cookies.get(REF_COOKIE)?.value);
+    const res = back(`login=ok${existed ? "" : "&new=1"}${giftQuery(gifts)}`);
     setSession(res, user.id);
     return res;
   }

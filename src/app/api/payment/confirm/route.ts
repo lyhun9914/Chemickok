@@ -9,16 +9,16 @@ import { confirmTossPayment, serverTestMode } from "@/services/server/tossConfir
 
 interface ConfirmBody {
   input: unknown;
-  method: "test" | "toss" | "share";
+  method: "test" | "toss" | "share" | "coins";
   paymentKey?: string;
   orderId?: string;
   amount?: number;
 }
 
 /**
- * POST /api/payment/confirm — stateless unlock.
- * The report is rebuilt from the answers; a Toss payment only unlocks the answers whose hash
- * prefixes its orderId, and Toss refuses to confirm the same payment twice.
+ * POST /api/payment/confirm — unlock a full reading.
+ * The report is rebuilt from the answers. Paid with 냥 from the 복주머니 (logged in; the same answers are charged once),
+ * or directly by a guest through Toss: that payment only unlocks the answers whose hash prefixes its orderId.
  */
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as ConfirmBody | null;
@@ -29,7 +29,22 @@ export async function POST(req: Request) {
   const hashOf = fortune ? fortuneHash : inputHash;
   const reportOf = fortune ? buildFortuneReport : buildReport;
 
+  const db = getDb();
+  const uid = sessionUserId(req);
+  const hash = hashOf(input);
+  let coinsLeft: number | undefined;
+  let spentBefore = false;
+
   switch (body.method) {
+    case "coins": {
+      if (!db || !uid) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+      const cost = productOf(input.mode).coins;
+      const r = await db.coinSpend(uid, cost, `${input.mode}:${hash}`);
+      if (!r.ok) return NextResponse.json({ error: `냥이 ${cost - r.balance}냥 모자라다냥.`, need: cost - r.balance, coins: r.balance }, { status: 402 });
+      coinsLeft = r.balance;
+      spentBefore = r.already;
+      break;
+    }
     case "share": {
       const res: UnlockResponse = { level: "share", report: reportOf(input, "share") };
       return NextResponse.json(res);
@@ -59,19 +74,18 @@ export async function POST(req: Request) {
   }
 
   const report = reportOf(input, "full");
-  const res: UnlockResponse = { level: "full", report };
+  const res: UnlockResponse = { level: "full", report, ...(coinsLeft === undefined ? {} : { coins: coinsLeft }) };
 
-  // Logged in: keep the payment record and file the reading in 내 점괘함. Never blocks the unlock.
-  const db = getDb();
-  const uid = sessionUserId(req);
+  // Keep the payment record (money only — 냥 spends are in the coin ledger) and, logged in, file the reading in
+  // 내 점괘함 (once: answers already paid for with 냥 are there). Never blocks the unlock.
   if (db) {
-    const hash = hashOf(input);
-    const orderId = body.method === "toss" ? body.orderId! : `test-${hash}-${Date.now()}`;
+    const orderId = body.method === "toss" ? body.orderId! : body.method === "coins" ? null : `test-${hash}-${Date.now()}`;
     try {
-      await db
-        .recordPayment({ orderId, userId: uid, inputHash: hash, amount: productOf(input.mode).price, method: body.method })
-        .catch((e) => console.error("recording payment failed", e));
-      if (uid) {
+      if (orderId)
+        await db
+          .recordPayment({ orderId, userId: uid, inputHash: hash, amount: productOf(input.mode).price, method: body.method })
+          .catch((e) => console.error("recording payment failed", e));
+      if (uid && !spentBefore) {
         // First paid reading of a user who logged in before the interview: keep their 기본 정보 too.
         const user = await db.getUser(uid);
         if (user && !user.profile) await db.updateProfile(uid, input.me);

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PRODUCTS, productOf, won } from "@/lib/config";
+import { PRODUCTS, nyang, productOf } from "@/lib/config";
+import { useBack } from "@/lib/back";
+import { usePayHint } from "./CoinShop";
 import { sound } from "@/lib/sound";
 import type { FortuneMode, FortuneStoryCard, UnlockResponse } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
@@ -107,6 +109,7 @@ export function FortuneResultView() {
   const [typing, setTyping] = useState(level === "none" && !resumeAtLoad);
   const [leaveAsked, setLeaveAsked] = useState(false);
   const toast = useToast();
+  const hint = usePayHint(fortune ? productOf(fortune.mode).coins : 1);
 
   useEffect(() => {
     if (!payIntent) return;
@@ -140,6 +143,10 @@ export function FortuneResultView() {
     document.getElementById(`beat-${shown - 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [typing, shown, total]);
 
+  // Back gesture: like the result screen of the love readings (ask once if unpaid, then back to the gate, reading kept).
+  const toGate = useAppStore((st) => st.setScreen);
+  useBack(true, () => (level !== "full" && allShown && !typing && !leaveAsked ? setLeaveAsked(true) : (setLeaveAsked(false), toGate("landing"))));
+
   if (!fortune || !inputHash) return null;
 
   const mode = fortune.mode;
@@ -147,7 +154,7 @@ export function FortuneResultView() {
   const p = input.partner.name || "그 사람";
   const P = (s: string) => s.replaceAll("{p}", p);
   const product = productOf(mode);
-  const price = product.price;
+  const cost = product.coins;
 
   const advance = () => {
     sound().play("page");
@@ -231,7 +238,7 @@ export function FortuneResultView() {
                       )}
                     </div>
                     <div className="mt-5 rounded-3xl border border-peach/30 bg-peach/5 p-5">
-                      <p className="text-sm font-bold text-peach">📜 복채 {won(price)}이면 지금 바로 열리는 감정서</p>
+                      <p className="text-sm font-bold text-peach">📜 복채 🪙 {nyang(cost)}이면 지금 바로 열리는 감정서</p>
                       <ul className="mt-3 space-y-2 text-sm">
                         {fortune.locked.map((lp) => (
                           <li key={lp.id} className="flex gap-2">
@@ -249,9 +256,9 @@ export function FortuneResultView() {
                     <div className="sticky bottom-4 z-10 mt-5">
                       <button onClick={() => setPayIntent(true)} className="btn-primary glow shine w-full py-4">
                         <span className="block text-[17px]">
-                          {PAY_LABEL[mode]} · {won(price)}
+                          {PAY_LABEL[mode]} · 🪙 {nyang(cost)}
                         </span>
-                        <span className="block text-xs font-medium opacity-90">{price < 1000 ? "천 원도 안 되는 복채다냥" : "점집 복채의 10분의 1도 안 된다냥"}</span>
+                        <span className="block text-xs font-medium opacity-90">{hint}</span>
                       </button>
                     </div>
                     {level === "none" && <ShareUnlockPanel input={input} unlockTitle={fortune.locked[0].title} onUnlocked={onUnlocked} toast={toast.show} />}
@@ -275,7 +282,7 @@ export function FortuneResultView() {
             </button>
             {level !== "full" && (
               <button onClick={() => setPayIntent(true)} className="text-xs font-bold text-peach">
-                기다리기 싫다냥? 감정서 바로 열기 {won(price)} →
+                기다리기 싫다냥? 감정서 바로 열기 🪙 {nyang(cost)} →
               </button>
             )}
           </div>
@@ -299,7 +306,7 @@ export function FortuneResultView() {
                     <span className="text-3xl">{PRODUCTS[m].emoji}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-bold">{PRODUCTS[m].name}</span>
-                      <span className="mt-0.5 block text-xs text-muted">내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 {won(PRODUCTS[m].price)}</span>
+                      <span className="mt-0.5 block text-xs text-muted">내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 🪙 {nyang(PRODUCTS[m].coins)}</span>
                     </span>
                     <span aria-hidden>→</span>
                   </button>
@@ -322,7 +329,7 @@ export function FortuneResultView() {
                   }}
                   className="btn-primary mt-5 w-full py-4"
                 >
-                  {PAY_LABEL[mode]} · {won(price)}
+                  {PAY_LABEL[mode]} · 🪙 {nyang(cost)}
                 </button>
                 <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
                   다음에 볼게요
@@ -342,7 +349,21 @@ export function FortuneResultView() {
           setPayOpen(true);
         }}
       />
-      <PaymentModal open={payOpen} input={input} inputHash={inputHash} onClose={() => setPayOpen(false)} onUnlocked={onUnlocked} />
+      <PaymentModal
+        open={payOpen}
+        input={input}
+        inputHash={inputHash}
+        onClose={() => setPayOpen(false)}
+        onUnlocked={onUnlocked}
+        onLogin={
+          providers.length > 0
+            ? () => {
+                setPayOpen(false);
+                setLoginOpen(true);
+              }
+            : undefined
+        }
+      />
       {toast.node}
     </main>
   );

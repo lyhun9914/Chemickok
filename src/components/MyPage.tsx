@@ -1,16 +1,116 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { PRODUCTS } from "@/lib/config";
+import { INVITE_COINS, PRODUCTS, nyang } from "@/lib/config";
 import { MBTI_TYPES } from "@/lib/questions";
-import type { Gender, PersonInput } from "@/models/types";
-import { accountApi, type ReadingSummary } from "@/services/apiClient";
+import type { Gender, Mode, PersonInput } from "@/models/types";
+import { accountApi, coinApi, type CoinHistoryRow, type ReadingSummary, type Wallet } from "@/services/apiClient";
+import { shareService } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
+import { useBack } from "@/lib/back";
+import { WalletSheet, useSocialLabel } from "./CoinShop";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { Nyang } from "./Nyang";
 
 const fieldCls = "w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-[15px] text-ink outline-none focus:border-pink/60";
-const PROVIDER_LABEL: Record<string, string> = { kakao: "카카오", naver: "네이버", google: "구글", dev: "테스트" };
+const PROVIDER_LABEL: Record<string, string> = { kakao: "카카오", naver: "네이버", google: "구글", email: "이메일", dev: "테스트" };
+
+/** One line of 복주머니 history. */
+function ledgerLabel(r: CoinHistoryRow): string {
+  switch (r.reason) {
+    case "charge":
+      return "🪙 충전";
+    case "spend":
+      return `📜 ${PRODUCTS[r.ref.split(":")[0] as Mode]?.name ?? "점괘"} 열기`;
+    case "bonus":
+      return r.ref === "welcome" ? "🎁 가입 선물" : r.ref === "joined" ? "🎁 초대받아 가입 선물" : "🤝 친구 초대 선물";
+    case "refund":
+      return "↩️ 환불";
+    default:
+      return "🛠 조정";
+  }
+}
+
+/** 내 복주머니: balance, 충전, recent history, and the 친구 초대 link. */
+function WalletSection() {
+  const me = useAppStore((s) => s.me)!;
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [more, setMore] = useState(false);
+  const social = useSocialLabel();
+  useEffect(() => {
+    if (!open) coinApi.wallet().then(setWallet).catch(() => null);
+    shareService.prepareKakao().catch(() => null);
+  }, [open, me.coins]);
+  const link = `${window.location.origin}/?ref=${me.refCode}`;
+  const invite = () =>
+    shareService
+      .shareKakao({ title: "냥신 점괘 초대장 🐾", description: `골목 끝 고양이 점집이다냥. 이 링크로 가입하면 복채 ${nyang(INVITE_COINS)}을 더 얹어 준다냥 🎁`, url: link })
+      .then((o) => o === "copied" && setNote("링크를 복사했다냥 📋"));
+  const history = wallet?.history ?? [];
+
+  return (
+    <section className="mt-6">
+      <h2 className="mb-2 text-sm font-semibold text-muted">👛 내 복주머니</h2>
+      <div className="rounded-2xl border border-violet/35 bg-gradient-to-b from-[#24130d] to-[#120a07] p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-[28px] font-extrabold leading-none text-peach">🪙 {nyang(me.coins)}</p>
+          <button onClick={() => setOpen(true)} className="btn-primary px-5 py-2.5 text-sm">
+            충전하기
+          </button>
+        </div>
+        <p className="mt-2 text-[12px] text-muted">점괘 하나 1냥 · 궁합 2냥</p>
+        {history.length > 0 && (
+          <ul className="mt-3 divide-y divide-violet/15 border-t border-violet/15 text-[13px]">
+            {history.slice(0, more ? 30 : 4).map((r, i) => (
+              <li key={i} className="flex items-center gap-2 py-2">
+                <span className="min-w-0 flex-1 truncate">{ledgerLabel(r)}</span>
+                <span className="text-[11.5px] text-muted">{fmt(r.created_at)}</span>
+                <span className={`w-14 text-right font-semibold ${r.delta > 0 ? "text-peach" : "text-muted"}`}>
+                  {r.delta > 0 ? "+" : ""}
+                  {nyang(r.delta)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {history.length > 4 && !more && (
+          <button onClick={() => setMore(true)} className="mt-1 w-full py-1 text-center text-[12px] text-muted underline underline-offset-2">
+            내역 더 보기
+          </button>
+        )}
+      </div>
+
+      {INVITE_COINS > 0 && wallet && (
+        <div className="mt-3 rounded-2xl border border-line bg-surface p-4">
+          <p className="text-[14.5px] font-bold">🤝 친구 초대하고 {nyang(INVITE_COINS)}씩 받기</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
+            내 링크로 들어온 친구가 {social}로 처음 가입하면 둘 다 {nyang(INVITE_COINS)}씩 받는다냥. (지금까지 {wallet.invites}명 · 최대 {wallet.inviteLimit}명)
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button onClick={invite} className="rounded-xl bg-[#FEE500] py-2.5 text-[13.5px] font-bold text-[#191600]">
+              카카오톡으로 초대
+            </button>
+            <button
+              onClick={() =>
+                navigator.clipboard
+                  ?.writeText(link)
+                  .then(() => setNote("초대 링크를 복사했다냥 📋"))
+                  .catch(() => setNote(link))
+              }
+              className="rounded-xl border border-line py-2.5 text-[13.5px] font-semibold"
+            >
+              링크 복사
+            </button>
+          </div>
+          {note && <p className="fade-up mt-2 break-all text-center text-xs text-peach">{note}</p>}
+        </div>
+      )}
+      <WalletSheet open={open} onClose={() => setOpen(false)} />
+    </section>
+  );
+}
 
 function fmt(iso: string) {
   const d = new Date(iso);
@@ -88,11 +188,13 @@ function ProfileForm({ initial, onSaved }: { initial: PersonInput | null; onSave
 
 /** 내 점괘함: saved readings, 기본 정보, logout, 회원 탈퇴. */
 export function MyPage() {
-  const { me, setMe, setScreen, openSaved, reset } = useAppStore();
+  const { me, meLoaded, setMe, setScreen, openSaved, reset } = useAppStore();
   const [readings, setReadings] = useState<ReadingSummary[] | null>(null);
   const [editing, setEditing] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useBack(true, () => setScreen("landing"));
+  useBack(confirmLeave, () => setConfirmLeave(false));
 
   useEffect(() => {
     if (!me) return;
@@ -102,6 +204,7 @@ export function MyPage() {
       .catch((e: Error) => setError(e.message));
   }, [me]);
 
+  if (!me && !meLoaded) return <main className="flex-1" />;
   if (!me) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -150,7 +253,9 @@ export function MyPage() {
         </div>
       </div>
 
-      <section className="mt-6">
+      <WalletSection />
+
+      <section className="mt-8">
         <h2 className="mb-2 text-sm font-semibold text-muted">📜 내가 본 점괘</h2>
         {error && <p className="mb-2 text-sm text-pink">{error}</p>}
         {readings === null ? (
@@ -226,7 +331,12 @@ export function MyPage() {
           <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-bold">정말 탈퇴할 거냥?</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              기본 정보와 점괘함의 점괘가 모두 바로 삭제되고 되돌릴 수 없어요. 결제 기록은 전자상거래법에 따라 5년간 회원 정보 없이 보관돼요.
+              기본 정보와 점괘함의 점괘, 복주머니가 모두 바로 삭제되고 되돌릴 수 없어요. 결제 기록은 전자상거래법에 따라 5년간 회원 정보 없이 보관돼요.
+              {me.coins > 0 && (
+                <b className="mt-2 block text-peach">
+                  복주머니에 남은 {nyang(me.coins)}도 함께 사라져요. 충전한 냥을 환불받으려면 탈퇴 전에 고객문의로 요청해 주세요.
+                </b>
+              )}
             </p>
             <button onClick={withdraw} className="mt-5 w-full rounded-2xl bg-pink/90 py-3.5 font-bold text-white">
               탈퇴하기

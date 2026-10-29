@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useBack } from "@/lib/back";
 import { PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, koreanAge, optionsForAge, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
@@ -533,6 +534,8 @@ export function Questionnaire() {
   }, [revealed, done]);
 
   const [leaving, setLeaving] = useState(false);
+  // Back gesture = the ✕ button: asks before throwing answers away (and closes that question if it's open).
+  useBack(true, () => (leaving ? setLeaving(false) : step > 1 ? setLeaving(true) : setScreen("landing")));
   const advance = () => {
     flareCandles();
     setStep(step + 1);

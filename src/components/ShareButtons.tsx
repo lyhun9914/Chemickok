@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { handoffUrl, inAppBrowser, openExternally } from "@/lib/handoff";
 import { drawStoryImage } from "@/lib/storyImage";
 import { isFortuneCard, type ShareableCard } from "@/models/types";
-import { isMobile, shareService, siteUrl, type ShareOutcome } from "@/services/shareService";
+import { isMobile, shareService, shareUrl, type ShareOutcome } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { ShareCard } from "./ShareCard";
 
@@ -105,7 +105,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
 
       <div className="mt-5 space-y-3">
         <button
-          onClick={() => report(shareService.shareKakao({ ...shareText, url: siteUrl() }))}
+          onClick={() => report(shareService.shareKakao({ ...shareText, url: shareUrl() }))}
           className="share-plaque share-kakao w-full py-4 transition active:scale-[0.98]"
         >
           <span className="share-icon bg-[#fee500] text-[#191919]">💬</span>

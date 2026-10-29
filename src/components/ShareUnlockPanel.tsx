@@ -2,7 +2,7 @@
 
 import type { QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
-import { shareService, siteUrl } from "@/services/shareService";
+import { shareService, shareUrl } from "@/services/shareService";
 
 interface Props {
   input: QuestionnaireInput;
@@ -18,7 +18,7 @@ export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Prop
     const outcome = await shareService.shareLink({
       title: "냥신 점괘 🕯️ 골목 끝 점집",
       description: "고양이 도사 냥신이 사주로 연애 봐주는데 소름 돋게 잘 맞아 😳 너도 들어가 봐!",
-      url: siteUrl(),
+      url: shareUrl(),
     });
     if (outcome === "cancelled") return;
     if (outcome === "copied") toast("링크 복사했다냥! 친구한테 보내라냥 💌");

@@ -10,7 +10,8 @@ import { sound } from "@/lib/sound";
 import { TAROT, tarotPair } from "@/lib/tarot";
 import type { FortuneStoryCard, Mode } from "@/models/types";
 import { dailyApi, todayApi, type DailyFortuneResponse, type ExamDayResponse, type IljuResponse, type TodayFortuneResponse, type ZodiacTodayResponse } from "@/services/apiClient";
-import { shareService, siteUrl } from "@/services/shareService";
+import { useBack } from "@/lib/back";
+import { shareService, shareUrl, siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { type BasicInfo, InfoGate, useSavedInfo } from "./InfoGate";
@@ -31,7 +32,7 @@ function KakaoShareButton({ label, title, description }: { label: string; title:
       <button
         onClick={() =>
           shareService
-            .shareKakao({ title, description, url: siteUrl() })
+            .shareKakao({ title, description, url: shareUrl() })
             .then((o) => o === "copied" && setNote("카톡 공유 창을 못 열어서 링크를 복사했다냥. 붙여넣어서 보내라냥 📋"))
             .catch(() => setNote("공유를 못 했다냥. 다시 눌러라냥"))
         }
@@ -222,6 +223,7 @@ const TITLES: Record<MiniGame, string> = {
 };
 
 export function MiniGameSheet({ game, onClose, onStart }: { game: MiniGame | null; onClose: () => void; onStart: (mode?: Mode) => void }) {
+  useBack(game !== null, onClose);
   if (!game) return null;
   return (
     <Sheet title={TITLES[game]} onClose={onClose}>

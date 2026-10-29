@@ -6,15 +6,17 @@ import { devLoginEnabled, getDb } from "@/services/server/db";
 import { enabledProviders } from "@/services/server/oauth";
 import { authConfigured, clearSession, sessionUserId } from "@/services/server/session";
 
-const providers = () => (getDb() && authConfigured() ? [...enabledProviders(), ...(devLoginEnabled() ? ["dev"] : [])] : []);
+// Email sign-up needs nothing but the DB, so it's always on once accounts are.
+const providers = () => (getDb() && authConfigured() ? [...enabledProviders(), "email", ...(devLoginEnabled() ? ["dev"] : [])] : []);
 
 /** GET /api/me — who is logged in (or null), and which login buttons to show. */
 export async function GET(req: NextRequest) {
   const db = getDb();
   const uid = sessionUserId(req);
   const user = db && uid ? await db.getUser(uid).catch(() => null) : null;
+  const coins = db && user ? await db.coins(user.id).catch(() => 0) : 0;
   const res = NextResponse.json({
-    user: user && { id: user.id, provider: user.provider, nickname: user.nickname, profile: user.profile },
+    user: user && { id: user.id, provider: user.provider, nickname: user.nickname, profile: user.profile, coins, refCode: user.ref_code, email: user.provider === "email" ? user.email : null },
     providers: providers(),
   });
   if (uid && !user) clearSession(res);

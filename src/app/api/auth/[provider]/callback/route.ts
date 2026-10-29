@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/services/server/db";
+import { REF_COOKIE, giftNewUser, giftQuery } from "@/services/server/gifts";
 import { fetchProfile, isProvider } from "@/services/server/oauth";
 import { STATE_COOKIE, setSession, unseal } from "@/services/server/session";
 
@@ -24,8 +25,10 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/auth/[provid
   try {
     const redirectUri = new URL(`/api/auth/${provider}/callback`, req.url).toString();
     const profile = await fetchProfile(provider, code, saved.state, redirectUri);
+    const existed = await db.findUser(provider, profile.providerId);
     const user = await db.upsertUser({ provider, ...profile });
-    const res = finish(`login=ok&via=${provider}`);
+    const gifts = existed ? { welcome: 0, invited: 0 } : await giftNewUser(db, user, req.cookies.get(REF_COOKIE)?.value);
+    const res = finish(`login=ok&via=${provider}${existed ? "" : "&new=1"}${giftQuery(gifts)}`);
     setSession(res, user.id);
     return res;
   } catch (e) {

@@ -26,7 +26,7 @@ import { LUCK, basisCard, daNyang, josa, lines, locked, sec } from "./common";
 const PALACE: { trait: string; keys: [string, string] }[] = [
   {
     trait: "영리하고 눈치 빠른 사람이다냥. 생활력이 강하고, 밤에 더 살아나는 사람이다냥.",
-    keys: ["눈치 백단", "생활력"],
+    keys: ["빠른 눈치", "생활력"],
   },
   {
     trait: "묵묵하고 성실한 사람이다냥. 말은 적어도 약속은 지킨다냥.",
@@ -54,11 +54,11 @@ const PALACE: { trait: string; keys: [string, string] }[] = [
   },
   {
     trait: "온순하고 가정적인 사람이다냥. 고집은 조용히 세다냥.",
-    keys: ["가정적", "온순함"],
+    keys: ["온순함", "가정을 아끼는 마음"],
   },
   {
     trait: "재주 많고 말솜씨 좋은 사람이다냥. 변화를 즐긴다냥.",
-    keys: ["재주꾼", "말솜씨"],
+    keys: ["재주", "말솜씨"],
   },
   {
     trait: "깔끔하고 기준 높은 사람이다냥. 외모와 매너를 챙긴다냥.",

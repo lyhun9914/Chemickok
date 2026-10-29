@@ -203,7 +203,7 @@ const DAEUN: InterviewQuestion[] = [
       { id: "love", label: "💍 결혼·이별", react: "사람이구냥… 신중해야 한다냥.", mood: "wow", minAge: 18 },
       { id: "money", label: "💰 투자·큰돈", react: "큰돈이구냥. 때를 잘 봐야 한다냥.", mood: "smug", minAge: 20 },
       { id: "study", label: "🎓 진학·공부·자격증·유학", react: "배우는 거구냥. 좋다냥.", mood: "happy" },
-      { id: "family", label: "👨‍👩‍👧 자식·가족 일", react: "식구 일이구냥. 네 운이 식구 운이다냥." },
+      { id: "family", label: "👨‍👩‍👧 가족 일", react: "식구 일이구냥. 네 운이 식구 운이다냥." },
       { id: "retire", label: "🌇 은퇴·노후 준비", react: "다음 판을 짜는구냥. 때가 중요하다냥.", minAge: 45 },
       { id: "none", label: "🍃 딱히 없다", react: "없다… 곧 생길 거다냥.", mood: "smug" },
     ],

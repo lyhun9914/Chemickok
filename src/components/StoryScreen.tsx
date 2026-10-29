@@ -1,6 +1,7 @@
 "use client";
 
 import { useAppStore } from "@/store/useAppStore";
+import { useBack } from "@/lib/back";
 import { Say } from "./Nyang";
 import { ShareButtons } from "./ShareButtons";
 import { useToast } from "./Toast";
@@ -10,6 +11,7 @@ export function StoryScreen() {
   const story = useAppStore((s) => s.story);
   const reset = useAppStore((s) => s.reset);
   const toast = useToast();
+  useBack(true, reset);
   if (!story) return null;
   return (
     <main className="enter-dark flex flex-1 flex-col px-5 pb-10 pt-8">

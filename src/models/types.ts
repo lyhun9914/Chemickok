@@ -277,6 +277,9 @@ export interface UnlockResponse {
   report: FullReport;
   /** set when the reading was saved to the user's 내 점괘함 */
   readingId?: string;
+  /** 복주머니 balance after paying with 냥 */
+  coins?: number;
 }
 
-export type PaymentMethod = "toss" | "kakaopay";
+/** 간편결제 opened directly (토스페이 · 카카오페이), or Toss's own window with every card and pay app. */
+export type PaymentMethod = "tosspay" | "kakaopay" | "card";

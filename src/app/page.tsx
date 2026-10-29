@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { FortuneResultView } from "@/components/FortuneResultView";
 import { Landing } from "@/components/Landing";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { ResetPasswordSheet } from "@/components/LoginSheet";
 import { MyPage } from "@/components/MyPage";
 import { Questionnaire } from "@/components/Questionnaire";
 import { ResultView } from "@/components/ResultView";
@@ -30,6 +31,7 @@ export default function Home() {
   // The store rehydrates from sessionStorage on the client; render after mount to avoid a hydration mismatch.
   const [mounted, setMounted] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -44,9 +46,28 @@ export default function Home() {
     // Back from /api/auth/*/callback with ?login=ok|fail|cancel|off — read it once, then clean the URL.
     const q = new URLSearchParams(window.location.search);
     const login = q.get("login");
-    if (login) window.history.replaceState(null, "", "/");
+    const ref = q.get("ref");
+    const reset = q.get("reset");
+    if (login || ref || reset) window.history.replaceState(null, "", "/");
     const reason = q.get("reason");
     if (login && LOGIN_NOTICE[login]) setNotice(LOGIN_NOTICE[login] + (reason ? ` (원인: ${reason.slice(0, 40)})` : ""));
+    const gift = Number(q.get("gift"));
+    if (login === "ok" && gift > 0) setNotice(`🎁 가입 선물 ${gift}냥이 복주머니에 들어왔다냥!${q.get("invited") ? " (친구 초대 선물 포함)" : ""}`);
+    else if (login === "ok" && q.get("new")) setNotice("어서 와라냥! 가입 완료다냥 🐾");
+    else if (login === "ok" && q.get("via") === "reset") setNotice("비밀번호를 바꿨다냥. 로그인됐다냥 🔑");
+    // Came through a friend's 초대 link: remembered until this visitor makes an account (read by the server then).
+    if (ref && /^[\w-]{4,16}$/.test(ref)) document.cookie = `nyang_ref=${ref}; path=/; max-age=${30 * 86400}; samesite=lax`;
+    if (reset) setResetToken(reset);
+    // Left by /payment/success after a 충전.
+    try {
+      const n = sessionStorage.getItem("nyang-notice");
+      if (n) {
+        sessionStorage.removeItem("nyang-notice");
+        setNotice(n);
+      }
+    } catch {
+      /* storage unavailable */
+    }
 
     loadMe().then(async (me) => {
       // First login: keep the 기본 정보 the user just typed in the interview.
@@ -86,6 +107,7 @@ export default function Home() {
       {(screen === "landing" || screen === "result" || screen === "my" || screen === "story") && <Footer />}
       {/* Landing and the interview carry the toggle in their own top bar. */}
       {screen !== "landing" && screen !== "form" && <SoundToggle floating />}
+      {resetToken && <ResetPasswordSheet token={resetToken} onClose={() => setResetToken(null)} />}
       {notice && (
         <div className="fade-up fixed inset-x-0 top-4 z-[60] mx-auto w-fit max-w-[90%] rounded-full bg-ink px-4 py-2 text-sm font-semibold text-bg shadow-lg">
           {notice}

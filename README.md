@@ -1,6 +1,6 @@
 # 🐾 냥신 연애 점집 (Love Chemistry & Mind Report)
 
-Mobile-first viral web app hosted by **냥신**, a cat fortune-teller in a 갓 who reads your love life in a sulky "~냥" voice. Solo & couple modes: 사주 원국 + MBTI + love-style test → a chat-style reading revealed one line at a time (tap "그래서? 👉", flip a card) → 복채 990원 paywall → full report → share card. Free 10-second mini games on the landing page: 오늘의 연애운 and 이름 궁합 (획수).
+Mobile-first viral web app hosted by **냥신**, a cat fortune-teller in a 갓 who reads your love life in a sulky "~냥" voice. Solo & couple modes: 사주 원국 + MBTI + love-style test → a chat-style reading revealed one line at a time (tap "그래서? 👉", flip a card) → 복채 paywall (1냥 · 궁합 2냥, or a guest's one-off payment) → full report → share card. Free 10-second mini games on the landing page: 오늘의 연애운 and 이름 궁합 (획수).
 
 **No AI, no database.** Results come from a deterministic rule engine (same answers → same result), so serving costs stay near zero no matter how viral it gets.
 
@@ -25,7 +25,7 @@ Works with zero configuration (test-mode payment unlocks instantly). See `.env.e
    Paid: 찰떡/피해야 할 사람 (share-to-unlock), 답변 14개 전체 해석, 반복 패턴 + 숨은 지수 해석, 다음 연애 시나리오, 처방전 6장, 길일.
    **Couple** — Free: above + couple score/title, partner type, MBTI 궁합.
    Paid: 속마음 (share-to-unlock), 그 사람이 보내지 못한 편지, 그 사람 행동 8가지 해석, 케미, 위기, 내 답변 전체 해석, 처방전, 길일.
-5. Pay 990원 (test mode by default) or share to unlock one section; the share card adapts to the mode.
+5. Pay with 냥 from the 복주머니 (members; packs in `src/lib/config.ts`), buy the one reading directly as a guest (test mode by default), or share to unlock one section; the share card adapts to the mode.
 
 ## 냥신 & mini games
 - Mascot: `src/components/Nyang.tsx` (SVG, 4 moods) with `Say` (speech bubble with typing dots) and `FlipCard`.
@@ -80,6 +80,7 @@ src/
 ## 회원 (로그인 · 내 점괘함)
 - Login with Kakao / Naver / Google (`src/services/server/oauth.ts`, routes under `src/app/api/auth/[provider]/`) — plain OAuth 2.0 code flow, signed `httpOnly` session cookie (`AUTH_SECRET`).
 - Login is asked **at payment** (free reading needs no account); "로그인 없이 결제" still works. After the redirect the payment sheet reopens.
+- Kakao / Naver / Google / email accounts. New social accounts get 가입 선물 냥, and 친구 초대 links (`?ref=`) reward both sides. Setup steps for keys, payments and going live: [docs/GUIDE.md](docs/GUIDE.md).
 - Stored in Supabase via the server-only secret key (`src/services/server/db.ts`, schema in `supabase/migrations/0001_accounts.sql`, RLS on with no policies):
   `users` (provider id, nickname, 기본 정보), `readings` (paid teaser + report + display names only), `payments` (5-year record, unlinked on 탈퇴).
 - 내 점괘함 (`src/components/MyPage.tsx`): saved readings, edit 기본 정보, logout, 회원 탈퇴. With a saved profile the interview skips name/birth/MBTI.

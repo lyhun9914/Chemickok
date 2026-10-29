@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { streakNow } from "@/lib/daily";
-import { PRODUCTS, isFortune, won } from "@/lib/config";
+import { COIN_PACKS, PRODUCTS, WELCOME_COINS, isFortune, nyang } from "@/lib/config";
 import type { Mode } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { enterThroughDoors } from "./Backdrop";
+import { WalletSheet } from "./CoinShop";
 import { LoginSheet } from "./LoginSheet";
 import { MethodSection } from "./MethodSection";
 import { MiniGameSheet, type MiniGame, suneungDday } from "./MiniGames";
@@ -20,6 +21,9 @@ const MENU: { title: string; sub: string; modes: Mode[] }[] = [
   { title: "📜 사주 · 운세 감정", sub: "만세력으로 원국을 세워 십성 · 용신 · 신살 · 대운까지 짚는 정통 감정서", modes: ["newyear", "saju", "daeun"] },
 ];
 
+// The best per-냥 discount among the packs, for the 복채 line (no 원 on the landing: prices live in the pay sheet).
+const MAX_SAVE = Math.max(...COIN_PACKS.map((p) => Math.round((1 - p.price / p.coins / COIN_PACKS[0].price) * 100)));
+
 const MINI: { id: MiniGame; emoji: string; name: string; sub: string; wide?: boolean }[] = [
   { id: "today", emoji: "📅", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번", wide: true },
   { id: "exam", emoji: "🧧", name: "냥신 합격 부적", sub: "이름 넣으면 냥신이 직접 써 주는 부적 + 시험날 일진", wide: true },
@@ -27,14 +31,20 @@ const MINI: { id: MiniGame; emoji: string; name: string; sub: string; wide?: boo
   { id: "contact", emoji: "🃏", name: "할까? 말까?", sub: "고백·선톡·재회… 카드 세 장으로 답한다냥" },
   { id: "tarot", emoji: "🎴", name: "오늘의 타로", sub: "15장 중 2장 · 하루 한 번" },
   { id: "zodiac", emoji: "🐾", name: "띠별 운세", sub: "12띠 오늘 일진 · 무료" },
-  { id: "daily", emoji: "🔮", name: "오늘의 연애운", sub: "생일만 넣으면 끝 · 무료" },
+  { id: "daily", emoji: "🔮", name: "오늘의 연애운", sub: "이름·생일·혈액형으로 10초 컷" },
   { id: "name", emoji: "✍️", name: "이름 궁합", sub: "그 시절 획수 궁합 · 무료" },
 ];
 
 export function Landing() {
   const { setScreen, me, providers, startInterview } = useAppStore();
+  // Came back from a result (back gesture): offer it again.
+  const hasReading = useAppStore((s) => Boolean(s.teaser || s.fortune));
+  const readingName = useAppStore((s) => s.input.me.name);
+  const readingPaid = useAppStore((s) => s.level === "full");
+  const lastReading = hasReading ? { name: readingName, paid: readingPaid } : null;
   const [game, setGame] = useState<MiniGame | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
   const k = new Date(Date.now() + 9 * 3600 * 1000);
   const todayLabel = `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일`;
   // 출석 streak lives in this browser only; read after mount and whenever a mini game closes.
@@ -57,9 +67,14 @@ export function Landing() {
         <SoundToggle />
         {providers.length > 0 &&
           (me ? (
-            <button onClick={() => setScreen("my")} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold">
-              📜 내 점괘함
-            </button>
+            <>
+              <button onClick={() => setWalletOpen(true)} className="rounded-full border border-peach/40 bg-surface px-3 py-1.5 text-xs font-bold text-peach" aria-label="내 복주머니">
+                🪙 {nyang(me.coins)}
+              </button>
+              <button onClick={() => setScreen("my")} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold">
+                📜 내 점괘함
+              </button>
+            </>
           ) : (
             <button onClick={() => setLoginOpen(true)} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted">
               로그인
@@ -88,6 +103,21 @@ export function Landing() {
         </p>
       </div>
 
+      {lastReading && (
+        <button
+          onClick={() => setScreen("result")}
+          className="fade-up mt-6 flex w-full items-center gap-3 rounded-2xl border border-violet/40 bg-surface/80 px-4 py-3 text-left active:scale-[0.98]"
+        >
+          <span className="text-2xl">📜</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14.5px] font-bold">{lastReading.name}의 점괘로 돌아가기</span>
+            <span className="block text-[12.5px] text-muted">{lastReading.paid ? "전부 열린 점괘다냥" : "보던 데서 이어 본다냥"}</span>
+          </span>
+          <span className="text-muted" aria-hidden>
+            →
+          </span>
+        </button>
+      )}
       <button onClick={() => start()} className="btn-primary glow shine mt-8 w-full py-4 text-[17px]">
         🕯️ 연애 점괘 바로 보기 (무료)
       </button>
@@ -98,6 +128,21 @@ export function Landing() {
         📜 사주 · 대운 감정 보러 가기 ↓
       </button>
       <p className="mt-3 text-center text-[13px] text-muted">⏱ 약 3~4분 · 회원가입 없이 · 기본 점괘는 무료</p>
+      {!me && WELCOME_COINS > 0 && providers.some((p) => p !== "email") && (
+        <button
+          onClick={() => setLoginOpen(true)}
+          className="fade-up mt-4 flex w-full items-center gap-3 rounded-2xl border border-peach/30 bg-gradient-to-r from-[#2a1510] to-surface px-4 py-3 text-left active:scale-[0.98]"
+        >
+          <span className="text-2xl">🎁</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[14.5px] font-bold text-peach">가입하면 복채 {nyang(WELCOME_COINS)} 선물</span>
+            <span className="block text-[12.5px] text-muted">전체 감정서 하나는 공짜로 열린다냥 · 3초 로그인</span>
+          </span>
+          <span className="text-muted" aria-hidden>
+            →
+          </span>
+        </button>
+      )}
 
       <button
         onClick={() => setGame("today")}
@@ -115,11 +160,16 @@ export function Landing() {
         </span>
       </button>
 
+      <p className="fade-up mt-8 rounded-xl border border-violet/25 bg-white/[0.03] px-3.5 py-2.5 text-center text-[12.5px] leading-relaxed text-muted">
+        🪙 복채는 <b className="text-peach">냥</b>으로 낸다냥 · 점괘 하나 1냥, 궁합은 2냥
+        {MAX_SAVE > 0 && <> · 묶음으로 채우면 최대 {MAX_SAVE}% 싸다냥</>}
+      </p>
+
       {MENU.map((group, gi) => (
         <section
           key={group.title}
           id={gi ? "menu-fortune" : "menu-love"}
-          className={`fade-up scroll-mt-4 ${gi ? "mt-9" : "mt-10"}`}
+          className={`fade-up scroll-mt-4 ${gi ? "mt-9" : "mt-6"}`}
           style={{ animationDelay: `${0.1 + gi * 0.05}s` }}
         >
           <h2 className="text-[17px]">{group.title}</h2>
@@ -148,7 +198,7 @@ export function Landing() {
                       <span className="mt-1.5 block text-xs">
                         <span className="rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
                         <span className="ml-1.5 font-semibold text-peach">
-                          {isFortune(m) ? "전체 감정서" : "전체 풀이"} {won(pr.price)}
+                          {isFortune(m) ? "전체 감정서" : "전체 풀이"} 🪙 {nyang(pr.coins)}
                         </span>
                       </span>
                     </span>
@@ -242,6 +292,7 @@ export function Landing() {
 
       <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={start} />
       <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <WalletSheet open={walletOpen} onClose={() => setWalletOpen(false)} />
     </main>
   );
 }

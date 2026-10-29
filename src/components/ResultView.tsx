@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { productOf, won } from "@/lib/config";
+import { nyang, productOf } from "@/lib/config";
+import { useBack } from "@/lib/back";
+import { usePayHint } from "./CoinShop";
 import { josa } from "@/lib/josa";
 import { sound } from "@/lib/sound";
 import type { UnlockResponse } from "@/models/types";
@@ -78,7 +80,8 @@ export function ResultView() {
 
   const me = input.me.name;
   const p = input.partner.name;
-  const price = productOf(input.mode).price;
+  const cost = productOf(input.mode).coins;
+  const hint = usePayHint(cost);
 
   const beats = useMemo<Beat[]>(() => {
     if (!teaser) return [];
@@ -267,6 +270,11 @@ export function ResultView() {
     document.getElementById(`beat-${shown - 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [typing, shown, total]);
 
+  // Back gesture: an unpaid, fully shown reading asks once (the same 잠깐냥 as the 다른 사람 button); otherwise back to
+  // the gate with the reading kept (the landing offers it again).
+  const toGate = useAppStore((st) => st.setScreen);
+  useBack(true, () => (level !== "full" && allShown && !typing && !leaveAsked ? setLeaveAsked(true) : (setLeaveAsked(false), toGate("landing"))));
+
   if (!teaser || !inputHash) return null;
 
   const advance = () => {
@@ -362,7 +370,7 @@ export function ResultView() {
                       )}
                     </div>
                     <div className="mt-5 rounded-3xl border border-peach/30 bg-peach/5 p-5">
-                      <p className="text-sm font-bold text-peach">🐾 복채 {won(price)}이면 지금 바로 열리는 것</p>
+                      <p className="text-sm font-bold text-peach">🐾 복채 🪙 {nyang(cost)}이면 지금 바로 열리는 것</p>
                       <ul className="mt-3 space-y-2 text-sm">
                         {teaser.locked.map((lp) => (
                           <li key={lp.id} className="flex gap-2">
@@ -379,8 +387,10 @@ export function ResultView() {
                     </div>
                     <div className="sticky bottom-4 z-10 mt-5">
                       <button onClick={() => setPayIntent(true)} className="btn-primary glow shine w-full py-4">
-                        <span className="block text-[17px]">{payLabel} · {won(price)}</span>
-                        <span className="block text-xs font-medium opacity-90">{price < 1000 ? "🪙 천 원도 안 되는 복채다냥" : "☕ 커피 한 잔보다 싼 복채다냥"}</span>
+                        <span className="block text-[17px]">
+                          {payLabel} · 🪙 {nyang(cost)}
+                        </span>
+                        <span className="block text-xs font-medium opacity-90">{hint}</span>
                       </button>
                     </div>
                     {level === "none" && (
@@ -406,7 +416,7 @@ export function ResultView() {
             </button>
             {level !== "full" && (
               <button onClick={() => setPayIntent(true)} className="text-xs font-bold text-peach">
-                기다리기 싫다냥? 바로 전부 열기 {won(price)} →
+                기다리기 싫다냥? 바로 전부 열기 🪙 {nyang(cost)} →
               </button>
             )}
           </div>
@@ -425,7 +435,7 @@ export function ResultView() {
               <span className="flex-1">
                 <span className="block font-bold">{teaser.solo ? "그 사람이랑 궁합도 볼래냥?" : "다른 사람이랑도 궁합 볼래냥?"}</span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 풀이 {won(productOf("couple").price)}
+                  내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 풀이 🪙 {nyang(productOf("couple").coins)}
                 </span>
               </span>
               <span aria-hidden>→</span>
@@ -452,7 +462,7 @@ export function ResultView() {
                   }}
                   className="btn-primary mt-5 w-full py-4"
                 >
-                  {payLabel} · {won(price)}
+                  {payLabel} · 🪙 {nyang(cost)}
                 </button>
                 <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
                   다음에 볼게요
@@ -478,6 +488,14 @@ export function ResultView() {
         inputHash={inputHash}
         onClose={() => setPayOpen(false)}
         onUnlocked={onUnlocked}
+        onLogin={
+          providers.length > 0
+            ? () => {
+                setPayOpen(false);
+                setLoginOpen(true);
+              }
+            : undefined
+        }
       />
       {toast.node}
     </main>

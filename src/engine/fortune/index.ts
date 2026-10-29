@@ -1,11 +1,12 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { FORTUNE_INTERVIEW } from "@/lib/fortuneQuestions";
-import { UNKNOWN_ANSWER } from "@/lib/interview";
+import { UNKNOWN_ANSWER, koreanAge } from "@/lib/interview";
 import type { FortuneMode, FortuneTeaser, FullReport, Gender, PersonInput, QuestionnaireInput } from "@/models/types";
 import { normalizeBlood } from "@/lib/blood";
 import { newYearOf } from "@/lib/config";
 import { normalizeMbti } from "../mbti";
+import { tuneForAge } from "./ageTune";
 import { buildChart } from "./chart";
 import { daeunReading } from "./daeunReading";
 import { newyearReading } from "./newyearReading";
@@ -72,17 +73,21 @@ function read(input: QuestionnaireInput): {
   report: FullReport;
 } {
   const c = { ...buildChart(input.me.birthdate, input.me.birthtime, input.me.gender)!, blood: input.me.blood || undefined };
+  const age = koreanAge(input.me.birthdate) ?? 30;
   switch (input.mode as FortuneMode) {
     case "newyear":
-      return newyearReading(input, c);
+      return tuneForAge(newyearReading(input, c), age);
     case "saju":
-      return sajuReading(input, c);
-    case "daeun":
-      return daeunReading(input, c);
+      return tuneForAge(sajuReading(input, c), age);
+    case "daeun": {
+      // Each decade carries its own age, so only the next three years (세운) are tuned to the reader's age now.
+      const r = daeunReading(input, c);
+      return { ...r, report: { ...r.report, sections: r.report.sections.map((s) => (s.id === "seun" ? tuneForAge(s, age) : s)) } };
+    }
     case "reunion":
-      return reunionReading(input, c);
+      return tuneForAge(reunionReading(input, c), age);
     case "spouse":
-      return spouseReading(input, c);
+      return tuneForAge(spouseReading(input, c), age);
   }
 }
 

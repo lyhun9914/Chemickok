@@ -17,7 +17,7 @@ export const api = {
 
   unlock: (body: {
     input: QuestionnaireInput;
-    method: "test" | "toss" | "share";
+    method: "test" | "toss" | "share" | "coins";
     paymentKey?: string;
     orderId?: string;
     amount?: number;
@@ -101,13 +101,33 @@ export const dailyApi = {
 
 // ───────────── 회원 ─────────────
 
-export type LoginProvider = "kakao" | "naver" | "google" | "dev";
+export type LoginProvider = "kakao" | "naver" | "google" | "email" | "dev";
 
 export interface Me {
   id: string;
   provider: string;
   nickname: string;
   profile: PersonInput | null;
+  /** 복주머니 balance (냥) */
+  coins: number;
+  /** for 친구 초대 links */
+  refCode: string;
+  email: string | null;
+}
+
+export interface CoinHistoryRow {
+  delta: number;
+  reason: "charge" | "spend" | "bonus" | "refund" | "admin";
+  ref: string;
+  balance_after: number;
+  created_at: string;
+}
+
+export interface Wallet {
+  balance: number;
+  history: CoinHistoryRow[];
+  invites: number;
+  inviteLimit: number;
 }
 
 export interface ReadingSummary {
@@ -143,6 +163,14 @@ export const accountApi = {
   reading: (id: string) =>
     get<{ reading: SavedReading }>(`/api/readings/${id}`),
   deleteReading: (id: string) => post<{ ok: true }>(`/api/readings/${id}`, undefined, "DELETE"),
+  email: (body: { action: "signup" | "login" | "reset-request" | "reset"; email?: string; password?: string; nickname?: string; token?: string }) =>
+    post<{ ok: true; created?: boolean }>("/api/auth/email", body),
   /** Full-page redirect to the provider; `pay` reopens the payment sheet on return. */
   loginUrl: (p: LoginProvider, next: "pay" | "" = "") => `/api/auth/${p}/login${next ? `?next=${next}` : ""}`,
+};
+
+export const coinApi = {
+  wallet: () => get<Wallet>("/api/coins"),
+  charge: (body: { packId: string; method: "test" | "toss"; paymentKey?: string; orderId?: string; amount?: number }) =>
+    post<{ balance: number; added: number }>("/api/coins", body),
 };
