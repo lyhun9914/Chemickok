@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "mediabunny": "1.61.6",
     "next": "16.4.3",
     "nodemailer": "10.2.1",
     "qrcode": "^1.5.4",

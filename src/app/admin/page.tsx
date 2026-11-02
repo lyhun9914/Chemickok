@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ShortsStudio } from "@/components/admin/ShortsStudio";
 
 type Stats = Record<string, number | boolean>;
 type UserRow = { id: string; provider: string; nickname: string; email: string | null; created_at: string; balance: number };
@@ -185,6 +186,8 @@ export default function AdminPage() {
           </div>
         ))}
       </section>
+
+      <ShortsStudio />
 
       <section className={box}>
         <h2 className="text-[16px] font-bold">회원 찾기</h2>
