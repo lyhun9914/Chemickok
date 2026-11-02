@@ -40,8 +40,8 @@ export function Footer() {
           <p>통신판매업신고: {BUSINESS.ecommerceNo}</p>
           <p>주소: {BUSINESS.address}</p>
           <p>
-            전화: <a href={`tel:${BUSINESS.phone}`}>{BUSINESS.phone}</a> | 이메일:{" "}
-            <a href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
+            {/* Shown as the law asks, but not tappable: questions go through 고객문의 (mail form). */}
+            전화: <span className="select-text">{BUSINESS.phone}</span> | 이메일: <span className="select-text">{BUSINESS.email}</span>
           </p>
           <p>호스팅 제공자: {BUSINESS.hosting}</p>
         </div>

@@ -7,6 +7,7 @@ import {
   type TenGod,
   type TenGroup,
   GROUP_OF,
+  aheadYear,
   branchTenGod,
   dohwaOf,
   elementLabel,
@@ -171,7 +172,7 @@ function marriageYears(c: Chart) {
   const sg = spouseGroup(c);
   const dohwa = [dohwaOf(c.dayBranch), dohwaOf(c.branches[0])];
   const hong = hongyeomOf(c.dayStem);
-  return yearlyLuck(c, 12)
+  return yearlyLuck(c, 12, aheadYear())
     .map((y) => {
       const age = y.year - c.birthYear + 1;
       const d = [...c.daeun].reverse().find((x) => age >= x.age);
@@ -185,7 +186,7 @@ function marriageYears(c: Chart) {
       if (y.branch === hong) s += 1;
       if (d && GROUP_OF[d.god] === sg) s += 1;
       // Sooner beats later when the pull is about the same.
-      s -= (y.year - thisYear()) * 0.2;
+      s -= (y.year - aheadYear()) * 0.2;
       return { ...y, age, s };
     })
     .filter((y) => y.age >= 20 && y.age <= 85)

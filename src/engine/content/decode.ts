@@ -1,6 +1,7 @@
 import "server-only";
-import type { Mode } from "@/models/types";
-import type { AxisKey } from "@/models/types";
+import type { AxisKey, Mode, RelationshipStatus } from "@/models/types";
+import { COUPLE_IDS, PARTNER_IDS } from "@/lib/interview";
+import { BREAKUP_DECODE, CRUSH_DECODE, PARTNER_BREAKUP_DECODE, PARTNER_CRUSH_DECODE, SLUMP_DECODE } from "./decodeByStatus";
 
 // Server-only: how each interview answer is scored and what 냥신 reads from it.
 // Weights: positive = the axis's first pole (G 직진 / E 표현 / F 직면 / A 확인).
@@ -14,6 +15,8 @@ export interface Decoded {
   why: string;
   /** what "잘 모르겠어" says for this question (may use {p} tokens) */
   unknown?: string;
+  /** a fact (when, who, what happened), not a lean: "잘 모르겠어" is read as is, never filled in with a likely answer */
+  fact?: boolean;
   options: Record<string, { w: Weights; read: string }>;
 }
 
@@ -80,13 +83,28 @@ const BASE_DECODE: Record<string, Decoded> = {
   },
   s6: {
     why: "색은 무의식이 지금 '채우고 싶은 기운'을 고른 거다냥. 사주 오행이랑 바로 이어진다냥.",
-    unknown: "떠오르는 색이 없다는 건 지금 마음이 잠시 무채색이라는 뜻이다냥. 설렘을 채울 자리가 비어 있다냥.",
+    unknown: "떠오르는 색이 없다는 건 지금 마음이 잠시 무채색이라는 뜻이다냥. 설렘을 채울 자리가 비어 있다냥. 지쳐서 감정 스위치를 잠깐 내려 둔 상태라, 억지로 설레려 하기보다 너부터 채워야 색이 돌아온다냥.",
     options: {
-      wood: { w: { attach: -0.5 }, read: "초록을 골랐지. 초록은 목(木), '자라고 싶다'는 기운이다냥. 지금 관계든 너 자신이든 멈춰 있다고 느끼는 마음이 무의식에 있다냥." },
-      fire: { w: { drive: 1, express: 1 }, read: "빨강을 골랐지. 빨강은 화(火), 드러내고 타오르고 싶은 기운이다냥. 지금 너는 미지근한 관계보다 확실한 감정을 원하고 있다냥." },
-      earth: { w: { conflict: 0.5, attach: 0.5 }, read: "노랑을 골랐지. 노랑은 토(土), 기댈 곳을 찾는 기운이다냥. 설렘보다 '내 편'이 필요한 시기라는 뜻이다냥." },
-      metal: { w: { express: -1, conflict: 0.5 }, read: "흰색을 골랐지. 흰색은 금(金), 정리하고 끊어 내고 싶은 기운이다냥. 마음속에 끝맺고 싶은 무언가가 있다냥." },
-      water: { w: { express: -1, attach: 0.5 }, read: "남색을 골랐지. 남색은 수(水), 깊이 가라앉아 생각하는 기운이다냥. 지금 너는 겉으로 보이는 것보다 훨씬 많은 생각을 하고 있다냥." },
+      wood: {
+        w: { attach: -0.5 },
+        read: "초록을 골랐지. 초록은 목(木), 새싹처럼 '자라고 싶다'는 기운이다냥. 지금 관계든 너 자신이든 제자리걸음이라는 느낌이 무의식에 깔려 있다냥. 같은 대화, 같은 코스, 같은 하루가 반복되면 마음이 먼저 시드는 사람이라, 처음 가 보는 곳에 가거나 새로운 걸 같이 배울 때 감정이 다시 살아난다냥. 너한테 필요한 건 붙잡아 두는 사랑이 아니라 같이 자라는 사랑이다냥.",
+      },
+      fire: {
+        w: { drive: 1, express: 1 },
+        read: "빨강을 골랐지. 빨강은 화(火), 숨기지 않고 드러내고 한번 붙으면 활활 타오르고 싶은 기운이다냥. 지금 너는 좋은 건지 아닌지 헷갈리는 미지근한 관계보다, 좋으면 좋다고 확실하게 말해 주는 감정을 원하고 있다냥. 그래서 '보고 싶다'는 말에 '지금 갈게'로 답하는 사람한테 마음이 확 열린다냥. 대신 불은 빨리 붙는 만큼 식을까 봐 겁도 많아서, 상대 반응이 조금만 미지근해도 네가 먼저 식은 척 물러서는 버릇이 있다냥.",
+      },
+      earth: {
+        w: { conflict: 0.5, attach: 0.5 },
+        read: "노랑을 골랐지. 노랑은 토(土), 단단한 땅처럼 기댈 곳을 찾는 기운이다냥. 지금은 두근거리는 설렘보다 '무슨 일이 있어도 내 편'이라는 확신이 더 필요한 시기다냥. 화려한 이벤트보다 아플 때 약 사 들고 오는 사람, 말없이 옆에 앉아 주는 사람한테 마음이 기운다냥. 요즘 남들 챙기느라 정작 네가 기댈 자리는 비어 있었다는 뜻이기도 하다냥.",
+      },
+      metal: {
+        w: { express: -1, conflict: 0.5 },
+        read: "흰색을 골랐지. 흰색은 금(金), 칼처럼 정리하고 끊어 내고 싶은 기운이다냥. 애매한 연락, 흐지부지된 사이, 미뤄 둔 결정처럼 마음속에 끝맺고 싶은 게 있다냥. 넌 정리가 돼야 새 마음이 들어오는 사람이라, 그게 끝나기 전엔 마음 한쪽이 늘 닫혀 있다냥. 깨끗하게 비워 내야 사랑도 제대로 들어온다냥.",
+      },
+      water: {
+        w: { express: -1, attach: 0.5 },
+        read: "남색을 골랐지. 남색은 수(水), 깊은 물처럼 가라앉아 생각하는 기운이다냥. 지금 너는 겉으로 보이는 것보다 훨씬 많은 생각을 하고 있다냥. 메시지 하나도 몇 번씩 다시 읽고, 상대 말투의 작은 변화까지 혼자 곱씹는다냥. 그만큼 사람을 깊이 이해하지만, 생각의 반만 말로 꺼내도 관계가 훨씬 가벼워진다냥.",
+      },
     },
   },
   s7: {
@@ -139,12 +157,30 @@ const BASE_DECODE: Record<string, Decoded> = {
     why: "제일 무서운 말이 곧 네가 관계에서 제일 지키고 싶은 거다냥.",
     unknown: "무너지는 말이 안 떠오른다는 건, 아직 그만큼 깊이 다친 적이 없거나 그 기억을 일부러 꺼내지 않는 거다냥.",
     options: {
-      a: { w: { attach: 2 }, read: "'시간 좀 갖자'가 제일 무섭다고 했지. 관계의 끝보다 '애매한 거리'를 더 못 견디는 사람이다냥. 이별은 견뎌도 기다림은 못 견딘다냥." },
-      b: { w: { doubt: 1.5, express: 0.5 }, read: "'너 변했어'가 제일 아프다고 했지. 관계 안에서 '좋은 사람'으로 남고 싶은 마음이 크다냥. 그래서 실망을 주느니 네가 참는 쪽을 택하고, 그게 쌓이다 진짜로 변한다냥." },
-      c: { w: { conflict: 1.5, express: 1 }, read: "'알아서 해'가 제일 싫다고 했지. 싸움보다 무관심이 더 아픈 사람이다냥. 차라리 화를 내면 붙잡을 수 있는데, 대화를 닫아 버리면 손쓸 데가 없으니까다냥." },
-      d: { w: { doubt: 2, express: -0.5 }, read: "'너랑 있으면 피곤해'가 제일 무너진다고 했지. 사랑하는 사람한테 '짐'이 되는 걸 제일 두려워한다냥. 그래서 힘든 날에도 괜찮은 척하고, 결국 혼자 무너진다냥." },
-      e: { w: { attach: 1.5, doubt: 1 }, read: "'예전만큼은 아니야'가 제일 무너진다고 했지. 넌 지금의 사랑보다 '줄어드는 것'을 더 무서워하는 사람이다냥. 처음의 온도를 기준으로 계속 재다 보니, 자연스럽게 편해진 걸 식은 걸로 착각할 때가 있다냥." },
-      f: { w: { doubt: 1.5, conflict: 0.5 }, read: "'너 원래 그런 사람이잖아'가 제일 아프다고 했지. 넌 바뀌려고 노력한 시간을 한마디로 지워 버리는 말에 무너지는 사람이다냥. 네가 원하는 건 칭찬이 아니라 '노력한 걸 알아봐 주는 것'이다냥." },
+      a: {
+        w: { attach: 2 },
+        read: "'시간 좀 갖자'가 제일 무섭다고 했지. 넌 이별보다 '애매한 거리'를 더 못 견디는 사람이다냥. 끝난 거면 울고 정리하면 되는데, 기다리라는 말 앞에선 하루에도 몇 번씩 폰을 확인하고 '내가 뭘 잘못했지'를 처음부터 다시 돌려 본다냥. 그래서 다툴 때 {p:이/가} 잠깐 혼자 있고 싶다고만 해도 심장이 먼저 내려앉는다냥.",
+      },
+      b: {
+        w: { doubt: 1.5, express: 0.5 },
+        read: "'너 변했어'가 제일 아프다고 했지. 넌 관계 안에서 '처음 그 좋은 사람'으로 남고 싶은 마음이 크다냥. 그래서 서운해도 실망시키느니 참는 쪽을 고르는데, 참은 만큼 말수가 줄고 표정이 굳어서 결국 정말 '변한 사람'처럼 보이게 된다냥. 네가 변한 게 아니라 지친 거라는 걸 {p}한테 먼저 말해 줘야 한다냥.",
+      },
+      c: {
+        w: { conflict: 1.5, express: 1 },
+        read: "'알아서 해'가 제일 싫다고 했지. 넌 싸움보다 무관심이 더 아픈 사람이다냥. 화를 내면 그래도 붙잡을 끈이 있는데, '알아서 해'는 대화의 문을 밖에서 잠그는 말이라 그 순간 혼자 남겨진 기분이 든다냥. 그래서 결론이 안 나도 끝까지 말을 이어 가려 하고, {p:이/가} 입을 닫으면 더 세게 문을 두드리게 된다냥.",
+      },
+      d: {
+        w: { doubt: 2, express: -0.5 },
+        read: "'너랑 있으면 피곤해'가 제일 무너진다고 했지. 넌 사랑을 '주는 것'으로 증명하는 사람이다냥. 연락 텀, 말투, 데이트 코스까지 상대 기분에 맞추느라 에너지를 다 쓰는데, 그 말 한마디가 '네 노력이 전부 짐이었다'로 들리는 거다냥. 그래서 정작 네가 힘든 날엔 '나까지 짐 되면 안 돼' 하고 괜찮은 척하다가 혼자 조용히 무너진다냥. 근데 {p:은/는} 네가 괜찮은 척하는 걸 더 멀게 느낄 수 있다냥.",
+      },
+      e: {
+        w: { attach: 1.5, doubt: 1 },
+        read: "'예전만큼은 아니야'가 제일 무너진다고 했지. 넌 지금의 사랑보다 '줄어드는 것'을 더 무서워하는 사람이다냥. 처음의 연락 횟수, 처음의 표정을 기준으로 지금을 계속 재다 보니, 자연스럽게 편해진 걸 식은 걸로 착각할 때가 있다냥. 그래서 '요즘 나한테 좀 소홀한 거 아니야?'를 장난처럼 몇 번이나 떠봤을 거다냥.",
+      },
+      f: {
+        w: { doubt: 1.5, conflict: 0.5 },
+        read: "'너 원래 그런 사람이잖아'가 제일 아프다고 했지. 넌 바뀌려고 애쓴 시간을 한마디로 지워 버리는 말에 무너지는 사람이다냥. 고치려고 몰래 노력한 게 있는데 상대가 그걸 못 알아볼 때 제일 서럽다냥. 네가 원하는 건 칭찬이 아니라 '노력한 걸 알아봐 주는 것'이니, {p}한테 '나 요즘 이거 노력 중이야'라고 먼저 말해 둬라냥.",
+      },
     },
   },
   s12: {
@@ -309,6 +345,13 @@ export const PARTNER_DECODE: Record<string, Decoded> = {
   },
 };
 
+const PARTNER_POOL = { ...PARTNER_DECODE, ...PARTNER_CRUSH_DECODE, ...PARTNER_BREAKUP_DECODE };
+const PARTNER_BY_STATUS = Object.fromEntries(
+  (Object.keys(PARTNER_IDS) as RelationshipStatus[]).map((st) => [st, Object.fromEntries(PARTNER_IDS[st].map((id) => [id, PARTNER_POOL[id]]))]),
+) as Record<RelationshipStatus, Record<string, Decoded>>;
+/** Keys and order mirror partnerInterview(status) in lib/interview.ts. */
+export const partnerDecode = (status: RelationshipStatus = "dating") => PARTNER_BY_STATUS[status];
+
 const SOLO_ONLY_DECODE: Record<string, Decoded> = {
   n1: {
     why: "사진에서 제일 먼저 보는 곳이 연애에서 네가 제일 먼저 확인하는 거다냥.",
@@ -469,22 +512,25 @@ const COUPLE_ONLY_DECODE: Record<string, Decoded> = {
       fog: { w: { express: -0.5, doubt: 1 }, read: "둘 사이가 안개 같다고 했지. {p}의 마음이 잘 안 보이는 거다냥. 안개는 기다린다고 걷히지 않는다냥. 가볍게 하나만 물어봐라냥. '요즘 우리 어때?'" },
       storm: { w: { attach: 1, conflict: 1, jealous: 0.5 }, read: "폭풍 전야라고 했지. 곧 터질 것 같은 일이 하나 있다냥. 터지기 전에 먼저 말로 꺼내면 폭풍은 소나기로 끝난다냥." },
       e: { w: { linger: -0.5 }, read: "둘 사이에 비가 그치고 무지개가 떴다고 했지. 최근에 큰 고비를 같이 넘었다는 뜻이다냥. 이 시기에 나눈 대화가 앞으로 둘의 기준이 되니, 지금 '우리 이렇게 하자'를 정해 두라냥." },
-      f: { w: { express: -1, attach: -0.5 }, read: "둘 사이가 춥고 건조하다고 했지. 싸우진 않는데 온기도 없는 상태다냥. 권태라기보다 서로 표현을 아끼는 중이라는 신호다냥. 작은 스킨십 하나, '고마워' 한마디가 제일 빨리 녹인다냥." },
+      f: { w: { express: -1, attach: -0.5 }, read: "둘 사이가 춥고 건조하다고 했지. 싸우진 않는데 온기도 없는 상태다냥. 마음이 식었다기보다 서로 표현을 아끼는 중이라는 신호다냥. 먼저 보내는 연락 하나, '고마워' 한마디가 제일 빨리 녹인다냥." },
     },
   },
 };
 
 const pickDecode = (pool: Record<string, Decoded>, ids: string[]) => Object.fromEntries(ids.map((id) => [id, pool[id]]));
 
-/** Keys and order mirror SOLO_INTERVIEW / COUPLE_INTERVIEW in lib/interview.ts. */
+/** Keys and order mirror SOLO_INTERVIEW and COUPLE_IDS in lib/interview.ts. */
 export const SOLO_DECODE = pickDecode({ ...BASE_DECODE, ...SOLO_ONLY_DECODE }, ["s1", "s2", "s3", "n1", "s4", "n2", "s6", "s7", "n3", "s10", "n4", "s12", "s13", "s14"]);
-export const COUPLE_DECODE = pickDecode({ ...BASE_DECODE, ...COUPLE_ONLY_DECODE }, ["c1", "c2", "c3", "c4", "c5", "s6", "c6", "c7", "c9", "c10", "s12", "c11", "c12", "c13"]);
-export const selfDecode = (mode: Mode) => (mode === "couple" ? COUPLE_DECODE : SOLO_DECODE);
+const COUPLE_POOL = { ...BASE_DECODE, ...COUPLE_ONLY_DECODE, ...CRUSH_DECODE, ...SLUMP_DECODE, ...BREAKUP_DECODE };
+const COUPLE_BY_STATUS = Object.fromEntries(
+  (Object.keys(COUPLE_IDS) as RelationshipStatus[]).map((st) => [st, pickDecode(COUPLE_POOL, COUPLE_IDS[st])]),
+) as Record<RelationshipStatus, Record<string, Decoded>>;
+export const selfDecode = (mode: Mode, status: RelationshipStatus = "dating") => (mode === "couple" ? COUPLE_BY_STATUS[status] : SOLO_DECODE);
 
 export const HIDDEN_META: Record<HiddenKey, { label: string; icon: string }> = {
   linger: { label: "미련 지수", icon: "🌙" },
   jealous: { label: "숨은 질투", icon: "🕵️" },
-  doubt: { label: "자기 의심", icon: "🪞" },
+  doubt: { label: "자기 의심", icon: "🔮" },
 };
 
 export const HIDDEN_READING: Record<HiddenKey, Record<"high" | "mid" | "low", string>> = {

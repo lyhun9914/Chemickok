@@ -1,5 +1,5 @@
 import "server-only";
-import { PARTNER_INTERVIEW, SOLO_INTERVIEW, COUPLE_INTERVIEW, CUSTOM_MAX, UNKNOWN_ANSWER, UNKNOWN_LABEL, customText, isCustom } from "@/lib/interview";
+import { ALL_LOVE_QUESTIONS, CUSTOM_MAX, UNKNOWN_ANSWER, UNKNOWN_LABEL, customText, isCustom } from "@/lib/interview";
 import { OPTION_KEYWORDS, UNKNOWN } from "./content/customKeywords";
 import type { Decoded, Trait, Weights } from "./content/decode";
 
@@ -38,7 +38,7 @@ const TRAIT_LINE: Record<Trait, [string, string]> = {
   doubt: ["사랑받는 순간에도 '내가 괜찮은가'를 먼저 묻는 마음이 보인다냥.", ""],
 };
 
-const ALL_QS = [...SOLO_INTERVIEW, ...COUPLE_INTERVIEW, ...PARTNER_INTERVIEW];
+const ALL_QS = ALL_LOVE_QUESTIONS;
 const STOP = new Set(["한다", "있다", "없다", "그냥", "아니면", "보통", "내가", "나도", "같은", "때는"]);
 
 function textWeights(text: string): Weights {

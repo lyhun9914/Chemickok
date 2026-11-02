@@ -15,6 +15,7 @@ import { FullReportView, LockedCard, SectionCard } from "./ReportCards";
 import { ShareButtons } from "./ShareButtons";
 import { ShareUnlockPanel } from "./ShareUnlockPanel";
 import { useToast } from "./Toast";
+import { Coin } from "./Coin";
 
 const TYPING_MS = 750;
 
@@ -238,7 +239,7 @@ export function FortuneResultView() {
                       )}
                     </div>
                     <div className="mt-5 rounded-3xl border border-peach/30 bg-peach/5 p-5">
-                      <p className="text-sm font-bold text-peach">📜 복채 🪙 {nyang(cost)}이면 지금 바로 열리는 감정서</p>
+                      <p className="text-sm font-bold text-peach">📜 복채 <Coin /> {nyang(cost)}이면 지금 바로 열리는 감정서</p>
                       <ul className="mt-3 space-y-2 text-sm">
                         {fortune.locked.map((lp) => (
                           <li key={lp.id} className="flex gap-2">
@@ -256,7 +257,7 @@ export function FortuneResultView() {
                     <div className="sticky bottom-4 z-10 mt-5">
                       <button onClick={() => setPayIntent(true)} className="btn-primary glow shine w-full py-4">
                         <span className="block text-[17px]">
-                          {PAY_LABEL[mode]} · 🪙 {nyang(cost)}
+                          {PAY_LABEL[mode]} · <Coin /> {nyang(cost)}
                         </span>
                         <span className="block text-xs font-medium opacity-90">{hint}</span>
                       </button>
@@ -282,7 +283,7 @@ export function FortuneResultView() {
             </button>
             {level !== "full" && (
               <button onClick={() => setPayIntent(true)} className="text-xs font-bold text-peach">
-                기다리기 싫다냥? 감정서 바로 열기 🪙 {nyang(cost)} →
+                기다리기 싫다냥? 감정서 바로 열기 <Coin /> {nyang(cost)} →
               </button>
             )}
           </div>
@@ -306,7 +307,7 @@ export function FortuneResultView() {
                     <span className="text-3xl">{PRODUCTS[m].emoji}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-bold">{PRODUCTS[m].name}</span>
-                      <span className="mt-0.5 block text-xs text-muted">내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 🪙 {nyang(PRODUCTS[m].coins)}</span>
+                      <span className="mt-0.5 block text-xs text-muted">내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 <Coin /> {nyang(PRODUCTS[m].coins)}</span>
                     </span>
                     <span aria-hidden>→</span>
                   </button>
@@ -329,7 +330,7 @@ export function FortuneResultView() {
                   }}
                   className="btn-primary mt-5 w-full py-4"
                 >
-                  {PAY_LABEL[mode]} · 🪙 {nyang(cost)}
+                  {PAY_LABEL[mode]} · <Coin /> {nyang(cost)}
                 </button>
                 <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
                   다음에 볼게요

@@ -95,7 +95,17 @@ export function iljuCard(birthdate: string, birthtime = ""): IljuCard | null {
   const s = STEMS_HANJA.indexOf(day.hanja[0]);
   const b = BRANCHES_HANJA.indexOf(day.hanja[1]);
   if (s < 0 || b < 0) return null;
-  const i = ALL.find((x) => x.s === s && x.b === b)!.i;
+  return iljuAt(ALL.find((x) => x.s === s && x.b === b)!.i);
+}
+
+/** The 60 일주 in 60갑자 order (도감 번호 1..60), for the 일주 pages. */
+export const allIlju = (): IljuCard[] => ALL.map((x) => iljuAt(x.i));
+
+/** "갑자" → its card. */
+export const iljuByName = (ganji: string): IljuCard | null => allIlju().find((c) => c.ganji === ganji) ?? null;
+
+function iljuAt(i: number): IljuCard {
+  const { s, b } = ALL[i];
   const rank = RANK.get(i)!;
   const labels = labelsOf(s, b);
   const ms = (s + 5) % 10;

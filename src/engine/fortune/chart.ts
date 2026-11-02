@@ -167,6 +167,11 @@ function kstNow(now = new Date()) {
   return { y: k.getUTCFullYear(), m: k.getUTCMonth() + 1, d: k.getUTCDate() };
 }
 export const thisYear = () => kstNow().y;
+/** The first year worth pointing someone to: from October this year is nearly spent, so plans start next year. */
+export const aheadYear = () => {
+  const k = kstNow();
+  return k.m >= 10 ? k.y + 1 : k.y;
+};
 
 /** How much an element helps this chart: 용신 +2, what feeds 용신 +1, 기신 −2, what feeds 기신 −1. */
 export function elementValue(c: Pick<Chart, "yongsin" | "gisin">, el: ElementKey): number {

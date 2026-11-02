@@ -114,7 +114,7 @@ export const SOLO_ADVICE: Record<SoloConcernId, { axis: AxisKey; byPole: Partial
 export const SOLO_CONCERN_ACTION: Record<SoloConcernId, string> = {
   when: "📅 이번 달 길일 중 하루, 새로운 사람 만나는 약속 잡기",
   who: "🎯 찰떡 유형 특징 3가지 메모해 두고 만날 때 확인하기",
-  fizzle: "🫧 마음에 드는 사람한테 '다음에 또 보자'를 먼저 말하기",
+  fizzle: "💨 마음에 드는 사람한테 '다음에 또 보자'를 먼저 말하기",
   pattern: "🔁 지난 연애에서 반복된 장면 하나 적어 보고, 같은 신호 오면 멈추기",
   ex: "🌧️ 전 연인 SNS 한 달만 숨김 처리하기",
   lazy: "🛋️ 부담 없는 취미 모임 하나 가입하기",

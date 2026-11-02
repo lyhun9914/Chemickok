@@ -137,9 +137,9 @@ export const EXTINGUISHER: Record<"FF" | "MIX" | "RR", string> = {
 };
 
 export const BREAKUP_GUARD: Record<"AA" | "MIX" | "SS", string> = {
-  AA: "🛟 이별 예방책: 불안할 땐 혼자 추측 말고 바로 물어보기",
-  MIX: "🛟 이별 예방책: 최소한의 연락 약속 정하기 (예: 자기 전 한 줄)",
-  SS: "🛟 이별 예방책: 한 달에 하나씩 '처음 해 보는 데이트'",
+  AA: "🆘 이별 예방책: 불안할 땐 혼자 추측 말고 바로 물어보기",
+  MIX: "🆘 이별 예방책: 최소한의 연락 약속 정하기 (예: 자기 전 한 줄)",
+  SS: "🆘 이별 예방책: 한 달에 하나씩 '처음 해 보는 데이트'",
 };
 
 /** Concern-specific advice; keyed by the partner's pole on the axis that matters for that concern. */

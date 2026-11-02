@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { nyang, productOf } from "@/lib/config";
 import { useBack } from "@/lib/back";
 import { usePayHint } from "./CoinShop";
+import { PairAnsweredCard, PairInviteCard } from "./PairSheet";
 import { josa } from "@/lib/josa";
 import { sound } from "@/lib/sound";
 import type { UnlockResponse } from "@/models/types";
@@ -31,6 +32,7 @@ import {
 import { ShareButtons } from "./ShareButtons";
 import { ShareUnlockPanel } from "./ShareUnlockPanel";
 import { useToast } from "./Toast";
+import { Coin } from "./Coin";
 
 interface Beat {
   say: string;
@@ -46,7 +48,7 @@ const TYPING_MS = 750;
 
 export function ResultView() {
   const { teaser, report, level, input, inputHash, applyUnlock, reset } = useAppStore();
-  const { me: account, providers, meLoaded, setResumePay, startInterview } = useAppStore();
+  const { me: account, providers, meLoaded, setResumePay, startInterview, pair, pairView } = useAppStore();
   // Set before the login redirect; read once on this page load (the flag flips while the page is still leaving).
   const [resumeAtLoad] = useState(() => useAppStore.getState().resumePay);
   const resumed = useRef(false);
@@ -320,6 +322,7 @@ export function ResultView() {
 
   return (
     <main className="flex-1 px-4 pb-10 pt-6">
+      {pair && pairView?.result && <PairAnsweredCard view={pairView} id={pair.id} />}
       <div className="mb-6 flex items-center justify-center gap-2 text-sm text-muted">
         <Nyang mood="smug" size={28} /> 냥신의 연애 점괘 · {me}
       </div>
@@ -370,7 +373,7 @@ export function ResultView() {
                       )}
                     </div>
                     <div className="mt-5 rounded-3xl border border-peach/30 bg-peach/5 p-5">
-                      <p className="text-sm font-bold text-peach">🐾 복채 🪙 {nyang(cost)}이면 지금 바로 열리는 것</p>
+                      <p className="text-sm font-bold text-peach">🐾 복채 <Coin /> {nyang(cost)}이면 지금 바로 열리는 것</p>
                       <ul className="mt-3 space-y-2 text-sm">
                         {teaser.locked.map((lp) => (
                           <li key={lp.id} className="flex gap-2">
@@ -388,7 +391,7 @@ export function ResultView() {
                     <div className="sticky bottom-4 z-10 mt-5">
                       <button onClick={() => setPayIntent(true)} className="btn-primary glow shine w-full py-4">
                         <span className="block text-[17px]">
-                          {payLabel} · 🪙 {nyang(cost)}
+                          {payLabel} · <Coin /> {nyang(cost)}
                         </span>
                         <span className="block text-xs font-medium opacity-90">{hint}</span>
                       </button>
@@ -416,7 +419,7 @@ export function ResultView() {
             </button>
             {level !== "full" && (
               <button onClick={() => setPayIntent(true)} className="text-xs font-bold text-peach">
-                기다리기 싫다냥? 바로 전부 열기 🪙 {nyang(cost)} →
+                기다리기 싫다냥? 바로 전부 열기 <Coin /> {nyang(cost)} →
               </button>
             )}
           </div>
@@ -426,6 +429,7 @@ export function ResultView() {
       {allShown && !typing && (
         <>
           <ShareButtons teaser={teaser} myName={me} partnerName={p} toast={toast.show} />
+          {teaser.couple && !pair && <PairInviteCard input={input} />}
           {level === "full" && (
             <button
               onClick={() => startInterview({ mode: "couple", me: input.me.birthdate ? input.me : account?.profile })}
@@ -435,7 +439,7 @@ export function ResultView() {
               <span className="flex-1">
                 <span className="block font-bold">{teaser.solo ? "그 사람이랑 궁합도 볼래냥?" : "다른 사람이랑도 궁합 볼래냥?"}</span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 풀이 🪙 {nyang(productOf("couple").coins)}
+                  내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 풀이 <Coin /> {nyang(productOf("couple").coins)}
                 </span>
               </span>
               <span aria-hidden>→</span>
@@ -462,7 +466,7 @@ export function ResultView() {
                   }}
                   className="btn-primary mt-5 w-full py-4"
                 >
-                  {payLabel} · 🪙 {nyang(cost)}
+                  {payLabel} · <Coin /> {nyang(cost)}
                 </button>
                 <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
                   다음에 볼게요

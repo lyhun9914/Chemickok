@@ -2,7 +2,7 @@ import "server-only";
 import { BLOOD_CHART } from "@/lib/blood";
 import type { ElementKey, FortuneBeat, FortuneTeaser, FullReport, QuestionnaireInput } from "@/models/types";
 import { branchRelation } from "../saju";
-import { type Chart, type TenGod, type TenGroup, GROUP_OF, dominantGroups, elementLabel, groupElement, thisYear, yearlyLuck } from "./chart";
+import { type Chart, type TenGod, type TenGroup, GROUP_OF, aheadYear, dominantGroups, elementLabel, groupElement, thisYear, yearlyLuck } from "./chart";
 import {
   GOD_SHORT,
   yearText,
@@ -87,23 +87,14 @@ const JOB_FIT: Record<string, TenGroup[]> = {
   free: ["식상", "인성", "비겁"],
 };
 
-/** Which 세운 십성 explain each kind of year the person reported. */
-const EVENT_GODS: Record<string, TenGod[]> = {
-  move: ["상관", "편관", "편인", "겁재"],
-  job: ["상관", "편관", "겁재", "편재", "편인"],
-  breakup: ["상관", "겁재", "편관"],
-  meet: ["정재", "편재", "정관", "편관", "식신"],
-  sick: ["편관", "상관", "겁재"],
-  loss: ["겁재", "편재", "비견", "상관"],
-  family: ["편관", "편인", "겁재", "상관"],
-  calm: ["비견", "정인", "식신", "정재"],
-};
+/** 세운 십성 under which a quiet year is simply the year doing its job. */
+const CALM_GODS: TenGod[] = ["비견", "정인", "식신", "정재"];
 const EVENT_LABEL: Record<string, string> = {
   move: "이사했다",
   job: "일이 바뀌었다",
   breakup: "사람과 끝났다",
   meet: "좋은 인연을 만났다",
-  sick: "아팠다",
+  sick: "아팠거나 다쳤다",
   loss: "큰돈이 나갔다",
   family: "집안에 큰일이 있었다",
   calm: "별일 없었다",
@@ -181,7 +172,7 @@ function moneyLine(c: Chart, ans: string | undefined): string {
         ? "모아도 안심이 안 되지? 생각이 많은 사주라 그렇다냥. 통장 숫자보다 마음이 문제다냥."
         : "모으는 건 잘한다냥. 근데 아끼다 놓친 기회가 한 번 있었다냥.";
     case "debt": {
-      const ease = yearlyLuck(c, 10).find((y) => GROUP_OF[y.god] === "재성" || y.score >= 72);
+      const ease = yearlyLuck(c, 10, aheadYear()).find((y) => GROUP_OF[y.god] === "재성" || y.score >= 72);
       return `빚 갚는 데 다 나간다고 했지. ${jae === "low" ? "재성이 약해서 돈이 머물 자리가 좁다냥. 이자 큰 것부터 끊어라냥." : "버는 힘은 있다냥. 순서만 잡으면 줄어든다냥."} ${ease ? `${ease.year}년부터 숨통이 트인다냥.` : "한 번에 말고 쪼개서 갚아라냥."}`;
     }
     case "leak":
@@ -216,21 +207,78 @@ function jobLine(c: Chart, ans: string | undefined): string {
   return `사주에 맞는 일은 ${daNyang(field)}.`;
 }
 
+/** Why this kind of year came, by the 세운's 십성 group: the explanation has to fit the event, not just name the god. */
+const EVENT_WHY: Record<string, Record<TenGroup, string>> = {
+  move: {
+    비겁: "남의 자리에서 나와 내 자리를 잡으라는 기운이라, 짐을 싼 게 자연스럽다냥.",
+    식상: "묵은 걸 털고 새로 펼치는 기운이라, 답답한 자리를 못 견디고 움직인 거다냥.",
+    재성: "현실을 챙기는 기운이라, 돈·거리·조건을 따져 옮긴 거다냥. 손해 보는 이사는 아니었다냥.",
+    관성: "바깥에서 누르는 기운이라, 네가 원해서라기보다 사정에 떠밀려 옮긴 쪽이 크다냥.",
+    인성: "기댈 곳을 찾는 기운이라, 마음 편한 자리를 찾아 옮긴 거다냥.",
+  },
+  job: {
+    비겁: "내 깃발을 꽂고 싶은 기운이라, 남 밑에서 남의 방식대로 버티기가 힘들어진 해다냥.",
+    식상: "재주를 밖으로 꺼내는 기운이라, 하고 싶은 말·하고 싶은 일이 참아지지 않은 해다냥.",
+    재성: "돈과 조건의 기운이라, 더 나은 대우를 따라 움직였다면 운을 제대로 탄 거다냥.",
+    관성: "자리와 책임의 기운이라, 위에서 내려온 변화든 새 직함이든 일의 판이 바뀔 해였다냥.",
+    인성: "배우고 다시 고르는 기운이라, 방향을 다시 잡으려고 멈춘 거라면 그 쉼표가 맞다냥.",
+  },
+  breakup: {
+    비겁: "'나'가 커지는 기운이라, 서로 한 발도 안 물러서다 끝난 쪽이다냥.",
+    식상: "참던 말이 터지는 기운이라, 쌓인 말이 한꺼번에 나오면서 끝난 거다냥.",
+    재성: "현실을 따지는 기운이라, 마음보다 돈·거리·조건 같은 현실이 둘을 갈라놓은 쪽이다냥.",
+    관성: "바깥에서 누르는 기운이라, 둘 사이보다 주변 사정과 책임이 더 무거웠던 해다냥.",
+    인성: "혼자 생각이 깊어지는 기운이라, 한쪽 마음이 먼저 식어서 조용히 멀어진 쪽이다냥.",
+  },
+  meet: {
+    비겁: "친구·동료의 기운이라, 친구처럼 편하게 시작한 인연이면 딱 그 기운이다냥.",
+    식상: "나를 드러내는 기운이라, 네가 제일 너다울 때 만난 인연이다냥. 그래서 편한 거다냥.",
+    재성: "현실 감각의 기운이라, 마음도 조건도 맞는 '생활이 되는' 인연이다냥.",
+    관성: "책임의 기운이라, 가볍게 노는 사이보다 서로 기대는 진지한 인연이다냥.",
+    인성: "돌봄과 도움의 기운이라, 너를 아끼고 챙겨 주는 쪽의 인연이다냥.",
+  },
+  loss: {
+    비겁: "내 몫을 남이 나눠 가는 기운이라, 사람 때문에 · 같이 하다가 나간 돈이 크다냥.",
+    식상: "크게 펼치는 기운이라, 벌려고 쓴 돈이 먼저 나간 해다냥. 씨 뿌린 돈은 다 잃은 게 아니다냥.",
+    재성: "돈이 크게 오가는 기운이라, 크게 들어올 자리엔 크게 나갈 자리도 같이 열린다냥.",
+    관성: "바깥에서 누르는 기운이라, 피할 수 없는 지출·책임 때문에 나간 돈이다냥.",
+    인성: "믿고 기대는 기운이라, 믿고 맡겼거나 문서·계약에서 샌 돈이다냥.",
+  },
+  sick: {
+    비겁: "혼자 다 해내려는 기운이라, 버티다 몸이 먼저 '그만'을 외친 거다냥.",
+    식상: "기운을 밖으로 쏟는 해라, 쏟은 만큼 채우지 못해 몸이 바닥난 거다냥.",
+    재성: "일과 돈에 몰두하는 기운이라, 바쁘게 뛰느라 몸을 뒤로 미룬 값이다냥.",
+    관성: "몸을 누르는 압박의 기운이라, 스트레스가 몸으로 내려온 해다냥.",
+    인성: "생각이 많아지는 기운이라, 마음이 무거우니 몸도 같이 가라앉은 거다냥.",
+  },
+  family: {
+    비겁: "형제·식구 사이 내 몫의 기운이라, 나눌 것과 짊어질 것이 같이 온 해다냥.",
+    식상: "누군가를 돌보는 기운이라, 식구를 챙기고 대신 나서야 했던 해다냥.",
+    재성: "현실과 돈의 기운이라, 집안일이 결국 돈과 현실 문제로 너한테 왔다냥.",
+    관성: "책임의 기운이라, 집안의 무게가 네 어깨로 넘어온 해다냥.",
+    인성: "부모·윗사람의 기운이라, 어른 쪽 일로 마음을 많이 쓴 해다냥.",
+  },
+};
+
 function yearEventLine(c: Chart, ans: string | undefined): string | null {
   if (!ans || ans === "?") return null;
   const [y] = yearlyLuck(c, 1);
-  const clash = branchRelation(c.dayBranch, y.branch) === "clash";
-  const hit = EVENT_GODS[ans]?.includes(y.god) || (clash && ans !== "calm" && ans !== "meet");
+  const god = `'${y.god}(${GOD_SHORT[y.god]})'`;
+  const group = GROUP_OF[y.god];
   // A new person in a year when the 배우자 별 itself came in: say so.
   const sp = spouseGroup(c);
-  if (ans === "meet" && sp && GROUP_OF[y.god] === sp) return `올해 좋은 인연을 만났다고 했지. 올해 ${y.ganji}년은 너한테 배우자 별이 직접 들어온 해다냥. 우연이 아니다냥.`;
-  if (ans === "calm" && !hit) {
+  if (ans === "meet" && sp && group === sp) return `올해 좋은 인연을 만났다고 했지. 올해 ${y.ganji}년은 너한테 배우자 별이 직접 들어온 해다냥. 우연이 아니다냥.`;
+  if (ans === "breakup" && sp && group === sp)
+    return `올해 사람과 끝났다고 했지. 올해 ${y.ganji}년은 너한테 배우자 별이 움직인 해다냥. 인연 자리가 흔들리면 하나가 나가고 하나가 들어온다냥. 빈자리는 오래 안 간다냥.`;
+  if (ans === "calm") {
+    if (CALM_GODS.includes(y.god)) return `별일 없었다고 했지. 올해 ${y.ganji}년은 너한테 ${god}의 해라, 조용히 다지는 해가 맞다냥. 큰 파도 없이 지나간 것도 운이다냥.`;
     const left = 12 - (new Date(Date.now() + 9 * 3600 * 1000).getUTCMonth() + 1);
-    return `별일 없었다고 했지. 근데 올해 ${y.ganji}년은 너한테 '${y.god}(${GOD_SHORT[y.god]})'의 해다냥. ${left >= 1 ? `남은 ${left}달 안에 그 기운이 한 번은 움직인다냥.` : "그 기운은 내년 초까지 이어진다냥."}`;
+    return `별일 없었다고 했지. 근데 올해 ${y.ganji}년은 너한테 ${god}의 해다냥. ${left >= 1 ? `남은 ${left}달 안에 그 기운이 한 번은 움직인다냥.` : "그 기운은 내년 초까지 이어진다냥."}`;
   }
-  return hit
-    ? `올해 ${EVENT_LABEL[ans]}고 했지. 올해 ${y.ganji}년은 너한테 '${y.god}'의 해다냥. ${GOD_SHORT[y.god]}의 기운이 그대로 들어맞은 거다냥.`
-    : `올해 ${EVENT_LABEL[ans]}고 했지. 올해는 너한테 '${y.god}(${GOD_SHORT[y.god]})'의 해였다냥. 그 일도 결국 그 기운의 모양으로 온 거다냥.`;
+  const why = EVENT_WHY[ans]?.[group];
+  if (!why) return null;
+  const clash = ans !== "meet" && branchRelation(c.dayBranch, y.branch) === "clash";
+  return `올해 ${EVENT_LABEL[ans]}고 했지. 올해 ${y.ganji}년은 너한테 ${god}의 해다냥. ${why}${clash ? " 게다가 올해 띠가 네 일지와 정면으로 부딪히는(충) 해라, 자리가 흔들리기 쉬웠다냥." : ""}`;
 }
 
 function seasonLine(c: Chart, ans: string | undefined): string | null {
@@ -298,7 +346,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
   const stem = STEM[c.dayStem];
   const { top, low } = dominantGroups(c);
   const sinsals = (Object.keys(SINSAL_TEXT) as (keyof typeof SINSAL_TEXT)[]).filter((k) => c.sinsal[k]);
-  const years = yearlyLuck(c, 2);
+  const years = yearlyLuck(c, 2, aheadYear());
   const now = c.daeun[c.currentDaeun];
   const sp = spouseGroup(c);
   const focus = a("sj1") && a("sj1") !== "?" ? a("sj1") : "life";
@@ -327,7 +375,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
   );
 
   const jaeEl = groupElement(c.dm, "재성");
-  const moneyYears = yearlyLuck(c, 10)
+  const moneyYears = yearlyLuck(c, 10, aheadYear())
     // A 재성 year only counts as money when the chart welcomes it (otherwise it comes and goes).
     .filter((y) => (GROUP_OF[y.god] === "재성" && y.score >= 58) || (GROUP_OF[y.god] === "식상" && y.score >= 70))
     .slice(0, 3);
@@ -374,7 +422,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
   );
 
   const spCount = sp ? c.groups[sp] : 1;
-  const loveYear = yearlyLuck(c, 10).find((y) => (sp && GROUP_OF[y.god] === sp) || branchRelation(c.dayBranch, y.branch) === "harmony");
+  const loveYear = yearlyLuck(c, 10, aheadYear()).find((y) => (sp && GROUP_OF[y.god] === sp) || branchRelation(c.dayBranch, y.branch) === "harmony");
   // From the mid-40s the same 자리 reads as the marriage itself, not when someone will show up.
   const settled = c.age >= 45;
   const love = sec(
@@ -485,7 +533,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
   );
 
   const all = [
-    { id: "nature", icon: "🪞", section: nature },
+    { id: "nature", icon: "🔮", section: nature },
     { id: "money", icon: "💰", section: money },
     { id: "work", icon: "💼", section: work },
     { id: "love", icon: "💞", section: love },
@@ -518,7 +566,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
       mood: "wow",
       card: {
         kind: "text",
-        icon: "🪞",
+        icon: "🔮",
         title: "타고난 그릇",
         body: lines(stem.core, stem.shadow),
       },

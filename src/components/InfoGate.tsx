@@ -73,7 +73,7 @@ export function InfoGate({
         </Say>
         <div className="flex items-center gap-3 rounded-2xl border border-violet/35 bg-white/[0.03] px-4 py-3">
           <span className="text-xl" aria-hidden>
-            🪪
+            📇
           </span>
           <span className="min-w-0 flex-1 text-[14px]">
             <span className="block font-bold">{saved.name}</span>

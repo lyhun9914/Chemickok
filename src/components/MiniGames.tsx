@@ -5,11 +5,12 @@ import { BLOOD_EXAM, BLOOD_LOVE } from "@/lib/blood";
 import { drawBujeok } from "@/lib/bujeok";
 import { CONTACT, CONTACT_Q, POSITIONS, type ContactQ, verdictOf } from "@/lib/contactTarot";
 import { checkIn, contactToday, saveContact, saveTarot, tarotToday } from "@/lib/daily";
+import { STREAK_COINS, STREAK_EVERY } from "@/lib/config";
 import { nameCompat, nameCompatComment, type NameCompatResult } from "@/lib/nameCompat";
 import { sound } from "@/lib/sound";
 import { TAROT, tarotPair } from "@/lib/tarot";
 import type { FortuneStoryCard, Mode } from "@/models/types";
-import { dailyApi, todayApi, type DailyFortuneResponse, type ExamDayResponse, type IljuResponse, type TodayFortuneResponse, type ZodiacTodayResponse } from "@/services/apiClient";
+import { checkinApi, dailyApi, todayApi, type DailyFortuneResponse, type ExamDayResponse, type IljuResponse, type TodayFortuneResponse, type ZodiacTodayResponse } from "@/services/apiClient";
 import { useBack } from "@/lib/back";
 import { shareService, shareUrl, siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
@@ -250,8 +251,10 @@ export function MiniGameSheet({ game, onClose, onStart }: { game: MiniGame | nul
 
 // ───────────── 오늘의 운세 · 출석 도장 ─────────────
 
-/** Last 7 days as stamps; today in the last slot. */
-function Stamps({ stamps, streak }: { stamps: boolean[]; streak: number }) {
+type Reward = { streak: number; rewarded: boolean; every: number; coins: number };
+
+/** Last 7 days as stamps; today in the last slot. Members also see the 냥 the streak earns (`reward`, from the server). */
+function Stamps({ stamps, streak, reward, member }: { stamps: boolean[]; streak: number; reward: Reward | null; member: boolean }) {
   const days = ["6일 전", "5일 전", "4일 전", "3일 전", "그제", "어제", "오늘"];
   return (
     <div className="rounded-2xl border border-violet/30 bg-violet/5 p-4">
@@ -272,6 +275,19 @@ function Stamps({ stamps, streak }: { stamps: boolean[]; streak: number }) {
       <p className="mt-3 text-[13px] text-muted">
         {streak >= 7 ? "🎁 7일 개근이다냥! 이번 주 운은 냥신이 지켜 준다냥." : `내일 또 오면 도장 하나 더 찍어 주겠다냥. 7일 개근까지 ${7 - Math.min(7, streak)}일!`}
       </p>
+      {reward?.rewarded ? (
+        <p className="mt-2 rounded-xl bg-peach/15 px-3 py-2 text-[13.5px] font-bold text-peach">
+          🎁 {reward.streak}일 연속 출석! 복주머니에 {reward.coins}냥 넣어 뒀다냥.
+        </p>
+      ) : reward ? (
+        <p className="mt-2 text-[12.5px] text-peach/90">
+          📅 {reward.every}일 연속 출석할 때마다 {reward.coins}냥 선물 · 다음 선물까지 {reward.every - (reward.streak % reward.every)}일
+        </p>
+      ) : !member ? (
+        <p className="mt-2 text-[12.5px] text-muted/90">
+          🔑 로그인하면 {STREAK_EVERY}일 연속 출석마다 {STREAK_COINS}냥을 선물로 준다냥.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -295,6 +311,9 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
   const [info, setInfo] = useState<BasicInfo | null>(null);
   const [result, setResult] = useState<TodayFortuneResponse | null>(null);
   const [stamp, setStamp] = useState<ReturnType<typeof checkIn> | null>(null);
+  const [reward, setReward] = useState<Reward | null>(null);
+  const me = useAppStore((s) => s.me);
+  const setCoins = useAppStore((s) => s.setCoins);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -308,6 +327,14 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
       const st = checkIn();
       setStamp(st);
       sound().play(st.fresh ? "stamp" : "page");
+      if (me) {
+        // the 냥 for a 7-day streak is counted on the server, by account (this browser's stamps are just the picture)
+        const r = await checkinApi.stamp().catch(() => null);
+        if (r) {
+          setReward(r);
+          if (r.balance !== undefined) setCoins(r.balance);
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "다시 시도해 주세요");
     } finally {
@@ -332,7 +359,7 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
 
   return (
     <div className="space-y-4">
-      {stamp && <Stamps stamps={stamp.stamps} streak={stamp.streak} />}
+      {stamp && <Stamps stamps={stamp.stamps} streak={stamp.streak} reward={reward} member={Boolean(me)} />}
       <div className="rounded-3xl border border-line bg-white/[0.03] p-5 text-center">
         <p className="text-[13px] text-muted">
           {info.name}의 오늘 · {result.date} · {result.ganji}

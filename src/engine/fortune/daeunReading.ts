@@ -1,7 +1,7 @@
 import "server-only";
 import type { FortuneBeat, FortuneTeaser, FullReport, QuestionnaireInput } from "@/models/types";
 import { branchRelation } from "../saju";
-import { type Chart, type Daeun, type TenGod, GROUP_OF, elementLabel, gwiinOf, yearlyLuck } from "./chart";
+import { type Chart, type Daeun, type TenGod, GROUP_OF, aheadYear, elementLabel, gwiinOf, yearlyLuck } from "./chart";
 import { GOD_SHORT, LUCK, STEM, basisCard, daNyang, gwiinAnimals, josa, lines, locked, scoreWord, sec, yearText } from "./common";
 
 // ───────────── 인생 대운 흐름 ─────────────
@@ -215,16 +215,28 @@ function pastCheck(c: Chart, ans: string | undefined, kind: "hard" | "best"): st
   if (!d) return null;
   const sorted = [...lived].sort((x, y) => x.score - y.score);
   const rank = sorted.findIndex((x) => x.age === d.age);
+  // The span they named may be the 대운 they're living through right now.
+  const current = c.age <= d.age + 9;
+  const next = c.daeun.find((x) => x.age > d.age);
+  const said = `${josa(span[2], "이라고/라고")} 했지.`;
   if (kind === "hard") {
     return rank <= 1 && d.score < 62
-      ? `${josa(span[2], "이라고/라고")} 했지. 맞다냥. 그때가 ${range(d)} ${d.ganji} 대운, 지나온 대운 중 바닥이었다냥. ${GOD_SHORT[d.god]}의 기운이 너를 시험했다냥.`
-      : `${josa(span[2], "이라고/라고")} 했지. 대운으로 보면 그때(${d.ganji})는 바닥이 아니었다냥. 그때 힘든 건 운이 아니라 사람 때문이었다냥. 맞지?`;
+      ? current
+        ? `${said} 맞다냥. 지금 지나는 ${range(d)} ${d.ganji} 대운이 지나온 대운 중 제일 무겁다냥. ${GOD_SHORT[d.god]}의 기운이 너한테는 짐으로 오는 10년이다냥.${next ? ` 대신 ${next.age}세부터 물줄기가 바뀐다냥.` : ""}`
+        : `${said} 맞다냥. 그때가 ${range(d)} ${d.ganji} 대운, 지나온 대운 중 바닥이었다냥. ${GOD_SHORT[d.god]}의 기운이 너한테는 짐으로 왔다냥.`
+      : ans === "child"
+        ? `어린 시절이라고 했지. 대운으로 보면 그때(${d.ganji})는 바닥이 아니었다냥. 그 시절 짐은 네 운보다 집안 사정이 더 컸던 거다냥. 아이였던 네 몫이 아니었다냥.`
+        : `${said} 대운으로 보면 그때(${d.ganji})는 바닥이 아니었다냥. 운이 받쳐 주는데도 힘들었다면, 그 짐은 운보다 그때 상황과 곁의 사람이 컸던 거다냥. 그걸 버텨 낸 게 지금의 너다냥.`;
   }
   const top = [...lived].sort((x, y) => y.score - x.score);
   const trank = top.findIndex((x) => x.age === d.age);
   return trank <= 1 && d.score >= 60
-    ? `${josa(span[2], "이라고/라고")} 했지. 맞다냥. ${range(d)} ${d.ganji} 대운, ${GOD_SHORT[d.god]}의 기운이 제대로 받쳐 준 때다냥.`
-    : `${josa(span[2], "이라고/라고")} 했지. 대운보다 네 노력이 더 컸던 때다냥. 진짜 대운의 꽃은 따로 있다냥.`;
+    ? current
+      ? `${said} 맞다냥. 지금 지나는 ${range(d)} ${d.ganji} 대운이 지나온 대운 중 운이 제일 잘 받쳐 주는 10년이다냥. 지금을 아껴 써라냥.`
+      : `${said} 맞다냥. ${range(d)} ${d.ganji} 대운, 지나온 대운 중 ${trank === 0 ? "운이 제일 잘 받쳐 준" : "손꼽히게 운이 받쳐 준"} 10년이다냥.`
+    : ans === "child"
+      ? `어린 시절이라고 했지. 그때는 네 운보다 집안과 부모님 덕이 컸던 때다냥. 이제 네 대운으로 피울 차례다냥.`
+      : `${said} 대운보다 네 노력이 더 컸던 때다냥. 진짜 대운의 꽃은 따로 있다냥.`;
 }
 
 /** 인생이 확 바뀐 때 (du7) against the 교운기 — the ages one 대운 hands over to the next — or a 충 year. */
@@ -410,7 +422,7 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
   const peak = (nowIsPeak ? cur : bestAhead) ?? c.daeun[0];
   const lowAhead = future.filter((d) => d !== peak).sort((x, y) => x.score - y.score)[0] ?? null;
   const trough = cur && cur !== peak && cur.score < 55 && (!lowAhead || cur.score < lowAhead.score) ? cur : lowAhead;
-  const seun = yearlyLuck(c, 3);
+  const seun = yearlyLuck(c, 3, aheadYear());
   // The graph and the overview show 8 of the 9 대운, always including the current one.
   const shownDaeun = c.currentDaeun >= 8 ? c.daeun.slice(1, 9) : c.daeun.slice(0, 8);
 
@@ -537,7 +549,7 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
           );
 
   // No distinct 대운 left to warn about (older people): point at the hardest year coming instead.
-  const hardYear = [...yearlyLuck(c, 6)].sort((x, y) => x.score - y.score)[0];
+  const hardYear = [...yearlyLuck(c, 6, aheadYear())].sort((x, y) => x.score - y.score)[0];
   const troughSec = trough
     ? sec(
         "조심해야 할 대운",
@@ -628,7 +640,7 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
 
   const burden = BURDEN[a("du8") ?? ""];
   const burdenGood = Boolean(cur && (cur.score >= 62 || (burden?.gods.includes(cur.god) && cur.score >= 55)));
-  const relief = burden ? yearlyLuck(c, 6).find((y) => burden.gods.includes(y.god) && y.score >= 62) : undefined;
+  const relief = burden ? yearlyLuck(c, 6, aheadYear()).find((y) => burden.gods.includes(y.god) && y.score >= 62) : undefined;
   const burdenSec = burden
     ? sec(
         "지금의 짐 · 풀리는 해",
@@ -665,9 +677,13 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
     `${josa(stem.name, "은/는")} ${josa(elementLabel(c.yongsin), "을/를")} 타야 산다냥`,
     lines(
       want
-        ? wantHit
-          ? `앞으로 ${josa(want.label, "을/를")} 원한다고 했지. ${range(wantHit)} ${wantHit.ganji} 대운이 그걸 준다냥.`
-          : `앞으로 ${josa(want.label, "을/를")} 원한다고 했지. 대운이 대놓고 주는 운은 아니다냥. 그래서 네가 먼저 움직여야 한다냥.`
+        ? !wantHit
+          ? `앞으로 10년, ${josa(want.label, "을/를")} 원한다고 했지. 대운이 대놓고 주는 운은 아니다냥. 그래서 네가 먼저 움직여야 한다냥.`
+          : wantHit === cur
+            ? `앞으로 10년, ${josa(want.label, "을/를")} 원한다고 했지. 지금 ${range(wantHit)} ${wantHit.ganji} 대운이 바로 그걸 주는 대운이다냥. 지금 안 잡으면 언제 잡냥.`
+            : wantHit.age <= c.age + 10
+              ? `앞으로 10년, ${josa(want.label, "을/를")} 원한다고 했지. ${wantHit.age}세부터 시작되는 ${wantHit.ganji} 대운이 그걸 준다냥. 그 전까지 그릇을 키워 둬라냥.`
+              : `앞으로 10년, ${josa(want.label, "을/를")} 원한다고 했지. 이번 10년 안엔 대운이 대놓고 주진 않는다냥. 진짜 큰 판은 ${range(wantHit)} ${wantHit.ganji} 대운이다냥. 그때 거둘 걸 지금 심어 둬라냥.`
         : null,
       COPE[a("du6") ?? ""] ?? null,
     ),

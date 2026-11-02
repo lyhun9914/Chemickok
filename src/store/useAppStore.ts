@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { StoryShare } from "@/lib/handoff";
 import { isFortune } from "@/lib/config";
-import { accountApi, type LoginProvider, type Me, type SavedReading } from "@/services/apiClient";
+import { accountApi, type LoginProvider, type Me, type PairView, type SavedReading } from "@/services/apiClient";
 import { setShareRef } from "@/services/shareService";
 import type {
   FortuneTeaser,
@@ -40,10 +40,17 @@ interface AppState {
   resumePay: boolean;
   /** a 충전 left for Toss from the paywall: open the reading with the new 냥 when it comes back */
   pendingSpend: boolean;
-  /** what the interview already knows: the product picked on the landing page, and 기본 정보 */
-  preset: { mode: boolean; me: boolean };
+  /** what the interview already knows: the product picked on the landing page, 기본 정보, and (answering a 궁합
+   * 신청서) the relationship status the sender chose */
+  preset: { mode: boolean; me: boolean; status?: boolean };
   /** a share card handed over from another device without its answers (screen "story") */
   story: StoryShare | null;
+  /** answering someone's 맞궁합 초대장: sent with this interview's answers when the reading is drawn */
+  pair: { id: string; from: string } | null;
+  /** the 맞궁합 once both sides answered (shown on the result) */
+  pairView: PairView | null;
+  /** opened from a link (?pair= · ?gift= · ?game=): the landing opens the matching sheet once */
+  deepLink: { pair?: string; gift?: string; game?: string } | null;
 
   setScreen: (s: Screen) => void;
   setStep: (n: number) => void;
@@ -65,7 +72,7 @@ interface AppState {
   /** 복주머니 balance changed (charge, spend) */
   setCoins: (n: number) => void;
   /** start a fresh interview; `mode` from a product card, `me` from saved 기본 정보 or the previous reading */
-  startInterview: (opts?: { mode?: Mode; me?: PersonInput | null }) => void;
+  startInterview: (opts?: { mode?: Mode; me?: PersonInput | null; partner?: Partial<PersonInput>; status?: RelationshipStatus; pair?: { id: string; from: string } }) => void;
   /** open a saved reading from 내 점괘함 */
   openSaved: (r: Pick<SavedReading, "mode" | "names" | "teaser" | "report">) => void;
 }
@@ -92,6 +99,9 @@ const initial = {
   pendingSpend: false,
   preset: { mode: false, me: false },
   story: null as StoryShare | null,
+  pair: null as { id: string; from: string } | null,
+  pairView: null as PairView | null,
+  deepLink: null as { pair?: string; gift?: string; game?: string } | null,
 };
 
 export const useAppStore = create<AppState>()(
@@ -140,8 +150,16 @@ export const useAppStore = create<AppState>()(
         const base = initialInput();
         const me = opts.me?.name && opts.me.birthdate ? opts.me : null;
         set({
-          input: { ...base, mode: opts.mode ?? base.mode, me: me ? { ...base.me, ...me } : base.me },
-          preset: { mode: Boolean(opts.mode), me: Boolean(me) },
+          input: {
+            ...base,
+            mode: opts.mode ?? base.mode,
+            me: me ? { ...base.me, ...me } : base.me,
+            partner: { ...base.partner, ...opts.partner },
+            status: opts.status ?? base.status,
+          },
+          pair: opts.pair ?? null,
+          pairView: null,
+          preset: { mode: Boolean(opts.mode), me: Boolean(me), status: Boolean(opts.status) },
           step: 0,
           screen: "form",
           error: null,
@@ -171,8 +189,10 @@ export const useAppStore = create<AppState>()(
       name: "love-chemistry-v6",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, pendingSpend, preset, story }) => ({
+      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, pendingSpend, preset, story, pair, pairView }) => ({
         story,
+        pair,
+        pairView,
         resumePay,
         pendingSpend,
         preset,

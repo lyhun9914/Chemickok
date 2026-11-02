@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { nyang } from "@/lib/config";
+import { Coin } from "@/components/Coin";
 import { paymentService } from "@/services/PaymentService";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -39,7 +40,7 @@ function Confirm() {
         const { balance, added } = await paymentService.confirmCharge({ packId: params.get("pack") ?? "", paymentKey, orderId, amount });
         setCoins(balance);
         if (pendingSpend && (teaser || fortune)) {
-          setLabel(`🪙 ${nyang(added)} 충전 완료! 점괘를 여는 중이다냥…`);
+          setLabel(`${nyang(added)} 충전 완료! 점괘를 여는 중이다냥…`);
           setPendingSpend(false);
           const r = await paymentService.spend(input);
           if (r.status === "unlocked") applyUnlock(r.unlock);
@@ -47,7 +48,7 @@ function Confirm() {
         } else {
           setPendingSpend(false);
           useAppStore.setState({ screen: "my" });
-          sessionStorage.setItem("nyang-notice", `🪙 ${nyang(added)} 충전 완료! 복주머니에 ${nyang(balance)} 있다냥`);
+          sessionStorage.setItem("nyang-notice", `${nyang(added)} 충전 완료! 복주머니에 ${nyang(balance)} 있다냥 🐾`);
         }
         router.replace("/");
       })().catch((e: Error) => setError(e.message));
@@ -82,7 +83,9 @@ function Confirm() {
         </>
       ) : (
         <>
-          <div className="heartbeat text-6xl">🪙</div>
+          <div className="heartbeat text-6xl">
+            <Coin />
+          </div>
           <p className="mt-6 font-semibold">{label}</p>
         </>
       )}

@@ -9,7 +9,7 @@ export interface TarotCard {
 
 export const TAROT: TarotCard[] = [
   { no: "0", name: "바보", emoji: "🎒", line: "겁 없이 첫발을 떼는 카드다냥. 계산보다 설렘이 이기는 날이다냥.", advice: "새로운 걸 하나 시작해라냥." },
-  { no: "I", name: "마법사", emoji: "🪄", line: "손에 쥔 걸로 다 해낼 수 있다는 카드다냥. 재주가 빛난다냥.", advice: "미뤄 둔 아이디어를 꺼내라냥." },
+  { no: "I", name: "마법사", emoji: "✨", line: "손에 쥔 걸로 다 해낼 수 있다는 카드다냥. 재주가 빛난다냥.", advice: "미뤄 둔 아이디어를 꺼내라냥." },
   { no: "II", name: "여사제", emoji: "🌙", line: "말보다 직감이 맞는 날이다냥. 조용히 지켜보면 답이 보인다냥.", advice: "결정은 하루만 더 묵혀라냥." },
   { no: "III", name: "여황제", emoji: "🌸", line: "풍요와 사랑의 카드다냥. 베푼 만큼 돌아온다냥.", advice: "좋아하는 사람한테 먼저 챙겨 줘라냥." },
   { no: "IV", name: "황제", emoji: "👑", line: "질서와 책임의 카드다냥. 네가 판을 잡으면 정리된다냥.", advice: "할 일 목록부터 세워라냥." },
@@ -22,7 +22,7 @@ export const TAROT: TarotCard[] = [
   { no: "XI", name: "정의", emoji: "⚖️", line: "뿌린 대로 거두는 카드다냥. 공정하게 하면 이긴다냥.", advice: "애매한 건 숫자로 확인해라냥." },
   { no: "XII", name: "매달린 사람", emoji: "🙃", line: "멈춰서 다르게 보라는 카드다냥. 기다림이 답이다냥.", advice: "급한 결정은 내일로 미뤄라냥." },
   { no: "XIII", name: "죽음", emoji: "🥀", line: "끝이 아니라 끝맺음의 카드다냥. 하나를 정리해야 새것이 들어온다냥.", advice: "안 쓰는 거 하나 버려라냥." },
-  { no: "XIV", name: "절제", emoji: "🫖", line: "균형의 카드다냥. 과하지도 모자라지도 않게가 정답이다냥.", advice: "오늘은 적당히가 최고다냥." },
+  { no: "XIV", name: "절제", emoji: "🍵", line: "균형의 카드다냥. 과하지도 모자라지도 않게가 정답이다냥.", advice: "오늘은 적당히가 최고다냥." },
   { no: "XV", name: "악마", emoji: "😈", line: "유혹의 카드다냥. 알면서 끌리는 게 하나 있지?", advice: "그거 하나만 참아라냥." },
   { no: "XVI", name: "탑", emoji: "⚡", line: "갑작스러운 변화의 카드다냥. 무너져야 새로 쌓는다냥.", advice: "계획이 틀어져도 당황하지 마라냥." },
   { no: "XVII", name: "별", emoji: "⭐", line: "희망의 카드다냥. 바라던 게 조금씩 보이기 시작한다냥.", advice: "소원 하나 적어 두라냥." },

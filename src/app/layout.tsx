@@ -1,11 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { SITE } from "@/lib/site";
 import "./globals.css";
-
-// Link previews (KakaoTalk, Instagram, X…) need absolute image URLs. Without NEXT_PUBLIC_SITE_URL, a Vercel build knows
-// its own production domain; only a local build falls back to localhost.
-const SITE =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
@@ -19,6 +14,8 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image" },
+  // Phones turn numbers and addresses into call / mail links on their own; the 사업자 정보 should stay plain text.
+  formatDetection: { telephone: false, email: false, address: false },
 };
 
 export const viewport: Viewport = {

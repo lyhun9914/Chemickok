@@ -9,8 +9,10 @@ import { shareService } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { useBack } from "@/lib/back";
 import { WalletSheet, useSocialLabel } from "./CoinShop";
+import { GiftSendSheet } from "./GiftSheet";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { Nyang } from "./Nyang";
+import { Coin } from "./Coin";
 
 const fieldCls = "w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-[15px] text-ink outline-none focus:border-pink/60";
 const PROVIDER_LABEL: Record<string, string> = { kakao: "카카오", naver: "네이버", google: "구글", email: "이메일", dev: "테스트" };
@@ -19,11 +21,13 @@ const PROVIDER_LABEL: Record<string, string> = { kakao: "카카오", naver: "네
 function ledgerLabel(r: CoinHistoryRow): string {
   switch (r.reason) {
     case "charge":
-      return "🪙 충전";
+      return "충전";
     case "spend":
       return `📜 ${PRODUCTS[r.ref.split(":")[0] as Mode]?.name ?? "점괘"} 열기`;
     case "bonus":
-      return r.ref === "welcome" ? "🎁 가입 선물" : r.ref === "joined" ? "🎁 초대받아 가입 선물" : "🤝 친구 초대 선물";
+      return r.ref === "welcome" ? "🎁 가입 선물" : r.ref === "joined" ? "🎁 초대받아 가입 선물" : r.ref.startsWith("streak:") ? "📅 출석 선물" : "🤝 친구 초대 선물";
+    case "gift":
+      return r.ref.startsWith("send:") ? "🎁 선물 보냄" : r.ref.startsWith("recv:") ? "🎁 선물 받음" : "🎁 선물 취소 (돌려받음)";
     case "refund":
       return "↩️ 환불";
     default:
@@ -38,6 +42,7 @@ function WalletSection() {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [more, setMore] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
   const social = useSocialLabel();
   useEffect(() => {
     if (!open) coinApi.wallet().then(setWallet).catch(() => null);
@@ -55,12 +60,19 @@ function WalletSection() {
       <h2 className="mb-2 text-sm font-semibold text-muted">👛 내 복주머니</h2>
       <div className="rounded-2xl border border-violet/35 bg-gradient-to-b from-[#24130d] to-[#120a07] p-4">
         <div className="flex items-center justify-between">
-          <p className="text-[28px] font-extrabold leading-none text-peach">🪙 {nyang(me.coins)}</p>
+          <p className="text-[28px] font-extrabold leading-none text-peach">
+            <Coin /> {nyang(me.coins)}
+          </p>
           <button onClick={() => setOpen(true)} className="btn-primary px-5 py-2.5 text-sm">
             충전하기
           </button>
         </div>
-        <p className="mt-2 text-[12px] text-muted">점괘 하나 1냥 · 궁합 2냥</p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-[12px] text-muted">점괘 하나 1냥 · 궁합 2냥</p>
+          <button onClick={() => setGiftOpen(true)} className="rounded-full border border-peach/40 px-3 py-1 text-[12px] font-semibold text-peach">
+            🎁 냥 선물하기
+          </button>
+        </div>
         {history.length > 0 && (
           <ul className="mt-3 divide-y divide-violet/15 border-t border-violet/15 text-[13px]">
             {history.slice(0, more ? 30 : 4).map((r, i) => (
@@ -108,6 +120,14 @@ function WalletSection() {
         </div>
       )}
       <WalletSheet open={open} onClose={() => setOpen(false)} />
+      <GiftSendSheet
+        open={giftOpen}
+        onClose={() => setGiftOpen(false)}
+        onCharge={() => {
+          setGiftOpen(false);
+          setOpen(true);
+        }}
+      />
     </section>
   );
 }
@@ -287,7 +307,7 @@ export function MyPage() {
 
       <section className="mt-8">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted">🪪 기본 정보</h2>
+          <h2 className="text-sm font-semibold text-muted">📇 기본 정보</h2>
           {!editing && (
             <button onClick={() => setEditing(true)} className="text-xs text-peach">
               {me.profile ? "수정" : "입력하기"}

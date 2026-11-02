@@ -1,5 +1,6 @@
-import type { Mode } from "@/models/types";
+import type { Mode, RelationshipStatus } from "@/models/types";
 import type { Mood } from "@/components/Nyang";
+import { BREAKUP_ONLY, CRUSH_ONLY, PARTNER_BREAKUP_ONLY, PARTNER_CRUSH_ONLY, SLUMP_ONLY } from "./interviewByStatus";
 import { josa } from "./josa";
 
 /**
@@ -43,7 +44,7 @@ const BASE: InterviewQuestion[] = [
     short: "처음 간 카페, 어느 자리에 앉냥?",
     ask: ["몸 풀기부터 하겠다냥.", "처음 가 보는 카페에 혼자 들어갔다냥. 어느 자리에 앉냥?"],
     options: [
-      { id: "a", label: "🪟 창가 구석 자리", react: "구석… 흠, 역시 그렇구냥." },
+      { id: "a", label: "🌤️ 창가 구석 자리", react: "구석… 흠, 역시 그렇구냥." },
       { id: "b", label: "🚪 입구가 보이는 자리", react: "오호… 문 쪽을 보는구냥. 기억해 두겠다냥.", mood: "wow" },
       { id: "c", label: "🎯 한가운데 넓은 자리", react: "당당하구냥. 좋다냥.", mood: "happy" },
       { id: "d", label: "🔌 콘센트 있는 아무 자리", react: "실속파구냥 😼" },
@@ -175,7 +176,7 @@ const BASE: InterviewQuestion[] = [
       { id: "b", label: "🌀 \"너 변했어\"", react: "흐음, 그렇구냥." },
       { id: "c", label: "🙄 \"알아서 해\"", react: "무관심이 제일 싫구냥." },
       { id: "d", label: "😮‍💨 \"너랑 있으면 피곤해\"", react: "…그 말은 냥신도 아프다냥." },
-      { id: "e", label: "🫣 \"솔직히 예전만큼은 아니야\"", react: "…그 말이 제일 무섭구냥.", mood: "wow" },
+      { id: "e", label: "🙈 \"솔직히 예전만큼은 아니야\"", react: "…그 말이 제일 무섭구냥.", mood: "wow" },
       { id: "f", label: "😐 \"너 원래 그런 사람이잖아\"", react: "…그 말은 깊게 박히지냥." },
     ],
   },
@@ -220,6 +221,7 @@ const BASE: InterviewQuestion[] = [
   },
 ];
 
+/** 연애 중 · 권태기: what you've seen of the other person. */
 export const PARTNER_INTERVIEW: InterviewQuestion[] = [
   {
     id: "o1",
@@ -253,7 +255,7 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
     ask: ["둘이 다투면, {p:은/는} 어떻게 하냥?"],
     options: [
       { id: "a", label: "📞 바로 전화해서 풀려고 한다", react: "급하구냥." },
-      { id: "b", label: "🫥 연락이 뜸해진다 (잠수)", react: "잠수… 메모했다냥.", mood: "wow" },
+      { id: "b", label: "🤿 연락이 뜸해진다 (잠수)", react: "잠수… 메모했다냥.", mood: "wow" },
       { id: "c", label: "🙇 이유도 모르고 일단 사과한다", react: "…그렇구냥." },
       { id: "d", label: "🧠 조목조목 따진다", react: "논리파구냥." },
       { id: "e", label: "🚶 '잠깐 바람 좀 쐬고 올게'", react: "시간이 필요한 타입이구냥." },
@@ -344,7 +346,7 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
     ask: ["마지막이다냥.", "{p}의 SNS에 너는 어떻게 나오냥?"],
     options: [
       { id: "a", label: "📸 자주 올린다", react: "자랑하고 싶구냥 😻", mood: "happy" },
-      { id: "b", label: "🫥 티 안 나게 가끔 (손·뒷모습)", react: "은근하구냥." },
+      { id: "b", label: "🤫 티 안 나게 가끔 (손·뒷모습)", react: "은근하구냥." },
       { id: "c", label: "🚫 전혀 안 올린다", react: "흠…", mood: "wow" },
       { id: "d", label: "🔒 비공개 계정에만 올린다", react: "…비밀 계정이구냥 😼", mood: "wow" },
       { id: "e", label: "📌 프로필·배경 사진에만 있다", react: "대표 사진이구냥 😻", mood: "happy" },
@@ -521,7 +523,7 @@ const COUPLE_ONLY: InterviewQuestion[] = [
     ask: ["{p:이/가} 지나가듯 말한다냥. \"나 요즘 좀 힘들어.\"", "네 첫 반응은?"],
     options: [
       { id: "a", label: "🛠️ 뭐가 문제인지 해결책부터", react: "해결사구냥." },
-      { id: "b", label: "🫂 일단 안아 주고 들어 준다", react: "따뜻하구냥.", mood: "happy" },
+      { id: "b", label: "🤗 일단 안아 주고 들어 준다", react: "따뜻하구냥.", mood: "happy" },
       { id: "c", label: "😟 \"혹시 나 때문이야?\"", react: "…그 생각부터 드는구냥.", mood: "wow" },
       { id: "d", label: "🚪 혼자 생각할 시간을 준다", react: "배려구냥." },
       { id: "e", label: "🍗 말없이 맛있는 거 사 들고 간다", react: "행동파 위로구냥 🍗", mood: "happy" },
@@ -550,7 +552,7 @@ const COUPLE_ONLY: InterviewQuestion[] = [
       { id: "b", label: "🌀 \"너 변했어\"", react: "흐음, 그렇구냥." },
       { id: "c", label: "🙄 \"알아서 해\"", react: "무관심이 제일 싫구냥." },
       { id: "d", label: "😮‍💨 \"너랑 있으면 피곤해\"", react: "…그 말은 냥신도 아프다냥." },
-      { id: "e", label: "🫣 \"솔직히 예전만큼은 아니야\"", react: "…그 말이 제일 무섭구냥.", mood: "wow" },
+      { id: "e", label: "🙈 \"솔직히 예전만큼은 아니야\"", react: "…그 말이 제일 무섭구냥.", mood: "wow" },
       { id: "f", label: "😐 \"너 원래 그런 사람이잖아\"", react: "…그 말은 깊게 박히지냥." },
     ],
   },
@@ -577,14 +579,44 @@ export const SOLO_INTERVIEW: InterviewQuestion[] = pick(
   ["s1", "s2", "s3", "n1", "s4", "n2", "s6", "s7", "n3", "s10", "n4", "s12", "s13", "s14"],
 );
 
-/** 커플: 이 사람과의 관계 안에서의 나 */
+/** 커플 (연애 중): 이 사람과의 관계 안에서의 나 */
 export const COUPLE_INTERVIEW: InterviewQuestion[] = pick(
   [...BASE, ...COUPLE_ONLY],
   ["c1", "c2", "c3", "c4", "c5", "s6", "c6", "c7", "c9", "c10", "s12", "c11", "c12", "c13"],
 );
 
+/** The couple interview for where the two are. Keys and order mirror selfDecode in engine/content/decode.ts. */
+export const COUPLE_IDS: Record<RelationshipStatus, string[]> = {
+  dating: ["c1", "c2", "c3", "c4", "c5", "s6", "c6", "c7", "c9", "c10", "s12", "c11", "c12", "c13"],
+  crush: ["h1", "h2", "h3", "h9", "h4", "s6", "h7", "h5", "h11", "s12", "h6", "h8", "h10", "c13"],
+  slump: ["c1", "k1", "k2", "c4", "k3", "s6", "c6", "k4", "c10", "s12", "k5", "c12", "c3", "c13"],
+  breakup: ["b1", "b2", "b3", "b6", "b4", "s6", "b5", "b7", "b9", "s12", "b8", "b11", "b10", "b12"],
+};
+const COUPLE_POOL = [...BASE, ...COUPLE_ONLY, ...CRUSH_ONLY, ...SLUMP_ONLY, ...BREAKUP_ONLY];
+const COUPLE_BY_STATUS = Object.fromEntries(
+  Object.entries(COUPLE_IDS).map(([st, ids]) => [st, pick(COUPLE_POOL, ids)]),
+) as Record<RelationshipStatus, InterviewQuestion[]>;
+
 /** Love interviews only; the 사주·운세 products have their own questions (lib/fortuneQuestions). */
-export const selfInterview = (mode: Mode) => (mode === "couple" ? COUPLE_INTERVIEW : SOLO_INTERVIEW);
+export const selfInterview = (mode: Mode, status: RelationshipStatus = "dating") =>
+  mode === "couple" ? COUPLE_BY_STATUS[status] ?? COUPLE_INTERVIEW : SOLO_INTERVIEW;
+
+/** What you've seen of the other person: a 썸 has no 호칭·데이트 routine yet, an ex is remembered as they were. */
+export const PARTNER_IDS: Record<RelationshipStatus, string[]> = {
+  dating: ["o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9", "o10"],
+  slump: ["o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9", "o10"],
+  crush: ["o1", "x2", "x3", "x4", "x5", "o6", "x7", "o8", "x9", "x10"],
+  breakup: ["y1", "y2", "y3", "y4", "y5", "y6", "y7", "y8", "y9", "y10"],
+};
+
+const PARTNER_POOL = [...PARTNER_INTERVIEW, ...PARTNER_CRUSH_ONLY, ...PARTNER_BREAKUP_ONLY];
+const PARTNER_BY_STATUS = Object.fromEntries(
+  Object.entries(PARTNER_IDS).map(([st, ids]) => [st, pick(PARTNER_POOL, ids)]),
+) as Record<RelationshipStatus, InterviewQuestion[]>;
+export const partnerInterview = (status: RelationshipStatus = "dating") => PARTNER_BY_STATUS[status] ?? PARTNER_INTERVIEW;
+
+/** Every love question, for looking one up by id whatever interview it came from. */
+export const ALL_LOVE_QUESTIONS: InterviewQuestion[] = [...BASE, ...SOLO_ONLY, ...COUPLE_POOL.filter((q) => !BASE.includes(q)), ...PARTNER_POOL];
 
 /** Replaces {p} and {p:이/가}-style particles with the partner's name. */
 export function fill(text: string, partnerName: string): string {

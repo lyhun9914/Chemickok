@@ -10,11 +10,15 @@ import { WalletSheet } from "./CoinShop";
 import { LoginSheet } from "./LoginSheet";
 import { MethodSection } from "./MethodSection";
 import { MiniGameSheet, type MiniGame, suneungDday } from "./MiniGames";
+import { GiftClaimSheet } from "./GiftSheet";
+import { PairSheet } from "./PairSheet";
 import { Nyang } from "./Nyang";
 import { SoundToggle } from "./SoundToggle";
 import { sound } from "@/lib/sound";
 import { Talisman } from "./Talisman";
 import { TypeCarousel } from "./TypeCarousel";
+import { Coin } from "./Coin";
+import { InstallPrompt } from "./InstallPrompt";
 
 const MENU: { title: string; sub: string; modes: Mode[] }[] = [
   { title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
@@ -45,6 +49,15 @@ export function Landing() {
   const [game, setGame] = useState<MiniGame | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [pairId, setPairId] = useState<string | null>(null);
+  // Opened from a link: the 맞궁합 신청서 or a mini game (the gift sheet reads its own).
+  const deepLink = useAppStore((s) => s.deepLink);
+  useEffect(() => {
+    if (!deepLink) return;
+    if (deepLink.pair) setPairId(deepLink.pair);
+    if (deepLink.game && MINI.some((g) => g.id === deepLink.game)) setGame(deepLink.game as MiniGame);
+    if (deepLink.pair || deepLink.game) useAppStore.setState({ deepLink: deepLink.gift ? { gift: deepLink.gift } : null });
+  }, [deepLink]);
   const k = new Date(Date.now() + 9 * 3600 * 1000);
   const todayLabel = `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일`;
   // 출석 streak lives in this browser only; read after mount and whenever a mini game closes.
@@ -69,7 +82,7 @@ export function Landing() {
           (me ? (
             <>
               <button onClick={() => setWalletOpen(true)} className="rounded-full border border-peach/40 bg-surface px-3 py-1.5 text-xs font-bold text-peach" aria-label="내 복주머니">
-                🪙 {nyang(me.coins)}
+                <Coin /> {nyang(me.coins)}
               </button>
               <button onClick={() => setScreen("my")} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold">
                 📜 내 점괘함
@@ -161,7 +174,7 @@ export function Landing() {
       </button>
 
       <p className="fade-up mt-8 rounded-xl border border-violet/25 bg-white/[0.03] px-3.5 py-2.5 text-center text-[12.5px] leading-relaxed text-muted">
-        🪙 복채는 <b className="text-peach">냥</b>으로 낸다냥 · 점괘 하나 1냥, 궁합은 2냥
+        <Coin /> 복채는 <b className="text-peach">냥</b>(엽전)으로 낸다냥 · 점괘 하나 1냥, 궁합은 2냥
         {MAX_SAVE > 0 && <> · 묶음으로 채우면 최대 {MAX_SAVE}% 싸다냥</>}
       </p>
 
@@ -198,7 +211,7 @@ export function Landing() {
                       <span className="mt-1.5 block text-xs">
                         <span className="rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
                         <span className="ml-1.5 font-semibold text-peach">
-                          {isFortune(m) ? "전체 감정서" : "전체 풀이"} 🪙 {nyang(pr.coins)}
+                          {isFortune(m) ? "전체 감정서" : "전체 풀이"} <Coin /> {nyang(pr.coins)}
                         </span>
                       </span>
                     </span>
@@ -246,6 +259,7 @@ export function Landing() {
             </button>
           ))}
         </div>
+        <InstallPrompt />
       </section>
 
       <section className="fade-up mt-10" style={{ animationDelay: "0.25s" }}>
@@ -293,6 +307,8 @@ export function Landing() {
       <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={start} />
       <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />
       <WalletSheet open={walletOpen} onClose={() => setWalletOpen(false)} />
+      <PairSheet id={pairId} onClose={() => setPairId(null)} />
+      <GiftClaimSheet id={deepLink?.gift ?? null} onClose={() => useAppStore.setState({ deepLink: null })} />
     </main>
   );
 }

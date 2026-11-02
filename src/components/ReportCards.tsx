@@ -243,7 +243,7 @@ export function ColorCard({ reading }: { reading: string }) {
 export function HiddenCard({ personal, onLocked }: { personal: PersonalReadingT; onLocked?: () => void }) {
   return (
     <Card>
-      <p className="text-xs font-semibold text-muted">🫣 네 답변 속에 숨어 있던 것</p>
+      <p className="text-xs font-semibold text-muted">🙈 네 답변 속에 숨어 있던 것</p>
       <div className="mt-4 space-y-4">
         {personal.hidden.map((h) => (
           <div key={h.key}>
@@ -415,7 +415,12 @@ function SummaryIndex({ sections }: { sections: FullReport["sections"] }) {
       <ol className="mt-3 divide-y divide-[#2b1d16]/15 border-y border-[#2b1d16]/25">
         {sections.map((s) => (
           <li key={s.id}>
-            <a href={`#sec-${s.id}`} className="flex items-start gap-2.5 py-2.5 active:opacity-60">
+            {/* A scroll, not a #link: a fragment jump adds a history entry, which the back-gesture guard would read as "back". */}
+            <button
+              type="button"
+              onClick={() => document.getElementById(`sec-${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="flex w-full items-start gap-2.5 py-2.5 text-left active:opacity-60"
+            >
               <span className="text-[17px] leading-6" aria-hidden>
                 {s.icon}
               </span>
@@ -426,7 +431,7 @@ function SummaryIndex({ sections }: { sections: FullReport["sections"] }) {
               <span className="text-[13px] leading-6 text-[#8a5a3a]" aria-hidden>
                 ↓
               </span>
-            </a>
+            </button>
           </li>
         ))}
       </ol>

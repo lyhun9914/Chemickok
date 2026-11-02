@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBack } from "@/lib/back";
-import { PARTNER_INTERVIEW, UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, koreanAge, optionsForAge, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
+import { UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, koreanAge, optionsForAge, partnerInterview, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
 import { BLOOD_CHIP, BLOOD_HINT, BLOOD_REACT, BLOOD_TYPES } from "@/lib/blood";
@@ -23,15 +23,17 @@ type Turn =
   | { kind: "ritual"; id: "incense" | "orb" }
   | { kind: "q"; q: InterviewQuestion; part: "self" | "partner"; num: number };
 
-/** The questions for a product: the love interview, or the 사주·운세 consultation (lib/fortuneQuestions). */
-const selfQs = (mode: Mode): InterviewQuestion[] => (isFortune(mode) ? FORTUNE_INTERVIEW[mode] : selfInterview(mode));
+/** The questions for a product: the love interview (for 궁합, the set for where the two are), or the 사주·운세 consultation (lib/fortuneQuestions). */
+const selfQs = (mode: Mode, status: RelationshipStatus): InterviewQuestion[] => (isFortune(mode) ? FORTUNE_INTERVIEW[mode] : selfInterview(mode, status));
 
 /**
  * `saved`: 기본 정보 is already known (logged in, or "다른 사람이랑 궁합" after a reading), so name/birth/MBTI
  * aren't asked again. `modeKnown`: the product was picked on the landing page; 냥신 still greets in that turn.
+ * The 궁합 questions depend on the status picked mid-interview, so the turns are rebuilt when it changes;
+ * `statusKnown` (answering a 신청서) skips that question.
  */
-function turnsFor(mode: Mode, saved: boolean, askBlood: boolean): Turn[] {
-  const self: Turn[] = selfQs(mode).map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
+function turnsFor(mode: Mode, status: RelationshipStatus, saved: boolean, askBlood: boolean, statusKnown: boolean): Turn[] {
+  const self: Turn[] = selfQs(mode, status).map((q, i) => ({ kind: "q", q, part: "self", num: i + 1 }));
   // Saved 기본 정보 from before 혈액형 existed: ask just that one.
   const blood: Turn[] = askBlood ? [{ kind: "blood" }] : [];
   if (isFortune(mode)) {
@@ -44,13 +46,13 @@ function turnsFor(mode: Mode, saved: boolean, askBlood: boolean): Turn[] {
     ? [{ kind: "mode" }, ...blood]
     : [{ kind: "mode" }, { kind: "name" }, { kind: "gender" }, { kind: "birth" }, { kind: "time" }, { kind: "blood" }, { kind: "mbti" }];
   if (mode === "solo") return [...info, { kind: "ritual", id: "incense" }, ...self, { kind: "end" }];
-  const partner: Turn[] = PARTNER_INTERVIEW.map((q, i) => ({ kind: "q", q, part: "partner", num: i + 1 }));
+  const partner: Turn[] = partnerInterview(status).map((q, i) => ({ kind: "q", q, part: "partner", num: i + 1 }));
   return [
     ...info,
     { kind: "pname" },
     { kind: "pbirth" },
     { kind: "pmbti" },
-    { kind: "status" },
+    ...(statusKnown ? [] : [{ kind: "status" } as Turn]),
     { kind: "ritual", id: "incense" },
     ...self,
     { kind: "ritual", id: "orb" },
@@ -249,7 +251,7 @@ function answerOf(t: Turn, i: QuestionnaireInput, { modeKnown }: Ctx): string {
       return t.id === "incense" ? "🕯️ (향에 불을 붙였다)" : "🔮 (떠올렸다)";
     case "q": {
       const answers = t.part === "self" ? i.self : i.partnerObs;
-      return fill(answerLabel(t.part === "self" ? selfQs(i.mode) : PARTNER_INTERVIEW, t.q.id, answers[t.q.id]), i.partner.name);
+      return fill(answerLabel(t.part === "self" ? selfQs(i.mode, i.status) : partnerInterview(i.status), t.q.id, answers[t.q.id]), i.partner.name);
     }
     case "end":
       return "";
@@ -300,7 +302,7 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
         ? [n("…연기가 오른다냥. 시작하겠다냥.", "talk", <Incense />)]
         : [n(`…보인다냥. ${p}의 기운이.`, "wow", <Orb name={p} />)];
     case "q": {
-      const qs = t.part === "self" ? selfQs(i.mode) : PARTNER_INTERVIEW;
+      const qs = t.part === "self" ? selfQs(i.mode, i.status) : partnerInterview(i.status);
       const a = (t.part === "self" ? i.self : i.partnerObs)[t.q.id];
       const o = optionOf(qs, t.q.id, a);
       const out =
@@ -311,7 +313,7 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
             : o
               ? [n(fill(o.react, p), o.mood ?? "smug")]
               : [];
-      if (t.part === "self" && t.num === Math.ceil(selfQs(i.mode).length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
+      if (t.part === "self" && t.num === Math.ceil(selfQs(i.mode, i.status).length / 2)) out.push(n("벌써 반 왔다냥. 착하다냥 🐾", "happy"));
       return out;
     }
     default:
@@ -503,7 +505,10 @@ export function Questionnaire() {
   // Saved profiles from before 혈액형 have no "blood" key at all ("" means the user said 몰라). Decided once,
   // so answering it doesn't reshuffle the turns mid-interview.
   const [askBlood] = useState(() => saved && input.me.blood === undefined);
-  const turns = useMemo(() => turnsFor(input.mode, saved, askBlood), [input.mode, saved, askBlood]);
+  const turns = useMemo(
+    () => turnsFor(input.mode, input.status, saved, askBlood, Boolean(preset.status)),
+    [input.mode, input.status, saved, askBlood, preset.status],
+  );
   const cur = turns[Math.min(step, turns.length - 1)];
   const { msgs, askStart } = useMemo(
     () => buildThread(turns, Math.min(step, turns.length - 1), input, { saved, modeKnown }),

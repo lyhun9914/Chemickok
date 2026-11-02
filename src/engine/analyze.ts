@@ -3,9 +3,10 @@ import { createHash } from "node:crypto";
 import { copula, daNyang, josa } from "@/lib/josa";
 import { BLOOD_LOVE, normalizeBlood } from "@/lib/blood";
 import { syllableStrokes } from "@/lib/nameCompat";
-import { PARTNER_INTERVIEW, selfInterview } from "@/lib/interview";
+import { fill, partnerInterview, selfInterview } from "@/lib/interview";
 import { COUPLE_CONCERNS, SOLO_CONCERNS } from "@/lib/questions";
 import type {
+  PairResult,
   AxisKey,
   CoupleConcernId,
   CoupleTeaser,
@@ -16,6 +17,7 @@ import type {
   PersonInput,
   Pole,
   QuestionnaireInput,
+  RelationshipStatus,
   ReportSection,
   SoloConcernId,
   SoloTeaser,
@@ -33,8 +35,9 @@ import {
   TYPES,
   traitText,
 } from "./content/free";
-import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, PARTNER_DECODE, selfDecode, type Decoded, type HiddenKey } from "./content/decode";
+import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, partnerDecode, selfDecode, type Decoded, type HiddenKey } from "./content/decode";
 import * as P from "./content/paid";
+import * as S from "./content/statusLens";
 import * as SOLO from "./content/solo";
 import { isValidAnswer, normalizeAnswer, resolve } from "./freeText";
 import { crossCombos, decodeBullets, decodeTells, partnerCombos, selfCombos, traitEvidence, type AnswerSet } from "./insight";
@@ -66,12 +69,12 @@ export function validateInput(raw: unknown): QuestionnaireInput | null {
   const i = raw as QuestionnaireInput;
   if (i?.mode !== "solo" && i?.mode !== "couple") return null;
   if (!i.me?.name?.trim() || !i.me.birthdate) return null;
-  if (!answered(selfDecode(i.mode), i.self)) return null;
   if (i.mode === "couple") {
     if (!i.partner?.name?.trim()) return null;
     if (!["crush", "dating", "slump", "breakup"].includes(i.status)) return null;
-    if (!answered(PARTNER_DECODE, i.partnerObs)) return null;
+    if (!answered(partnerDecode(i.status), i.partnerObs)) return null;
   }
+  if (!answered(selfDecode(i.mode, i.status), i.self)) return null;
   return normalize(i);
 }
 
@@ -90,8 +93,8 @@ function normalize(i: QuestionnaireInput): QuestionnaireInput {
     me: person(i.me),
     partner: couple ? person(i.partner) : person(),
     status: couple ? i.status : "dating",
-    self: Object.fromEntries(Object.keys(selfDecode(i.mode)).map((id) => [id, normalizeAnswer(i.self[id])])),
-    partnerObs: couple ? Object.fromEntries(Object.keys(PARTNER_DECODE).map((id) => [id, normalizeAnswer(i.partnerObs[id])])) : {},
+    self: Object.fromEntries(Object.keys(selfDecode(i.mode, i.status)).map((id) => [id, normalizeAnswer(i.self[id])])),
+    partnerObs: couple ? Object.fromEntries(Object.keys(partnerDecode(i.status)).map((id) => [id, normalizeAnswer(i.partnerObs[id])])) : {},
   };
 }
 
@@ -119,7 +122,7 @@ interface Core {
 }
 
 function core(input: QuestionnaireInput): Core {
-  const me = scoreProfile(selfDecode(input.mode), input.self, input.me.mbti ?? "");
+  const me = scoreProfile(selfDecode(input.mode, input.status), input.self, input.me.mbti ?? "");
   return {
     input,
     me,
@@ -190,7 +193,7 @@ function personalReading(c: Core): TeaserReport["personal"] {
     twoFaces: { outer: OUTER[me.poles[outerKey]], inner: INNER[me.poles[innerKey]] },
     signature: TYPES[me.code].signature,
     traits,
-    tells: tellingOrder(selfDecode(input.mode), input.self)
+    tells: tellingOrder(selfDecode(input.mode, input.status), input.self)
       .filter((id) => id !== COLOR_Q)
       .slice(0, FREE_TELLS)
       .map((id) => decodeTells(selfSet(c), mbtiShort).get(id)!),
@@ -210,12 +213,13 @@ const HIDDEN_KEYS = Object.keys(HIDDEN_META) as HiddenKey[];
 /** The user's own answers, with everything known about them, for decoding answers in context. */
 function selfSet(c: Core): AnswerSet {
   return {
-    qs: selfInterview(c.input.mode),
-    decode: selfDecode(c.input.mode),
+    qs: selfInterview(c.input.mode, c.input.status),
+    decode: selfDecode(c.input.mode, c.input.status),
     answers: c.input.self,
     person: { profile: c.me, mbti: c.input.me.mbti ?? "", dm: c.mySaju ? { label: dayMasterLabel(c.mySaju.dm), element: c.mySaju.dm.element } : null },
     aboutPartner: false,
-    couple: c.input.mode === "couple",
+    // After a breakup your answers are read about you, not as "what this means for {p} now".
+    couple: c.input.mode === "couple" && c.input.status !== "breakup",
     p: c.input.partner.name,
   };
 }
@@ -223,8 +227,8 @@ function selfSet(c: Core): AnswerSet {
 /** What the user told us about the partner, read against the partner's profile. */
 function partnerSet(x: Couple): AnswerSet {
   return {
-    qs: PARTNER_INTERVIEW,
-    decode: PARTNER_DECODE,
+    qs: partnerInterview(x.input.status),
+    decode: partnerDecode(x.input.status),
     answers: x.input.partnerObs,
     person: { profile: x.partner, mbti: x.input.partner.mbti ?? "", dm: x.partnerSaju ? { label: dayMasterLabel(x.partnerSaju.dm), element: x.partnerSaju.dm.element } : null },
     aboutPartner: true,
@@ -234,7 +238,7 @@ function partnerSet(x: Couple): AnswerSet {
 }
 
 function colorReading(c: Core): string | null {
-  const r = resolve(selfDecode(c.input.mode)[COLOR_Q], COLOR_Q, c.input.self[COLOR_Q]);
+  const r = resolve(selfDecode(c.input.mode, c.input.status)[COLOR_Q], COLOR_Q, c.input.self[COLOR_Q]);
   if (!r?.oid) return null;
   const pick = r.oid as (typeof ELEMENT_ORDER)[number];
   const base = coreOf(r.read, 2);
@@ -271,7 +275,7 @@ const teaserCombo = (c: Core, x?: Couple) => (x ? crossCombos(selfSet(c), partne
 function decodeSection(c: Core, intro: string, shown: string | null): ReportSection {
   return {
     title: "면담 기록 전체 해석 · 냥신이 그 질문을 한 이유",
-    headline: `'왜 이런 걸 묻지?' 싶었던 ${selfInterview(c.input.mode).length}개, 전부 이유가 있었다냥 🔍`,
+    headline: `'왜 이런 걸 묻지?' 싶었던 ${selfInterview(c.input.mode, c.input.status).length}개, 전부 이유가 있었다냥 🔍`,
     body: intro,
     bullets: [...selfCombos(selfSet(c)).filter((l) => l !== shown), ...decodeBullets(selfSet(c), mbtiShort)],
   };
@@ -477,10 +481,11 @@ interface Couple extends Core {
 
 const pair = (a: Profile, b: Profile, axis: AxisKey) => a.poles[axis] + b.poles[axis];
 
-function couple(c: Core): Couple {
+/** `partnerOverride`: the partner's own answers (맞궁합) instead of what I said about them. */
+function couple(c: Core, partnerOverride?: Profile): Couple {
   const { input, me, mySaju, seed } = c;
   const names = { me: input.me.name, p: input.partner.name };
-  const partner = scoreProfile(PARTNER_DECODE, input.partnerObs, input.partner.mbti ?? "");
+  const partner = partnerOverride ?? scoreProfile(partnerDecode(input.status), input.partnerObs, input.partner.mbti ?? "");
   const partnerSaju = computeSaju(input.partner.birthdate, input.partner.birthtime);
   const stemRel = mySaju && partnerSaju ? stemRelation(mySaju.dm, partnerSaju.dm) : null;
   const branchRel = mySaju && partnerSaju ? branchRelation(mySaju.dm.branch, partnerSaju.dm.branch) : null;
@@ -522,24 +527,29 @@ function coupleTitle(x: Couple): string {
   const anxiousAvoidant =
     (x.me.poles.attach === "A" && x.partner.poles.attach === "S" && x.partner.poles.conflict === "R") ||
     (x.partner.poles.attach === "A" && x.me.poles.attach === "S" && x.me.poles.conflict === "R");
-  if (x.stemRel === "combine") return "사주가 먼저 알아본 천간합 운명 커플";
-  if (anxiousAvoidant) return "미치게 끌리지만 터지기 직전의 시한폭탄 커플";
-  if (a === "AA") return "서로의 사랑을 확인하느라 바쁜 불꽃 롤러코스터 커플";
-  if (f === "RR") return "싸운 적은 없는데 풀린 적도 없는 평화로운 냉전 커플";
-  if (f === "FF" && pair(x.me, x.partner, "express") === "EE") return "싸우면서 정드는 앙숙 케미 커플";
-  if (pair(x.me, x.partner, "drive") === "WW") return "서로 먼저 다가와 주길 기다리는 망부석 커플";
-  if (x.branchRel === "clash") return "부딪힐수록 더 끌리는 자석 커플";
-  if (x.score >= 85) return "말 안 해도 통하는 소울메이트 커플";
-  if (a === "SS") return "편안함이 무기인 장기 연애 체질 커플";
-  return "다른 언어로 같은 사랑을 하는 번역기 커플";
+  const t = S.TITLES[x.input.status];
+  if (x.stemRel === "combine") return t.combine;
+  if (anxiousAvoidant) return t.anxiousAvoidant;
+  if (a === "AA") return t.AA;
+  if (f === "RR") return t.RR;
+  if (f === "FF" && pair(x.me, x.partner, "express") === "EE") return t.FFEE;
+  if (pair(x.me, x.partner, "drive") === "WW") return t.WW;
+  if (x.branchRel === "clash") return t.clash;
+  if (x.score >= 85) return t.soul;
+  if (a === "SS") return t.SS;
+  return t.other;
 }
 
-function overallHeadline(score: number): string {
+function overallHeadline(score: number, status: RelationshipStatus = "dating"): string {
+  const noun = S.NOUN[status];
   if (score >= 88) return `${score}점, 이 정도면 사주가 먼저 알아본 인연이다냥 🔥`;
-  if (score >= 78) return `${score}점, 끌림은 확실한데 사용법이 필요한 커플이다냥 💘`;
-  if (score >= 68) return `${score}점, 맞춰 가는 재미가 있는 커플이다냥 🧩`;
-  return `${score}점, 서로 다른 언어로 사랑하는 중이다냥 🌗`;
+  if (score >= 78) return `${score}점, 끌림은 확실한데 사용법이 필요한 ${noun}이다냥 💘`;
+  if (score >= 68) return `${score}점, 맞춰 가는 재미가 있는 ${noun}이다냥 🧩`;
+  return `${score}점, 서로 다른 언어로 ${status === "breakup" ? "사랑했던 사이" : "사랑하는 중"}이다냥 🌗`;
 }
+
+/** 연애 중 wording ("이 커플의", "다툼 없는 커플") for the pair as they are now: 썸 → 사이, 이별 → 사이. */
+const rel = (text: string, status: RelationshipStatus) => (status === "crush" || status === "breakup" ? text.replace(/커플/g, "사이") : text);
 
 function coupleTeaser(x: Couple): CoupleTeaser {
   const a = pair(x.me, x.partner, "attach");
@@ -550,7 +560,7 @@ function coupleTeaser(x: Couple): CoupleTeaser {
     matchScore: x.score,
     coupleTitle: coupleTitle(x),
     teaserSummary: `${P.PAIR_SHORT[a](x.names)} ${P.PAIR_SHORT[f](x.names)}`,
-    overallHeadline: overallHeadline(x.score),
+    overallHeadline: overallHeadline(x.score, x.input.status),
     mbti: mbtiPair(x.input.me.mbti ?? "", x.input.partner.mbti ?? ""),
   };
 }
@@ -612,24 +622,29 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
   const mismatch = [...AXES]
     .filter((ax) => me.poles[ax.key] !== partner.poles[ax.key])
     .sort((p, q) => Math.abs(me.raw[q.key] - partner.raw[q.key]) - Math.abs(me.raw[p.key] - partner.raw[p.key]))[0];
+  const past = input.status === "breakup";
   const hurt = mismatch
-    ? P.PARTNER_HURT[me.poles[mismatch.key] + partner.poles[mismatch.key]](n)
-    : P.PARTNER_HURT_SAME[partner.poles.attach as "A" | "S"](n);
+    ? (past ? S.PARTNER_HURT_PAST : P.PARTNER_HURT)[me.poles[mismatch.key] + partner.poles[mismatch.key]](n)
+    : (past ? S.PARTNER_HURT_SAME_PAST : P.PARTNER_HURT_SAME)[partner.poles.attach as "A" | "S"](n);
+  const hidden = past ? S.PARTNER_HIDDEN_PAST : P.PARTNER_HIDDEN;
+  const pairText = past ? S.PAIR_PAST : P.PAIR;
   const partnerMbti = input.partner.mbti ?? "";
 
+  const st = input.status;
+  const lens = S.LENS[st];
   const hiddenMind: ReportSection = {
-    title: "상대방이 말하지 않는 진짜 속마음 & 섭섭한 점",
+    title: S.SECTION[st].hiddenMind,
     headline: `${TYPES[partner.code].emoji} ${josa(n.p, "은/는")} '${TYPES[partner.code].name}' 유형이다냥`,
     body: lines([
-      P.PARTNER_HIDDEN[partner.poles[partnerRanked[0].key]](n),
-      P.PARTNER_HIDDEN[partner.poles[partnerRanked[1].key]](n),
+      hidden[partner.poles[partnerRanked[0].key]](n),
+      hidden[partner.poles[partnerRanked[1].key]](n),
       partnerMbti ? `MBTI로 봐도 ${partnerMbti}는 '${mbtiShort(partnerMbti)}' 타입이라 이런 면이 더 세게 나온다냥.` : "",
       hurt,
     ]),
     bullets: [
-      `🙊 속으로 하고 싶은 말: ${P.WANT_TO_SAY[topPole]}`,
-      `😢 섭섭 포인트: ${shortHurt(mismatch?.key)}`,
-      `💌 듣고 싶은 말: ${P.WANT_TO_HEAR[topPole]}`,
+      `🙊 속으로 하고 싶은 말: ${(S.WANT_TO_SAY_BY_STATUS[st] ?? P.WANT_TO_SAY)[topPole]}`,
+      `😢 ${st === "breakup" ? "섭섭했던 포인트" : "섭섭 포인트"}: ${shortHurt(mismatch?.key)}`,
+      `💌 듣고 싶은 말: ${(S.WANT_TO_HEAR_BY_STATUS[st] ?? P.WANT_TO_HEAR)[topPole]}`,
     ],
   };
   if (level === "share") return { subScores: [], sections: [{ id: "hiddenMind", icon: "🔒", section: hiddenMind }], luck: null };
@@ -641,27 +656,29 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
 
   const overall: ReportSection = {
     title: "종합 궁합 & 연애 스타일",
-    headline: overallHeadline(x.score),
+    headline: overallHeadline(x.score, input.status),
     body: lines([
       P.STATUS_OPENER[input.status],
       sajuParagraph(x),
       mbti ? `MBTI로는 ${mbti.pair}, '${mbti.level}' 조합이다냥. ${mbti.line}` : "",
-      P.PAIR[g](n),
-      P.PAIR[e](n),
+      rel(pairText[g](n), st),
+      rel(pairText[e](n), st),
     ]),
     bullets: [
-      WEAPON[sortedSub[0]],
-      WEAKNESS[sortedSub[sortedSub.length - 1]],
-      `🔑 관계의 열쇠: ${me.poles.conflict === "F" ? "말의 내용보다 말할 타이밍을 고르라냥" : "거리를 둘 땐 '돌아올게' 한마디 남기라냥"}`,
+      WEAPON[sortedSub[0]].replace("이 커플", `이 ${S.NOUN[input.status]}`),
+      WEAKNESS[sortedSub[sortedSub.length - 1]].replace("이 커플", `이 ${S.NOUN[input.status]}`),
+      S.KEY_LINE[st]?.[me.poles.conflict as "F" | "R"] ??
+        `🔑 관계의 열쇠: ${me.poles.conflict === "F" ? "말의 내용보다 말할 타이밍을 고르라냥" : "거리를 둘 땐 '돌아올게' 한마디 남기라냥"}`,
     ],
   };
 
+  const L = S.LETTER_BY_STATUS[st] ?? P.LETTER;
   const letterBody = [
     `${vocative(givenName(n.me))},`,
-    P.LETTER.attach[partner.poles.attach as "A" | "S"],
-    P.LETTER.express[partner.poles.express as "E" | "H"],
-    P.LETTER.conflict[partner.poles.conflict as "F" | "R"],
-    P.LETTER.drive[partner.poles.drive as "G" | "W"],
+    L.attach[partner.poles.attach as "A" | "S"],
+    L.express[partner.poles.express as "E" | "H"],
+    L.conflict[partner.poles.conflict as "F" | "R"],
+    L.drive[partner.poles.drive as "G" | "W"],
     P.LETTER.closing[input.status],
     `― ${n.p}`,
   ].join("\n\n");
@@ -670,15 +687,15 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     headline: `💌 냥신이 ${n.p}의 기운을 받아 적었다냥`,
     body: letterBody,
     bullets: [
-      `✉️ 답장 대신 이 말을 해 줘라냥: ${P.WANT_TO_HEAR[partner.poles.express]}`,
-      `🙊 ${josa(n.p, "이/가")} 편지에도 못 쓴 말: ${P.WANT_TO_SAY[partner.poles.attach]}`,
+      `✉️ ${st === "breakup" ? "다시 이야기할 날이 오면 이 말을 해 줘라냥" : "답장 대신 이 말을 해 줘라냥"}: ${(S.WANT_TO_HEAR_BY_STATUS[st] ?? P.WANT_TO_HEAR)[partner.poles.express]}`,
+      `🙊 ${josa(n.p, "이/가")} 편지에도 못 쓴 말: ${(S.WANT_TO_SAY_BY_STATUS[st] ?? P.WANT_TO_SAY)[partner.poles.attach]}`,
     ],
   };
 
   const partnerDecode: ReportSection = {
-    title: `네가 말한 ${n.p}의 행동 ${PARTNER_INTERVIEW.length}가지, 진짜 의미`,
+    title: `네가 말한 ${n.p}의 행동 ${partnerInterview(input.status).length}가지, 진짜 의미`,
     headline: `사소해 보여도 ${n.p}의 마음은 습관에 새어 나온다냥 🕵️`,
-    body: `${n.p} 얘기할 때 냥신이 이상한 것만 물어봤지? 사람 속마음은 말보다 습관에 먼저 나온다냥. 네가 본 ${n.p}의 모습 ${PARTNER_INTERVIEW.length}개를 하나씩 번역해 주겠다냥.`,
+    body: `${n.p} 얘기할 때 냥신이 이상한 것만 물어봤지? 사람 속마음은 말보다 습관에 먼저 나온다냥. 네가 ${st === "breakup" ? "기억하는" : "본"} ${n.p}의 모습 ${partnerInterview(input.status).length}개를 하나씩 번역해 주겠다냥.`,
     bullets: [...crossCombos(selfSet(x), partnerSet(x)).filter((l) => l !== teaserCombo(x, x)), ...partnerCombos(partnerSet(x)), ...decodeBullets(partnerSet(x), mbtiShort)],
   };
 
@@ -691,51 +708,69 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
   const myLuck = lackingLuck(x);
 
   const chemistry: ReportSection = {
-    title: "스킨십 / 속궁합 & 멘탈 케미 폭발 지점",
+    title: S.SECTION[st].chemistry,
     headline:
-      x.sub.attraction >= 85
-        ? `끌림 케미 ${x.sub.attraction}점, 눈만 마주쳐도 공기가 달라지는 사이 ✨`
-        : `끌림 케미 ${x.sub.attraction}점, 분위기를 만들면 확 타오르는 사이 🔥`,
-    body: lines([P.MOOD_BY_EXPRESS[expressKey], P.TIMING_BY_ATTACH[attachKey]]),
-    bullets: [`🕯️ 최고의 무드: ${myLuck.place}`, P.INTIMACY_SWITCH[partner.poles.express as "E" | "H"], P.MENTAL_SPARK[conflictKey]],
+      st === "breakup"
+        ? `끌림 케미 ${x.sub.attraction}점, ${x.sub.attraction >= 85 ? "끝났어도 쉽게 안 꺼지는 끌림이다냥 ✨" : "다시 마주치면 흔들릴 수 있는 끌림이다냥 🔥"}`
+        : st === "slump"
+          ? `끌림 케미 ${x.sub.attraction}점, ${x.sub.attraction >= 85 ? "식은 줄 알았지만 끌림 자체는 그대로다냥 ✨" : "분위기만 바꾸면 다시 타오르는 사이다냥 🔥"}`
+          : x.sub.attraction >= 85
+          ? `끌림 케미 ${x.sub.attraction}점, 눈만 마주쳐도 공기가 달라지는 사이 ✨`
+          : `끌림 케미 ${x.sub.attraction}점, 분위기를 만들면 확 타오르는 사이 🔥`,
+    body: lines([(lens?.mood ?? P.MOOD_BY_EXPRESS)[expressKey], (lens?.timing ?? P.TIMING_BY_ATTACH)[attachKey]]),
+    bullets: [
+      `🕯️ ${st === "breakup" ? "마음 정리에 좋은 곳" : "최고의 무드"}: ${myLuck.place}`,
+      (lens?.intimacy ?? P.INTIMACY_SWITCH)[partner.poles.express as "E" | "H"],
+      (past ? S.SPARK_PAST : P.MENTAL_SPARK)[conflictKey],
+    ],
   };
 
   const crisis: ReportSection = {
-    title: "위기 순간 & 트러블 회피법",
-    headline:
-      conflictKey === "MIX"
+    title: S.SECTION[st].crisis,
+    headline: lens
+      ? lens.crisisHeadline[conflictKey]
+      : conflictKey === "MIX"
         ? "싸움의 진짜 원인은 내용이 아니라 '속도'다냥 ⏱️"
         : conflictKey === "FF"
           ? "둘 다 안 물러설 때가 제일 위험하다냥 ⚔️"
           : "조용한 거리감이 제일 큰 적이다냥 🧊",
-    body: lines([P.PAIR[f](n), P.PAIR[a](n)]),
-    bullets: [P.DANGER_SIGN[conflictKey], P.EXTINGUISHER[conflictKey], P.BREAKUP_GUARD[attachKey]],
+    body: lines([lens?.crisisLead ?? "", rel(pairText[f](n), st), rel(pairText[a](n), st)]),
+    bullets: [(lens?.danger ?? P.DANGER_SIGN)[conflictKey], (lens?.extinguisher ?? P.EXTINGUISHER)[conflictKey], (lens?.guard ?? P.BREAKUP_GUARD)[attachKey]],
   };
 
   const lackingLabel = x.mySaju ? ELEMENT_LABEL[x.mySaju.summary.lacking] : null;
   const luck: LuckSection = {
-    title: "이번 달 연애 개운(開運) 솔루션",
+    title: st === "breakup" ? "이번 달 마음 개운(開運) 솔루션" : "이번 달 연애 개운(開運) 솔루션",
     headline: lackingLabel
       ? `이번 달 너한테 필요한 기운은 ${daNyang(lackingLabel)} 🍀`
-      : "이번 달은 '먼저 표현하는 놈'한테 운이 몰린다냥 🍀",
+      : st === "breakup"
+        ? "이번 달은 '너부터 챙기는 놈'한테 운이 몰린다냥 🍀"
+        : "이번 달은 '먼저 표현하는 놈'한테 운이 몰린다냥 🍀",
     body: lackingLabel
-      ? `네 사주 여덟 글자에서 제일 약한 기운이 ${daNyang(lackingLabel)}. 모자란 기운을 채우면 관계 흐름이 부드러워진다냥. 아래 날짜는 네 일간이랑 합(合)이 되거나 기운을 북돋아 주는 날이라, 중요한 대화나 데이트는 이날 잡아라냥.`
+      ? `네 사주 여덟 글자에서 제일 약한 기운이 ${daNyang(lackingLabel)}. 모자란 기운을 채우면 관계 흐름이 부드러워진다냥. 아래 날짜는 네 일간이랑 합(合)이 되거나 기운을 북돋아 주는 날이라, ${S.LUCKY_DAY_USE[st]}.`
       : "아래 행동들이 너희 성향 조합에서 제일 잘 먹힌다냥.",
     luckyColor: myLuck.color,
     luckyPlace: myLuck.place,
     luckyItem: myLuck.item,
     luckyDays: x.mySaju ? luckyDays(x.mySaju.dm) : [],
-    actionItems: [myLuck.action, P.SELF_ACTION[me.poles[x.ranked[0]]], concernAction(autoCoupleConcern(x))],
+    actionItems: [
+      myLuck.action,
+      (S.SELF_ACTION_BY_STATUS[st] ?? P.SELF_ACTION)[me.poles[x.ranked[0]]],
+      S.MONTH_ACTION[st] ?? concernAction(autoCoupleConcern(x)),
+    ],
   };
 
+  const concerns = S.CONCERNS_BY_STATUS[st];
   const prescriptions: ReportSection = {
-    title: "커플 고민 6가지 맞춤 처방",
+    title: S.SECTION[st].prescriptions,
     headline: `냥신이 ${n.p} 성향에 맞춰 쓴 처방전 6장 🩺`,
-    body: `커플들이 제일 많이 하는 고민 6가지를 ${n.p} 유형에 맞춰 풀었다냥. 지금 너희한테 해당하는 것부터 읽어라냥.`,
-    bullets: COUPLE_CONCERNS.map((q) => {
-      const a = P.CONCERN_ADVICE[q.id];
-      return `${q.emoji} ${q.label}\n→ ${a.byPole[partner.poles[a.axis]]?.(n) ?? ""}`;
-    }),
+    body: fill(S.SECTION[st].prescriptionsBody, n.p),
+    bullets: concerns
+      ? concerns.map((q) => `${q.emoji} ${q.label}\n→ ${q.byPole[partner.poles[q.axis]]?.(n) ?? ""}`)
+      : COUPLE_CONCERNS.map((q) => {
+          const a = P.CONCERN_ADVICE[q.id];
+          return `${q.emoji} ${q.label}\n→ ${a.byPole[partner.poles[a.axis]]?.(n) ?? ""}`;
+        }),
   };
 
   return {
@@ -832,16 +867,16 @@ function lockedPreviews(input: QuestionnaireInput, report: FullReport): LockedPr
   const luckCount = (report.luck?.actionItems.length ?? 0) + days.length + 3;
 
   // Tease the decode with an answer that wasn't decoded for free.
-  const order = tellingOrder(selfDecode(input.mode), input.self).filter((id) => id !== COLOR_Q);
+  const order = tellingOrder(selfDecode(input.mode, input.status), input.self).filter((id) => id !== COLOR_Q);
   const hiddenTell = order[FREE_TELLS] ?? order[0];
   const ht = decodeTells(selfSet(core(input)), mbtiShort).get(hiddenTell)!;
   const decodeTease = `"${ht.question}" → ${ht.answer}. ${cut(ht.read, 26)}`;
-  const decodeTitle = `냥신이 그 질문을 한 진짜 이유 (네 답 ${selfInterview(input.mode).length}개 전부 해석)`;
+  const decodeTitle = `냥신이 그 질문을 한 진짜 이유 (네 답 ${selfInterview(input.mode, input.status).length}개 전부 해석)`;
 
   if (input.mode === "solo") {
     return [
       { id: "match", icon: "🎯", title: "네가 절대 만나면 안 되는 유형 & 찰떡 상대 상세", tease: cut(sec("match").bullets.find((b) => b.startsWith("🚫")) ?? sec("match").body, 15), count: sentenceCount(sec("match")) },
-      { id: "decode", icon: "🔍", title: decodeTitle, tease: decodeTease, count: selfInterview(input.mode).length },
+      { id: "decode", icon: "🔍", title: decodeTitle, tease: decodeTease, count: selfInterview(input.mode, input.status).length },
       { id: "pattern", icon: "💔", title: "네가 연애할 때마다 반복하는 치명적 실수 + 숨은 미련·질투 해석", tease: cut(sec("pattern").body), count: sentenceCount(sec("pattern")) },
       { id: "future", icon: "🎬", title: "다음 연애 시나리오: 첫 만남 장소부터 6주 차 고비까지", tease: cut(sec("future").bullets[0].replace("\n", " "), 30), count: sec("future").bullets.length },
       { id: "prescriptions", icon: "🩺", title: "솔로 탈출 처방전 6장 (언제 · 누구랑 · 어떻게)", tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
@@ -849,14 +884,14 @@ function lockedPreviews(input: QuestionnaireInput, report: FullReport): LockedPr
     ];
   }
   return [
-    { id: "hiddenMind", icon: "🔒", title: `${p}의 진짜 속마음 & 너한테 섭섭한 점`, tease: cut(sec("hiddenMind").body.split(/(?<=[.?!])\s+/).slice(-1)[0], 22), count: sentenceCount(sec("hiddenMind")) },
+    { id: "hiddenMind", icon: "🔒", title: input.status === "breakup" ? `${p}의 남은 속마음 & 그때 섭섭했던 점` : `${p}의 진짜 속마음 & 너한테 섭섭한 점`, tease: cut(sec("hiddenMind").body.split(/(?<=[.?!])\s+/).slice(-1)[0], 22), count: sentenceCount(sec("hiddenMind")) },
     { id: "letter", icon: "💌", title: `${josa(p, "이/가")} 너한테 끝내 보내지 못한 편지`, tease: cut(sec("letter").body.split("\n\n")[1], 24), count: sec("letter").body.split("\n\n").length - 2 + sec("letter").bullets.length },
-    { id: "partnerDecode", icon: "🕵️", title: `네가 말한 ${p}의 행동 ${PARTNER_INTERVIEW.length}가지, 진짜 의미`, tease: cut(sec("partnerDecode").bullets.find((b) => b.startsWith("Q4."))?.split("🔮 ")[1] ?? "", 28), count: PARTNER_INTERVIEW.length },
-    { id: "chemistry", icon: "🔥", title: "두 사람 스킨십 · 속궁합, 불붙는 순간", tease: cut(sec("chemistry").body), count: sentenceCount(sec("chemistry")) },
-    { id: "crisis", icon: "⚡", title: "이 커플이 헤어진다면, 바로 이 순간 (이별 예방책)", tease: cut(sec("crisis").body), count: sentenceCount(sec("crisis")) },
-    { id: "decode", icon: "🔍", title: decodeTitle, tease: decodeTease, count: selfInterview(input.mode).length },
-    { id: "prescriptions", icon: "🩺", title: `${p} 맞춤 연애 처방전 6장`, tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
-    { id: "luck", icon: "🔮", title: `이번 달 두 사람의 연애 길일 ${days.length || ""}개 공개`.replace("  ", " "), tease: luckTease, count: luckCount },
+    { id: "partnerDecode", icon: "🕵️", title: `네가 말한 ${p}의 행동 ${partnerInterview(input.status).length}가지, 진짜 의미`, tease: cut(sec("partnerDecode").bullets.find((b) => b.startsWith("Q4."))?.split("🔮 ")[1] ?? "", 28), count: partnerInterview(input.status).length },
+    { id: "chemistry", icon: "🔥", title: S.SECTION[input.status].chemistryPreview, tease: cut(sec("chemistry").body), count: sentenceCount(sec("chemistry")) },
+    { id: "crisis", icon: "⚡", title: S.SECTION[input.status].crisisPreview, tease: cut(sec("crisis").body), count: sentenceCount(sec("crisis")) },
+    { id: "decode", icon: "🔍", title: decodeTitle, tease: decodeTease, count: selfInterview(input.mode, input.status).length },
+    { id: "prescriptions", icon: "🩺", title: `${p} 맞춤 ${{ crush: "썸", dating: "연애", slump: "권태기", breakup: "이별 후" }[input.status]} 처방전 6장`, tease: cut(sec("prescriptions").bullets[0].replace("\n", " ")), count: 6 },
+    { id: "luck", icon: "🔮", title: `이번 달 ${input.status === "breakup" ? "너의 마음 정리 길일" : "두 사람의 연애 길일"} ${days.length || ""}개 공개`.replace("  ", " "), tease: luckTease, count: luckCount },
   ];
 }
 
@@ -866,7 +901,7 @@ export function buildTeaser(input: QuestionnaireInput): TeaserReport {
     mode: input.mode,
     myType: typeInfo(c.me.code),
     axes: c.me.axes,
-    reliability: reliability(selfDecode(input.mode), input.self),
+    reliability: reliability(selfDecode(input.mode, input.status), input.self),
     saju: c.mySaju?.summary ?? null,
     personal: personalReading(c),
     match: matchTeaser(c),
@@ -884,4 +919,79 @@ export function buildTeaser(input: QuestionnaireInput): TeaserReport {
 export function buildReport(input: QuestionnaireInput, level: "share" | "full"): FullReport {
   const c = core(input);
   return input.mode === "solo" ? buildSoloReport(c, level) : buildCoupleReport(couple(c), level);
+}
+
+// ───────────── 맞궁합 (both people answered) ─────────────
+
+export interface PairSide {
+  person: PersonInput;
+  /** their own couple-interview answers */
+  self: Record<string, string>;
+  /** what they said about the other (partner questions) */
+  obs: Record<string, string>;
+}
+
+const GAP_TIP: Record<AxisKey, string> = {
+  drive: "먼저 연락하는 순서를 정해 두면 서운함이 반으로 준다냥.",
+  express: "표현형은 한 번 덜 묻고, 절제형은 짧게라도 꼭 답해라냥.",
+  conflict: "싸우면 '30분 뒤에 다시 얘기하자'를 약속으로 정해라냥.",
+  attach: "확인형은 질문 대신 부탁으로, 독립형은 먼저 안부 한 줄을 보내라냥.",
+};
+
+/**
+ * 맞궁합: A's interview with B's *own* answers as the partner profile (instead of A's guesses), plus how well each
+ * one read the other — the partner questions each answered, scored against the other's self-interview.
+ */
+export function pairReading(a: PairSide, b: PairSide, status: RelationshipStatus = "dating"): PairResult {
+  const input = normalize({ mode: "couple", me: a.person, partner: b.person, status, self: a.self, partnerObs: a.obs });
+  const bReal = scoreProfile(selfDecode("couple", status), normalize({ ...input, self: b.self }).self, b.person.mbti ?? "");
+  const x = couple(core(input), bReal);
+  const aGuessB = scoreProfile(partnerDecode(status), input.partnerObs, "");
+  const bGuessA = scoreProfile(partnerDecode(status), normalize({ ...input, partnerObs: b.obs }).partnerObs, "");
+  const accuracy = (guess: Profile, real: Profile) =>
+    clamp(100 - (AXES.reduce((n, ax) => n + Math.abs(guess.axes.find((g) => g.key === ax.key)!.leftPct - real.axes.find((r) => r.key === ax.key)!.leftPct), 0) / AXES.length) * 1.2, 35, 98);
+  const aKnowsB = accuracy(aGuessB, bReal);
+  const bKnowsA = accuracy(bGuessA, x.me);
+  const A = a.person.name;
+  const B = b.person.name;
+  const labelOf = (p: Profile, key: AxisKey) => {
+    const ax = AXES.find((v) => v.key === key)!;
+    return ax.labels[p.poles[key] === ax.poles[0] ? 0 : 1];
+  };
+
+  // Wrong guesses that matter: the other leans clearly the other way. At most one each way.
+  const miss = (who: string, other: string, guess: Profile, real: Profile) => {
+    const k = AXES.filter((ax) => guess.poles[ax.key] !== real.poles[ax.key] && Math.abs(real.raw[ax.key]) >= 0.4).sort(
+      (p, q) => Math.abs(real.raw[q.key]) - Math.abs(real.raw[p.key]),
+    )[0];
+    return k
+      ? `${josa(who, "은/는")} ${josa(other, "이/가")} '${labelOf(guess, k.key)}'일 줄 알았는데, ${josa(other, "은/는")} 사실 '${labelOf(real, k.key)}'이다냥.`
+      : null;
+  };
+  const surprises = [miss(A, B, aGuessB, bReal), miss(B, A, bGuessA, x.me)].filter((v): v is string => Boolean(v));
+
+  const gaps = AXES.filter((ax) => x.me.poles[ax.key] !== bReal.poles[ax.key]).map(
+    (ax) => `${ax.title} — ${A} ${labelOf(x.me, ax.key)} · ${B} ${labelOf(bReal, ax.key)}. ${GAP_TIP[ax.key]}`,
+  );
+
+  return {
+    names: { a: A, b: B },
+    score: x.score,
+    title: coupleTitle(x),
+    headline: overallHeadline(x.score, status),
+    sub: (Object.keys(SUB_LABEL) as (keyof typeof SUB_LABEL)[]).map((k) => ({ label: SUB_LABEL[k], score: x.sub[k] })),
+    types: { a: typeInfo(x.me.code), b: typeInfo(bReal.code) },
+    know: {
+      aKnowsB,
+      bKnowsA,
+      line:
+        Math.abs(aKnowsB - bKnowsA) <= 4
+          ? "둘 다 서로를 비슷하게 알고 있다냥. 눈치 싸움은 무승부다냥."
+          : aKnowsB > bKnowsA
+            ? `${josa(A, "이/가")} ${josa(B, "을/를")} 더 잘 안다냥. ${josa(B, "은/는")} 분발해라냥 😼`
+            : `${josa(B, "이/가")} ${josa(A, "을/를")} 더 잘 안다냥. ${josa(A, "은/는")} 분발해라냥 😼`,
+    },
+    surprises,
+    gaps: gaps.length ? gaps : [`네 가지 연애 축이 전부 같은 쪽이다냥. 서로가 서로의 거울인 ${S.NOUN[status]}이다냥. 같은 데서 같이 막히니 한 명은 먼저 숨 돌려라냥.`],
+  };
 }

@@ -7,6 +7,7 @@ import { paymentService } from "@/services/PaymentService";
 import { useAppStore } from "@/store/useAppStore";
 import { useBack } from "@/lib/back";
 import { CoinShop, MethodPicker, TestModeNote, useSocialLabel } from "./CoinShop";
+import { Coin } from "./Coin";
 
 interface Props {
   open: boolean;
@@ -18,7 +19,7 @@ interface Props {
   onLogin?: () => void;
 }
 
-const AGREE = "냥으로 여는 점괘는 결제 즉시 제공되는 디지털 콘텐츠라, 열람 이후에는 전자상거래법에 따라 청약철회가 제한될 수 있음에 동의합니다.";
+const AGREE = "냥으로 여는 점괘는 여는 즉시 제공되는 디지털 콘텐츠라, 무료 맛보기로 미리 확인했고 열람 후에는 환불되지 않는다는 것에 동의합니다.";
 
 /**
  * 복채 내기. Logged in: pay the reading's 냥 from the 복주머니, or fill it first (then it opens by itself).
@@ -76,9 +77,11 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked, onLo
         <div className="flex items-end justify-between rounded-2xl bg-white/[0.04] p-4">
           <div>
             <p className="text-sm text-muted">{product.orderName}</p>
-            <p className="mt-1 text-xs text-peach">{cost === 1 ? "🪙 엽전 한 냥이면 다 듣는다냥" : `🪙 엽전 ${cost}냥이면 다 듣는다냥`}</p>
+            <p className="mt-1 text-xs text-peach">{cost === 1 ? "엽전 한 냥이면 다 듣는다냥" : `엽전 ${cost}냥이면 다 듣는다냥`}</p>
           </div>
-          <p className="text-2xl font-extrabold text-peach">🪙 {nyang(cost)}</p>
+          <p className="text-2xl font-extrabold text-peach">
+            <Coin /> {nyang(cost)}
+          </p>
         </div>
         {locked.length > 0 && (
           <ul className="mt-3 space-y-1.5 rounded-2xl border border-line p-4 text-sm">
@@ -97,7 +100,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked, onLo
               <div className="flex items-center justify-between rounded-2xl border border-violet/35 px-4 py-3 text-sm">
                 <span className="text-muted">내 복주머니</span>
                 <span className="font-bold">
-                  🪙 {nyang(balance)} <span className="font-normal text-muted">→ 열고 나면 {nyang(balance - cost)}</span>
+                  <Coin /> {nyang(balance)} <span className="font-normal text-muted">→ 열고 나면 {nyang(balance - cost)}</span>
                 </span>
               </div>
               <label className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted">
@@ -106,13 +109,13 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked, onLo
               </label>
               {error && <p className="mt-3 text-sm text-pink">{error}</p>}
               <button onClick={spend} disabled={!agree || busy} className="btn-primary mt-4 w-full py-4 text-base">
-                {busy ? "냥신이 엽전 세는 중…" : `🪙 ${nyang(cost)} 내고 전부 듣기`}
+                {busy ? "냥신이 엽전 세는 중…" : `${nyang(cost)} 내고 전부 듣기`}
               </button>
             </div>
           ) : (
             <div className="mt-5">
               <p className="mb-3 text-sm">
-                복주머니에 🪙 {nyang(balance)}뿐이다냥. <b className="text-peach">{nyang(cost - balance)}</b>만 더 채우면 바로 열어 주겠다냥.
+                복주머니에 <Coin /> {nyang(balance)}뿐이다냥. <b className="text-peach">{nyang(cost - balance)}</b>만 더 채우면 바로 열어 주겠다냥.
               </p>
               {error && <p className="mb-3 text-sm text-pink">{error}</p>}
               <CoinShop
@@ -145,7 +148,7 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked, onLo
             <MethodPicker value={method} onChange={setMethod} />
             <label className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted">
               <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-pink" />
-              <span>{AGREE.replace("냥으로 여는 점괘는", "이 점괘는")}</span>
+              <span>{AGREE.replace("냥으로 여는 점괘는 여는 즉시", "이 점괘는 결제 즉시")}</span>
             </label>
             {error && <p className="mt-3 text-sm text-pink">{error}</p>}
             <button onClick={payDirect} disabled={!agree || busy} className="btn-primary mt-4 w-full py-4 text-base">

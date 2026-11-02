@@ -1,4 +1,4 @@
-import { PARTNER_INTERVIEW, selfInterview } from "@/lib/interview";
+import { partnerInterview, selfInterview } from "@/lib/interview";
 import { isFortuneCard, type FortuneStoryCard, type PersonInput, type QuestionnaireInput, type ShareableCard, type StoryCard } from "@/models/types";
 
 /**
@@ -65,8 +65,8 @@ export interface StoryShare {
 /** True when the store holds a full interview (a fresh result), not just a reopened reading. */
 function complete(input: QuestionnaireInput): boolean {
   if (!input.me.name || !input.me.birthdate) return false;
-  if (!selfInterview(input.mode).every((q) => input.self[q.id])) return false;
-  return input.mode === "solo" || (Boolean(input.partner.name) && PARTNER_INTERVIEW.every((q) => input.partnerObs[q.id]));
+  if (!selfInterview(input.mode, input.status).every((q) => input.self[q.id])) return false;
+  return input.mode === "solo" || (Boolean(input.partner.name) && partnerInterview(input.status).every((q) => input.partnerObs[q.id]));
 }
 
 /**
@@ -77,8 +77,8 @@ function complete(input: QuestionnaireInput): boolean {
 export function handoffUrl(input: QuestionnaireInput, share: StoryShare, then?: "insta"): string {
   const u = new URL("/", window.location.origin);
   if (then !== "insta" && complete(input)) {
-    const self = selfInterview(input.mode).map((q) => input.self[q.id] ?? "");
-    const obs = input.mode === "couple" ? PARTNER_INTERVIEW.map((q) => input.partnerObs[q.id] ?? "") : [];
+    const self = selfInterview(input.mode, input.status).map((q) => input.self[q.id] ?? "");
+    const obs = input.mode === "couple" ? partnerInterview(input.status).map((q) => input.partnerObs[q.id] ?? "") : [];
     const packed: Packed = [input.mode[0], input.status, packP(input.me), packP(input.partner), self, obs];
     u.searchParams.set("r", toB64Url(JSON.stringify(packed)));
   } else {
@@ -104,13 +104,14 @@ export function readHandoff(search: string): Handoff | null {
     if (!r) return null;
     const [m, status, me, partner, self, obs] = JSON.parse(fromB64Url(r)) as Packed;
     const mode = m === "c" ? "couple" : "solo";
+    const st = (["crush", "dating", "slump", "breakup"].includes(status) ? status : "dating") as QuestionnaireInput["status"];
     const input: QuestionnaireInput = {
       mode,
-      status: status as QuestionnaireInput["status"],
+      status: st,
       me: unpackP(me),
       partner: unpackP(partner),
-      self: Object.fromEntries(selfInterview(mode).map((qq, i) => [qq.id, self[i]]).filter(([, v]) => v)),
-      partnerObs: Object.fromEntries(PARTNER_INTERVIEW.map((qq, i) => [qq.id, obs[i]]).filter(([, v]) => v)),
+      self: Object.fromEntries(selfInterview(mode, st).map((qq, i) => [qq.id, self[i]]).filter(([, v]) => v)),
+      partnerObs: Object.fromEntries(partnerInterview(st).map((qq, i) => [qq.id, obs[i]]).filter(([, v]) => v)),
     };
     return { kind: "input", input, then };
   } catch {

@@ -1,4 +1,4 @@
-import type { AnalyzeResponse, FortuneAnalyzeResponse, FortuneTeaser, FullReport, Mode, PersonInput, QuestionnaireInput, TeaserReport, UnlockResponse } from "@/models/types";
+import type { AnalyzeResponse, FortuneAnalyzeResponse, FortuneTeaser, FullReport, Gender, Mode, PairResult, PersonInput, QuestionnaireInput, RelationshipStatus, TeaserReport, UnlockResponse } from "@/models/types";
 
 async function post<T>(url: string, body: unknown, method = "POST"): Promise<T> {
   const res = await fetch(url, {
@@ -117,7 +117,7 @@ export interface Me {
 
 export interface CoinHistoryRow {
   delta: number;
-  reason: "charge" | "spend" | "bonus" | "refund" | "admin";
+  reason: "charge" | "spend" | "bonus" | "refund" | "admin" | "gift";
   ref: string;
   balance_after: number;
   created_at: string;
@@ -173,4 +173,54 @@ export const coinApi = {
   wallet: () => get<Wallet>("/api/coins"),
   charge: (body: { packId: string; method: "test" | "toss"; paymentKey?: string; orderId?: string; amount?: number }) =>
     post<{ balance: number; added: number }>("/api/coins", body),
+};
+
+// ───────────── 맞궁합 초대장 ─────────────
+
+export interface PairView {
+  from: string;
+  fromGender: Gender;
+  /** the sender's 썸 · 연애 중 · 권태기 · 이별 후: the invited person answers the same questions */
+  status: RelationshipStatus;
+  to: string;
+  answered: boolean;
+  result: PairResult | null;
+}
+
+export const pairApi = {
+  create: (input: QuestionnaireInput) => post<{ id: string }>("/api/pair", { input }),
+  get: (id: string) => get<PairView>(`/api/pair/${encodeURIComponent(id)}`),
+  answer: (id: string, input: QuestionnaireInput) => post<PairView>(`/api/pair/${encodeURIComponent(id)}`, { input }),
+};
+
+// ───────────── 냥 선물 · 출석 ─────────────
+
+export interface SentGift {
+  id: string;
+  coins: number;
+  message: string;
+  status: "open" | "claimed" | "cancelled";
+  created_at: string;
+  claimed_at: string | null;
+}
+
+export interface GiftView {
+  from: string;
+  coins: number;
+  message: string;
+  status: "open" | "claimed" | "cancelled";
+  mine: boolean;
+  claimedByMe: boolean;
+}
+
+export const giftApi = {
+  sent: () => get<{ gifts: SentGift[] }>("/api/gifts"),
+  send: (coins: number, message: string, name: string) => post<{ id: string; balance: number }>("/api/gifts", { coins, message, name }),
+  get: (id: string) => get<GiftView>(`/api/gifts/${encodeURIComponent(id)}`),
+  claim: (id: string) => post<{ ok: true; coins: number; balance?: number }>(`/api/gifts/${encodeURIComponent(id)}`, { action: "claim" }),
+  cancel: (id: string) => post<{ ok: true; balance: number }>(`/api/gifts/${encodeURIComponent(id)}`, { action: "cancel" }),
+};
+
+export const checkinApi = {
+  stamp: () => post<{ streak: number; rewarded: boolean; every: number; coins: number; balance?: number }>("/api/checkin", {}),
 };

@@ -55,7 +55,7 @@ const SAJU: InterviewQuestion[] = [
       { id: "wood", label: "👀 눈 피로·목·어깨 뭉침", react: "뭉친 게 많구냥. 참는 게 버릇이다냥." },
       { id: "fire", label: "❤️ 두근거림·잠 설침·혈압", react: "속에 불이 있구냥. 화를 삼키지?", mood: "wow" },
       { id: "earth", label: "🍚 소화·위장", react: "걱정을 배로 하는구냥." },
-      { id: "metal", label: "🫁 기관지·비염·피부", react: "예민하구냥. 공기부터 다르게 느끼는 사람이다냥." },
+      { id: "metal", label: "🌬️ 기관지·비염·피부", react: "예민하구냥. 공기부터 다르게 느끼는 사람이다냥." },
       { id: "water", label: "🦴 허리·관절·몸이 잘 붓는다", react: "아래가 약하구냥. 오래 버틴 몸이다냥." },
       { id: "none", label: "💪 딱히 없다", react: "튼튼하구냥. 그래도 사주는 따로 말한다냥.", mood: "smug" },
     ],
@@ -78,7 +78,7 @@ const SAJU: InterviewQuestion[] = [
     short: "사람들이 너한테 제일 많이 하는 말은?",
     ask: ["사람들이 너한테 제일 많이 하는 말이 뭐냥?"],
     options: [
-      { id: "stubborn", label: "🪨 고집 세다", react: "고집이구냥. 그게 네 무기다냥.", mood: "smug" },
+      { id: "stubborn", label: "🗿 고집 세다", react: "고집이구냥. 그게 네 무기다냥.", mood: "smug" },
       { id: "kind", label: "🕊️ 착하다·여리다", react: "착하다는 말… 사실 지겹지?", mood: "wow" },
       { id: "sharp", label: "📐 똑 부러진다", react: "칼 같구냥. 대신 속은 물렁하지?", mood: "smug" },
       { id: "bright", label: "☀️ 밝다·웃기다", react: "밝구냥. 근데 혼자 있을 땐 다르지?", mood: "wow" },
@@ -254,7 +254,7 @@ const REUNION: InterviewQuestion[] = [
     ask: ["…앉아라냥. 끝난 얘기부터 하자냥.", "누가 먼저 끝내자고 했냥?"],
     options: [
       { id: "me", label: "🙋 내가 먼저", react: "네가 끝냈는데 여기 왔구냥… 흠.", mood: "wow" },
-      { id: "them", label: "🫵 {p:이/가} 먼저", react: "{p:이/가} 놓았구냥." },
+      { id: "them", label: "👉 {p:이/가} 먼저", react: "{p:이/가} 놓았구냥." },
       { id: "both", label: "🤝 둘이 합의하고", react: "좋게 끝냈구냥. 그래도 못 잊었구냥." },
       { id: "fade", label: "🌫️ 흐지부지 끝났다", react: "끝맺음이 없었구냥. 그래서 더 남는 거다냥.", mood: "wow" },
       { id: "ghost", label: "👻 갑자기 연락이 끊겼다", react: "…잠수구냥. 그건 끝난 게 아니다냥.", mood: "smug" },
@@ -328,7 +328,7 @@ const REUNION: InterviewQuestion[] = [
     ask: ["냉정하게 묻겠다냥. 다시 만나면 달라질 수 있냥?"],
     options: [
       { id: "me", label: "🔧 내가 바뀔 수 있다", react: "그 말, 기억해 두겠다냥." },
-      { id: "them", label: "🫵 {p:이/가} 바뀌어야 한다", react: "{p}한테 달렸구냥." },
+      { id: "them", label: "👉 {p:이/가} 바뀌어야 한다", react: "{p}한테 달렸구냥." },
       { id: "both", label: "🤝 둘 다 노력하면 된다", react: "둘 다구냥. 좋은 답이다냥.", mood: "happy" },
       { id: "same", label: "🔁 솔직히 똑같을 것 같다", react: "…솔직하구냥. 그래도 왔구냥.", mood: "wow" },
     ],
@@ -405,7 +405,7 @@ const SPOUSE: InterviewQuestion[] = [
     ask: ["연애하면 보통 누가 더 좋아했냥?"],
     options: [
       { id: "me", label: "🙋 내가 더", react: "늘 더 주는 쪽이었구냥…" },
-      { id: "them", label: "🫵 상대가 더", react: "받는 쪽이었구냥.", mood: "smug" },
+      { id: "them", label: "👉 상대가 더", react: "받는 쪽이었구냥.", mood: "smug" },
       { id: "even", label: "⚖️ 비슷했다", react: "균형이 맞았구냥." },
       { id: "flip", label: "⏳ 시작은 상대가, 끝엔 내가 더", react: "…늘 그 패턴이구냥.", mood: "wow" },
       { id: "few", label: "🌱 연애 경험이 별로 없다", react: "아직 백지구냥. 그것도 운이다냥." },
@@ -504,7 +504,7 @@ const NEWYEAR: InterviewQuestion[] = [
       { id: "health", label: "🏥 건강", react: "몸 걱정이구냥. 꼭 짚어 주겠다냥." },
       { id: "love", label: "💔 연애", react: "마음 걱정이구냥." },
       { id: "family", label: "🏠 가족", react: "집안 걱정이구냥." },
-      { id: "mind", label: "🫠 번아웃·무기력", react: "많이 지쳤구냥…", mood: "wow" },
+      { id: "mind", label: "🥴 번아웃·무기력", react: "많이 지쳤구냥…", mood: "wow" },
     ],
   },
   {

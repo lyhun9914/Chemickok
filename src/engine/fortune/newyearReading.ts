@@ -33,6 +33,8 @@ const NY: Record<
     money: string;
     single: string;
     couple: string;
+    /** when the couple line assumes dating (상견례, 같이 사는 얘기) or marriage, the married version */
+    married?: string;
     work: string;
     study: string;
     health: string;
@@ -58,6 +60,7 @@ const NY: Record<
     money: "목돈이 나갈 일이 생긴다냥. 남 따라 하는 투자는 반 토막 각오해라냥. 고정 지출부터 줄여라냥.",
     single: "경쟁자가 있는 인연이다냥. 놓치기 싫어 서두르면 오히려 멀어진다냥.",
     couple: "제3자가 끼어들기 쉬운 해다냥. 친구·동료 얘기로 싸우지 마라냥.",
+    married: "양가·친구 일로 돈과 시간이 새기 쉬운 해다냥. 남의 일로 부부가 다투지 마라냥.",
     work: "승부가 붙는 해다냥. 이직 경쟁·평가에서 이기려면 실적을 숫자로 보여라냥.",
     study: "경쟁이 붙어야 성적이 오르는 해다냥. 라이벌을 하나 정해라냥.",
     health: "과음·과로로 몸이 먼저 지친다냥. 승부욕은 운동으로 풀어라냥.",
@@ -93,7 +96,8 @@ const NY: Record<
     body: "큰돈과 기회가 움직이는 해다냥. 움직이는 만큼 생기는데, 욕심내는 순간 반 토막이다냥.",
     money: "목돈이 들어올 구멍이 생긴다냥. 투자·사업 기회가 오는데, 원금의 절반은 꼭 지켜라냥.",
     single: "인연이 여럿 들어오는 해다냥. 활동 반경을 넓히는 만큼 만난다냥.",
-    couple: "함께 일을 벌이면 돈이 되는 해다냥. 대신 돈 얘기로 다투지 않게 규칙부터 정해라냥.",
+    couple: "같이 돌아다니며 새로운 걸 해 보는 해다냥. 데이트 반경을 넓힐수록 사이가 살아난다냥. 대신 데이트 비용은 깔끔하게 정해 둬라냥.",
+    married: "함께 일을 벌이면 돈이 되는 해다냥. 대신 돈 얘기로 다투지 않게 규칙부터 정해라냥.",
     work: "영업·사업·프리랜서처럼 발로 뛰는 일이 터진다냥. 새 거래처가 붙는다냥.",
     study: "여기저기 관심이 퍼지는 해다냥. 과목 하나를 골라 끝까지 파라냥.",
     health: "바쁘게 뛰어다니다 허리·다리가 상한다냥. 쉬는 날을 달력에 박아 둬라냥.",
@@ -106,6 +110,7 @@ const NY: Record<
     money: "월급·고정 수입이 단단해지는 해다냥. 적금을 하나 시작하면 연말에 놀란다냥.",
     single: "진지한 인연이 온다냥. 결혼을 생각할 만한 사람이다냥.",
     couple: "살림과 미래 계획을 세우기 좋은 해다냥. 같이 사는 얘기가 자연스럽게 나온다냥.",
+    married: "살림이 단단해지는 해다냥. 집·저축처럼 같이 세운 계획이 하나씩 이뤄진다냥.",
     work: "맡은 일을 끝까지 하는 사람이 인정받는 해다냥. 연봉 협상은 올해 해라냥.",
     study: "꾸준히 한 만큼 점수가 나오는 해다냥. 계획표가 곧 합격이다냥.",
     health: "규칙적인 생활이 곧 보약인 해다냥. 소화기를 챙겨라냥.",
@@ -130,6 +135,7 @@ const NY: Record<
     money: "안정된 돈이 들어오는 해다냥. 승진·연봉·계약처럼 이름을 거는 돈이다냥.",
     single: "반듯하고 믿음 가는 인연이 온다냥. 소개·직장에서 만난다냥.",
     couple: "관계가 공식이 되는 해다냥. 상견례·결혼 같은 '다음 단계' 운이 있다냥.",
+    married: "가정의 책임과 체면이 커지는 해다냥. 집안 행사·양가 일에서 한 팀처럼 움직이면 서로를 더 존중하게 된다냥.",
     work: "승진·합격·발탁 운이다냥. 원서를 넣을 거면 올해 넣어라냥.",
     study: "합격·선발 운이 좋은 해다냥. 원서를 넣어라냥.",
     health: "큰 탈은 없는데, 책임감에 쉬지를 못한다냥. 어깨·목을 풀어라냥.",
@@ -410,13 +416,15 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
   const loveMonths = areaMonths("love");
   const loveBody = senior
     ? "배우자·가족과의 정이 깊어지는 해다냥. 먼저 고맙다고 말하는 쪽이 복을 받는다냥."
-    : status === "dating" || status === "married"
-      ? couple
-      : status === "after"
-        ? `이별의 해를 넘기는 해다냥. ${score >= 60 ? "새해 상반기에 마음이 먼저 정리되고, 새 사람은 그다음에 온다냥." : "서두르지 마라냥. 상처가 아물어야 다음 사람이 제대로 보인다냥."} ${single}`
-        : status === "some"
-          ? `썸이 있다고 했지. ${rel === "harmony" || dohwa.includes(yp.branch) || yg === spouseGroup ? "새해는 썸이 연애로 넘어가기 좋은 해다냥." : "새해는 밀당이 길어지는 해다냥. 네가 한 발 먼저 가야 끝이 난다냥."} ${single}`
-          : single;
+    : status === "married"
+      ? (t.married ?? t.couple)
+      : status === "dating"
+        ? couple
+        : status === "after"
+          ? `이별의 해를 넘기는 해다냥. ${score >= 60 ? "새해 상반기에 마음이 먼저 정리되고, 새 사람은 그다음에 온다냥." : "서두르지 마라냥. 상처가 아물어야 다음 사람이 제대로 보인다냥."} ${single}`
+          : status === "some"
+            ? `썸이 있다고 했지. ${rel === "harmony" || dohwa.includes(yp.branch) || yg === spouseGroup ? "새해는 썸이 연애로 넘어가기 좋은 해다냥." : "새해는 밀당이 길어지는 해다냥. 네가 한 발 먼저 가야 끝이 난다냥."} ${single}`
+            : single;
   const loveSec = sec(
     senior ? "가족·인연운" : "연애·인연운",
     `${areaOf("love").score}점 · ${mm(loveMonths)}이 인연의 달이다냥`,
@@ -454,7 +462,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
           : "건강이 걱정이라고 했지. 미뤄 둔 검진은 새해 상반기에 받아라냥. 그게 운을 지키는 제일 싼 방법이다냥."
         : null,
     ),
-    [`🩺 조심할 달: ${healthCare.month}월(${healthCare.ganji})`, `🫀 챙길 곳: ${ORGANS[c.gisin]}`],
+    [`🩺 조심할 달: ${healthCare.month}월(${healthCare.ganji})`, `💗 챙길 곳: ${ORGANS[c.gisin]}`],
   );
 
   const gwiinMonths = months.filter((m) => gwiin.includes(m.branch));

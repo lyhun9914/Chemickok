@@ -281,5 +281,21 @@ export interface UnlockResponse {
   coins?: number;
 }
 
+/** 맞궁합: both people answered their own couple interview (and about each other). */
+export interface PairResult {
+  names: { a: string; b: string };
+  score: number;
+  title: string;
+  headline: string;
+  sub: { label: string; score: number }[];
+  types: { a: TypeInfo; b: TypeInfo };
+  /** how close each one's picture of the other is to the other's own answers, 0..100 */
+  know: { aKnowsB: number; bKnowsA: number; line: string };
+  /** "A thought B was X, but B is Y" */
+  surprises: string[];
+  /** axes where they differ, with what to do about it */
+  gaps: string[];
+}
+
 /** 간편결제 opened directly (토스페이 · 카카오페이), or Toss's own window with every card and pay app. */
 export type PaymentMethod = "tosspay" | "kakaopay" | "card";

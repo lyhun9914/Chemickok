@@ -13,6 +13,8 @@ let seq = 0;
 let ignore = 0;
 let toPop = 0;
 let installed = false;
+/** we're on (or just left) a #anchor entry */
+let hashJump = false;
 
 function install() {
   if (installed || typeof window === "undefined") return;
@@ -20,6 +22,11 @@ function install() {
   window.addEventListener("popstate", () => {
     if (ignore > 0) {
       ignore--;
+      return;
+    }
+    // A jump to an in-page #anchor (or back out of one) also fires popstate; that isn't the user leaving a screen.
+    if (window.location.hash || hashJump) {
+      hashJump = Boolean(window.location.hash);
       return;
     }
     stack.pop()?.fn();

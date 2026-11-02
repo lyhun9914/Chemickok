@@ -4,6 +4,9 @@ import type { AxisKey, ElementKey, Tell } from "@/models/types";
 import { COMBO_CONTRAST_TAIL, COMBO_SAME, TRAIT_FACE } from "./content/combo";
 import type { Decoded, Trait, Weights } from "./content/decode";
 import * as T from "./content/insight";
+import { SCENE, type Scene, relatedScene, sameScene } from "./content/scenes";
+
+const SELF_CONTAINED = new Set<Scene>(["symbol", "care"]);
 import { resolve, type Resolved } from "./freeText";
 import { josa } from "@/lib/josa";
 import { core, punch } from "@/lib/tone";
@@ -95,7 +98,7 @@ function items(set: AnswerSet): Item[] {
     if (!r) return [];
     const unknown = Boolean(r.unknown);
     // 잘 모르겠어 → read the likely choice; typed text with nothing to go on → borrow that choice's lean.
-    const guess = unknown || r.unread ? predict(set, q.id) : null;
+    const guess = (unknown || r.unread) && !set.decode[q.id].fact ? predict(set, q.id) : null;
     return [
       {
         qid: q.id,
@@ -147,30 +150,38 @@ const face = (t: Trait, s: number) => TRAIT_FACE[t][s > 0 ? 0 : 1];
 interface Memo {
   cited: Map<string, number>;
   lines: Set<string>;
+  /** answer pairs already read together ("a|b"), so B doesn't quote A right after A quoted B */
+  pairs: Set<string>;
 }
 
 function crossLine(set: AnswerSet, it: Item, all: Item[], t: Trait, s: number, memo: Memo): string | null {
   const times = (o: Item) => memo.cited.get(o.qid) ?? 0;
+  // Only answers from a comparable situation: the same lean may come from a related one ("같은 뿌리"), but a
+  // contrast ("거기선 … 여기선 …") needs the same kind of moment, or it reads as a contradiction that isn't one.
+  const comparable = (o: Item) =>
+    !memo.pairs.has(`${o.qid}|${it.qid}`) && (sign(o.w[t] ?? 0) === s ? relatedScene(o.qid, it.qid) : sameScene(o.qid, it.qid));
+  // And only an answer that clearly leans that way: a half-weight side note (음성 메시지 → '핸들을 쥐고 싶다') overreaches.
   const other = all
-    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 0.5 && times(o) < 1)
-    .sort((a, b) => times(a) - times(b) || Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
+    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 1 && times(o) < 1 && comparable(o))
+    .sort((a, b) => times(a) - times(b) || Number(sameScene(b.qid, it.qid)) - Number(sameScene(a.qid, it.qid)) || Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
   if (!other) return null;
   const same = sign(other.w[t] ?? 0) === s;
   const head = same ? `Q${other.num} '${other.label}'도 같은 뿌리다냥.` : `근데 Q${other.num}에선 ${was(other.label)}.`;
   if (set.aboutPartner) {
     if (!(AXES as Trait[]).includes(t)) return null;
     const table = same ? T.PARTNER_ROOT : T.PARTNER_SPLIT;
-    return withBody(head, table[t as AxisKey][s > 0 ? 0 : 1], other, memo);
+    return withBody(head, table[t as AxisKey][s > 0 ? 0 : 1], other, it, memo);
   }
   // Couple mode says what the lean means for the partner; solo says what it means for you.
-  const body = same && set.couple ? T.COUPLE_TAIL[t][s > 0 ? 0 : 1] : punch((same ? T.ROOT : T.SPLIT)[t][s > 0 ? 0 : 1], 1);
-  return withBody(head, body, other, memo);
+  const body = same && set.couple ? T.COUPLE_TAIL[t][s > 0 ? 0 : 1] : (same ? T.ROOT : T.SPLIT)[t][s > 0 ? 0 : 1];
+  return withBody(head, body, other, it, memo);
 }
 
-/** Cite `other`; a body sentence already used in this pass is dropped rather than repeated. */
-function withBody(head: string, body: string, other: Item, memo: Memo): string {
+/** Cite `other` with what it means. A meaning already said in this pass isn't repeated: the link is skipped instead. */
+function withBody(head: string, body: string, other: Item, it: Item, memo: Memo): string | null {
+  if (memo.lines.has(body)) return null;
   memo.cited.set(other.qid, (memo.cited.get(other.qid) ?? 0) + 1);
-  if (memo.lines.has(body)) return head;
+  memo.pairs.add(`${it.qid}|${other.qid}`);
   memo.lines.add(body);
   return `${head} ${body}`;
 }
@@ -205,15 +216,18 @@ function typeLine(set: AnswerSet, it: Item, t: Trait, s: number, short: (m: stri
 
 /** The decoded reading for one answer, tied to the rest of the person. */
 function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => string, memo: Memo): string {
-  // The answer itself is shown right above, so skip the echo and keep the reading to its core.
-  const parts = [core(it.r.read, 1)];
+  // The answer itself is shown right above, so skip the echo — but keep the whole reading: the later sentences are
+  // the specific ones ("그래서 힘든 날에도 괜찮은 척하고…") that make it land.
+  const parts = [core(it.r.read, 4)];
   if (it.predicted && it.unknown) {
     parts.push(sub(set.aboutPartner ? T.PREDICT_PARTNER : T.PREDICT, { label: it.predicted.label, read: punch(it.predicted.read, 1) }));
   } else if (it.predicted) {
     parts.push(sub(set.aboutPartner ? T.BRIDGE_PARTNER : T.BRIDGE, { label: it.predicted.label }));
   }
   const dom = dominant(it.w);
-  if (dom && it.qid !== COLOR_Q) {
+  // Symbols (seat, dream, weather) and comforting someone else are read on their own: tying them to "the kind of
+  // lover you are" overreaches (안아 주는 건 내 감정 표현이 아니라 상대를 받아 주는 거다).
+  if (dom && it.qid !== COLOR_Q && !SELF_CONTAINED.has(SCENE[it.qid])) {
     const [t, v] = dom;
     const s = sign(v);
     const prof = set.aboutPartner ? null : profileLine(set, it, t, s, memo);
@@ -241,7 +255,7 @@ function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => s
 
 export function decodeTells(set: AnswerSet, short: (m: string) => string): Map<string, Tell> {
   const all = items(set);
-  const memo: Memo = { cited: new Map(), lines: new Set() };
+  const memo: Memo = { cited: new Map(), lines: new Set(), pairs: new Set() };
   return new Map(
     all.map((it) => {
       const q = set.qs.find((x) => x.id === it.qid)!;
@@ -277,14 +291,16 @@ const weightOf = (w: Weights) => Object.values(w).reduce((s, v) => s + Math.abs(
 
 /** The user's own answers read in pairs. Couple mode uses its own sentences about the partner. */
 export function selfCombos(set: AnswerSet, max = 3): string[] {
-  const top = strongest(set, 4);
-  const pairs: [number, number][] = [[0, 1], [0, 2], [1, 2], [1, 3], [2, 3], [0, 3]];
+  const top = strongest(set, 6);
+  const pairs: [number, number][] = top.flatMap((_, i) => top.slice(i + 1).map((__, k): [number, number] => [i, i + 1 + k]));
   const used = new Set<string>();
   const out: string[] = [];
   let contrasts = 0;
   for (const [i, j] of pairs) {
     const a = top[i], b = top[j];
     if (!a || !b || out.length >= max) continue;
+    // Two answers read together must come from comparable situations.
+    if (!relatedScene(a.qid, b.qid)) continue;
     const traits = [...new Set([...Object.keys(a.w), ...Object.keys(b.w)])] as Trait[];
     const shared = traits
       .map((t) => ({ t, va: a.w[t] ?? 0, vb: b.w[t] ?? 0 }))
@@ -330,20 +346,31 @@ export function partnerCombos(set: AnswerSet, max = 2): string[] {
 export function crossCombos(me: AnswerSet, partner: AnswerSet, max = 3): string[] {
   const mine = items(me).filter((it) => !it.unknown);
   const theirs = items(partner).filter((it) => !it.unknown);
-  const strongestOn = (list: Item[], axis: AxisKey) =>
-    list.filter((it) => Math.abs(it.r.w[axis] ?? 0) >= 0.5).sort((a, b) => Math.abs(b.r.w[axis] ?? 0) - Math.abs(a.r.w[axis] ?? 0))[0];
-  return AXES.map((axis) => ({ axis, a: strongestOn(mine, axis), b: strongestOn(theirs, axis) }))
-    .filter((x) => x.a && x.b)
-    .map((x) => ({ ...x, score: Math.abs(x.a!.r.w[x.axis] ?? 0) + Math.abs(x.b!.r.w[x.axis] ?? 0) }))
+  // My answer and theirs about the same kind of moment (다툴 때 × 다툴 때, 연락 × 연락, 힘들 때 × 힘들 때…).
+  const pairsOn = (axis: AxisKey) =>
+    mine
+      .filter((a) => Math.abs(a.r.w[axis] ?? 0) >= 0.5)
+      .flatMap((a) => theirs.filter((b) => Math.abs(b.r.w[axis] ?? 0) >= 0.5 && relatedScene(a.qid, b.qid)).map((b) => ({ axis, a, b })))
+      .map((x) => ({ ...x, score: Math.abs(x.a.r.w[axis] ?? 0) + Math.abs(x.b.r.w[axis] ?? 0) + (sameScene(x.a.qid, x.b.qid) ? 1 : 0) }))
+      .sort((x, y) => y.score - x.score)[0];
+  return AXES.map(pairsOn)
+    .filter((x): x is NonNullable<typeof x> => Boolean(x))
     .sort((x, y) => y.score - x.score)
     // One axis per answer pair: the same two answers never get quoted twice.
     .filter((x, i, list) => list.findIndex((y) => y.a === x.a && y.b === x.b) === i)
     .slice(0, max)
     .map(({ axis, a, b }) => {
-      const sa = sign(a!.r.w[axis] ?? 0);
-      const sb = sign(b!.r.w[axis] ?? 0);
+      if (SCENE[a.qid] === "care" && SCENE[b.qid] === "care") {
+        // 받아 주기 vs 해결부터 (mine) × 털어놓기 vs 삭이기 (theirs)
+        const receive = (a.r.w.express ?? 0) >= 0;
+        const open = (b.r.w.express ?? 0) > 0;
+        const line = T.CARE_CROSS[receive ? (open ? 0 : 1) : open ? 2 : 3];
+        return fill(`🔗 너: '${a.label}' × {p}: '${b.label}'\n${line}`, me.p);
+      }
+      const sa = sign(a.r.w[axis] ?? 0);
+      const sb = sign(b.r.w[axis] ?? 0);
       const idx = sa > 0 && sb > 0 ? 0 : sa < 0 && sb < 0 ? 1 : sa > 0 ? 2 : 3;
-      return fill(`🔗 너: '${a!.label}' × {p}: '${b!.label}'\n${T.CROSS[axis][idx]}`, me.p);
+      return fill(`🔗 너: '${a.label}' × {p}: '${b.label}'\n${T.CROSS[axis][idx]}`, me.p);
     });
 }
 

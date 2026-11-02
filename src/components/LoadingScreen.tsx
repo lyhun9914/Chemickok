@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { isFortune } from "@/lib/config";
 import { josa } from "@/lib/josa";
 import type { FortuneMode } from "@/models/types";
-import { accountApi, api } from "@/services/apiClient";
+import { accountApi, api, pairApi } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
 import { Nyang } from "./Nyang";
 
@@ -57,7 +57,15 @@ export function LoadingScreen() {
     const minWait = new Promise((r) => setTimeout(r, MIN_DURATION_MS));
     const request = isFortune(input.mode)
       ? api.fortune(input).then((res) => () => useAppStore.getState().setFortune(res.teaser, res.inputHash))
-      : api.analyze(input).then((res) => () => setTeaser(res.teaser, res.inputHash));
+      : api.analyze(input).then(async (res) => {
+          // Answering a 맞궁합 초대장: hand in these answers too (a second try, e.g. after a reload, just reads it back).
+          const pair = useAppStore.getState().pair;
+          if (pair && input.mode === "couple") {
+            const view = await pairApi.answer(pair.id, input).catch(() => pairApi.get(pair.id).catch(() => null));
+            useAppStore.setState({ pairView: view });
+          }
+          return () => setTeaser(res.teaser, res.inputHash);
+        });
     Promise.all([request, minWait])
       .then(([show]) => {
         setProgress(100);

@@ -33,6 +33,11 @@ export const WELCOME_COINS = 1;
 /** 친구 초대: both get this when a friend's first social login came through your link; at most INVITE_LIMIT friends. */
 export const INVITE_COINS = 1;
 export const INVITE_LIMIT = 20;
+/** 출석: every STREAK_EVERY-th day in a row (logged in) adds STREAK_COINS. */
+export const STREAK_EVERY = 7;
+export const STREAK_COINS = 1;
+/** 냥 선물: how many 냥 one gift can hold. */
+export const GIFT_CHOICES = [1, 2, 5];
 
 /** 상품. `coins` is what one full reading costs; `price` is the same reading bought directly by a guest. */
 export interface Product {
