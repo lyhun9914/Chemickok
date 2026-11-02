@@ -51,7 +51,7 @@ export default function Home() {
     // Links into a sheet on the landing: 맞궁합 신청서, 냥 선물, a mini game (from the 일주·띠 pages).
     const pair = q.get("pair") ?? undefined;
     const game = q.get("game") ?? undefined;
-    let giftId = q.get("gift") ?? undefined;
+    let giftId = q.get("present") ?? undefined;
     try {
       // A gift waits here through a login round-trip until it's claimed.
       if (giftId) sessionStorage.setItem("nyang-gift", giftId);
@@ -59,8 +59,8 @@ export default function Home() {
     } catch {
       /* storage unavailable */
     }
-    if (pair || giftId || game) useAppStore.setState({ deepLink: { pair, gift: giftId, game }, ...(pair || q.get("gift") || game ? { screen: "landing" } : {}) });
-    if (login || ref || reset || pair || game || q.get("gift")) window.history.replaceState(null, "", "/");
+    if (pair || giftId || game) useAppStore.setState({ deepLink: { pair, gift: giftId, game }, ...(pair || q.get("present") || game ? { screen: "landing" } : {}) });
+    if (login || ref || reset || pair || game || q.get("present")) window.history.replaceState(null, "", "/");
     const reason = q.get("reason");
     if (login && LOGIN_NOTICE[login]) setNotice(LOGIN_NOTICE[login] + (reason ? ` (원인: ${reason.slice(0, 40)})` : ""));
     const gift = Number(q.get("gift"));

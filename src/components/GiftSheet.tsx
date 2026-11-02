@@ -10,7 +10,8 @@ import { Coin } from "./Coin";
 import { LoginSheet } from "./LoginSheet";
 import { Say } from "./Nyang";
 
-export const giftLink = (id: string) => `${siteUrl()}?gift=${id}`;
+// Not ?gift=: that one already carries the 가입 선물 amount back from a login.
+export const giftLink = (id: string) => `${siteUrl()}?present=${id}`;
 const STATUS: Record<SentGift["status"], string> = { open: "기다리는 중", claimed: "받았다냥", cancelled: "취소함" };
 const fieldCls = "w-full rounded-xl border border-line bg-surface-2 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-muted/60 focus:border-pink/60";
 
@@ -151,7 +152,15 @@ export function GiftClaimSheet({ id, onClose }: { id: string | null; onClose: ()
     giftApi
       .get(id)
       .then(setGift)
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => {
+        setError(e.message);
+        // a link that leads nowhere shouldn't open again on the next visit
+        try {
+          sessionStorage.removeItem("nyang-gift");
+        } catch {
+          /* ignore */
+        }
+      });
   }, [id, meLoaded, me?.id]);
   const finish = () => {
     try {

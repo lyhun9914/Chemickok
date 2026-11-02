@@ -49,7 +49,7 @@ interface AppState {
   pair: { id: string; from: string } | null;
   /** the 맞궁합 once both sides answered (shown on the result) */
   pairView: PairView | null;
-  /** opened from a link (?pair= · ?gift= · ?game=): the landing opens the matching sheet once */
+  /** opened from a link (?pair= · ?present= · ?game=): the landing opens the matching sheet once */
   deepLink: { pair?: string; gift?: string; game?: string } | null;
 
   setScreen: (s: Screen) => void;
