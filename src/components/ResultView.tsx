@@ -9,7 +9,8 @@ import { josa } from "@/lib/josa";
 import { sound } from "@/lib/sound";
 import type { UnlockResponse } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
-import { FlipCard, Nyang, Say, type Mood } from "./Nyang";
+import { FlipCard } from "./FlipCard";
+import { Nyang, Say, type Mood } from "./Nyang";
 import { LoginSheet } from "./LoginSheet";
 import { PaymentModal } from "./PaymentModal";
 import {

@@ -145,8 +145,11 @@ body {
   45% { transform: scale(1.1); }
 }
 
+/* Hidden 감정서 text, shown as a blur. Drawn with a text shadow, not filter: blur(): a blur filter makes every
+   such line its own offscreen layer, and a result page has a dozen of them, which flickered on phones in a scroll. */
 .locked-text {
-  filter: blur(6px);
+  color: transparent !important;
+  text-shadow: 0 0 7px rgba(185, 168, 136, 0.85);
   user-select: none;
   pointer-events: none;
 }
