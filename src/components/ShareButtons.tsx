@@ -2,10 +2,10 @@
 
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
-import { handoffUrl, inAppBrowser, openExternally } from "@/lib/handoff";
+import { cardParam, friendCardUrl, handoffUrl, inAppBrowser, openExternally } from "@/lib/handoff";
 import { drawStoryImage } from "@/lib/storyImage";
 import { isFortuneCard, type ShareableCard } from "@/models/types";
-import { isMobile, shareService, shareUrl, type ShareOutcome } from "@/services/shareService";
+import { isMobile, shareRef, shareService, shareUrl, type ShareOutcome } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { ShareCard } from "./ShareCard";
 
@@ -64,7 +64,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
   const shareText = isFortuneCard(teaser)
     ? { title: `냥신 점집 🕯️ ${teaser.label}`, description: `${teaser.emoji} ${teaser.headline} — 소름 돋게 잘 맞아 😳 너도 봐 봐!` }
     : {
-        title: `냥신이 본 내 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
+        title: `냥신이 본 ${myName}의 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
         description: teaser.couple
           ? `우리 궁합 ${teaser.couple.matchScore}점 - ${teaser.couple.coupleTitle} 😳 소름 돋게 잘 맞음. 너도 해 봐!`
           : `나랑 찰떡인 사람은 '${teaser.match.bestType.name}' 유형이래 😳 소름 돋게 잘 맞음. 너도 해 봐!`,
@@ -105,7 +105,21 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
 
       <div className="mt-5 space-y-3">
         <button
-          onClick={() => report(shareService.shareKakao({ ...shareText, url: shareUrl() }))}
+          onClick={() => {
+            // the friend gets this very card: its picture in the chat, and the link opens it (then their own reading)
+            const card = friendCardUrl(teaser, myName, partnerName, shareRef());
+            report(
+              shareService.shareKakao({
+                ...shareText,
+                url: card,
+                image: `${window.location.origin}/api/share/card?c=${cardParam(teaser, myName, partnerName)}`,
+                buttons: [
+                  { title: "점괘 카드 보기", url: card },
+                  { title: "나도 보기", url: shareUrl() },
+                ],
+              }),
+            );
+          }}
           className="share-plaque share-kakao w-full py-4 transition active:scale-[0.98]"
         >
           <span className="share-icon bg-[#fee500] text-[#191919]">💬</span>

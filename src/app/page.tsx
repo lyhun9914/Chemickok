@@ -36,15 +36,17 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     // Arrived with a result handed over from another device / browser (?r=…): re-read it here.
-    const handoff = readHandoff(window.location.search);
+    // read before the handoff cleans the URL: a card sent to a friend carries the sender's 초대 code too
+    const search = window.location.search;
+    const handoff = readHandoff(search);
     if (handoff) {
       window.history.replaceState(null, "", "/");
       if (handoff.kind === "input")
         useAppStore.setState({ input: handoff.input, screen: "loading", step: 0, teaser: null, fortune: null, report: null, level: "none", error: null });
-      else useAppStore.setState({ story: { ...handoff.share, insta: handoff.then === "insta" }, screen: "story", error: null });
+      else useAppStore.setState({ story: { ...handoff.share, insta: handoff.then === "insta", friend: handoff.then === "friend" }, screen: "story", error: null });
     }
     // Back from /api/auth/*/callback with ?login=ok|fail|cancel|off — read it once, then clean the URL.
-    const q = new URLSearchParams(window.location.search);
+    const q = new URLSearchParams(search);
     const login = q.get("login");
     const ref = q.get("ref");
     const reset = q.get("reset");

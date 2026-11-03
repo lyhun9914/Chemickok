@@ -60,6 +60,31 @@ export interface StoryShare {
   partner: string;
   /** arrived to post on Instagram: open straight onto the tap-to-share screen */
   insta?: boolean;
+  /** a friend opened a card sent to them (KakaoTalk): show it as received, and invite them in */
+  friend?: boolean;
+}
+
+/** The ?c= value for a card (love or 사주·운세): the share image is drawn from it, and the link reopens it. */
+export const cardParam = (card: ShareableCard, me: string, partner: string) =>
+  toB64Url(JSON.stringify(isFortuneCard(card) ? packF(card, me) : packC(card, me, partner)));
+
+/** Reads a ?c= value back; null when it isn't one. */
+export function readCard(c: string): StoryShare | null {
+  try {
+    const packed = JSON.parse(fromB64Url(c)) as C | F;
+    return packed[0] === "§F" ? unpackF(packed as F) : unpackC(packed as C);
+  } catch {
+    return null;
+  }
+}
+
+/** The link a friend opens from a KakaoTalk card: that card, received (and the sender's 초대 code, if any). */
+export function friendCardUrl(card: ShareableCard, me: string, partner: string, ref: string | null): string {
+  const u = new URL("/", window.location.origin);
+  u.searchParams.set("c", cardParam(card, me, partner));
+  u.searchParams.set("then", "friend");
+  if (ref) u.searchParams.set("ref", ref);
+  return u.toString();
 }
 
 /** True when the store holds a full interview (a fresh result), not just a reopened reading. */
@@ -82,8 +107,7 @@ export function handoffUrl(input: QuestionnaireInput, share: StoryShare, then?: 
     const packed: Packed = [input.mode[0], input.status, packP(input.me), packP(input.partner), self, obs];
     u.searchParams.set("r", toB64Url(JSON.stringify(packed)));
   } else {
-    const card = share.card;
-    u.searchParams.set("c", toB64Url(JSON.stringify(isFortuneCard(card) ? packF(card, share.me) : packC(card, share.me, share.partner))));
+    u.searchParams.set("c", cardParam(share.card, share.me, share.partner));
   }
   if (then) u.searchParams.set("then", then);
   return u.toString();
@@ -97,8 +121,8 @@ export function readHandoff(search: string): Handoff | null {
   try {
     const c = q.get("c");
     if (c) {
-      const packed = JSON.parse(fromB64Url(c)) as C | F;
-      return { kind: "card", share: packed[0] === "§F" ? unpackF(packed as F) : unpackC(packed as C), then };
+      const share = readCard(c);
+      return share ? { kind: "card", share, then } : null;
     }
     const r = q.get("r");
     if (!r) return null;

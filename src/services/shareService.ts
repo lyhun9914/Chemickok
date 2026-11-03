@@ -31,6 +31,8 @@ let refCode: string | null = null;
 export const setShareRef = (code: string | null) => {
   refCode = code;
 };
+/** The sharer's 초대 code, when logged in. */
+export const shareRef = () => refCode;
 /** The link to share: the site, with the sharer's 초대 code when logged in. */
 export const shareUrl = () => siteUrl() + (refCode ? `?ref=${refCode}` : "");
 
@@ -51,18 +53,28 @@ export const shareService = {
    * KakaoTalk share: opens the friend / chat picker (KakaoTalk app on mobile, a Kakao popup on PC).
    * Must be called synchronously from the click; call prepareKakao() on mount.
    */
-  shareKakao(opts: { title: string; description: string; url: string }): Promise<ShareOutcome> {
+  shareKakao(opts: {
+    title: string;
+    description: string;
+    url: string;
+    /** the card's own picture (square); the site's banner otherwise */
+    image?: string;
+    /** buttons under the card; one "점집 들어가기" to `url` otherwise */
+    buttons?: { title: string; url: string }[];
+  }): Promise<ShareOutcome> {
     const Kakao = window.Kakao;
     if (Kakao?.isInitialized()) {
+      const link = (u: string) => ({ mobileWebUrl: u, webUrl: u });
       Kakao.Share.sendDefault({
         objectType: "feed",
         content: {
           title: opts.title,
           description: opts.description,
-          imageUrl: `${window.location.origin}/og.png?v=2`,
-          link: { mobileWebUrl: opts.url, webUrl: opts.url },
+          imageUrl: opts.image ?? `${window.location.origin}/og.png?v=2`,
+          ...(opts.image ? { imageWidth: 800, imageHeight: 800 } : {}),
+          link: link(opts.url),
         },
-        buttons: [{ title: "점집 들어가기", link: { mobileWebUrl: opts.url, webUrl: opts.url } }],
+        buttons: (opts.buttons ?? [{ title: "점집 들어가기", url: opts.url }]).map((b) => ({ title: b.title, link: link(b.url) })),
       });
       return Promise.resolve("shared");
     }
