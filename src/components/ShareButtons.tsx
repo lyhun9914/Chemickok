@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { cardParam, friendCardUrl, handoffUrl, inAppBrowser, openExternally } from "@/lib/handoff";
 import { drawStoryImage } from "@/lib/storyImage";
 import { isFortuneCard, type ShareableCard } from "@/models/types";
-import { isMobile, shareRef, shareService, shareUrl, type ShareOutcome } from "@/services/shareService";
+import { gameUrl, isMobile, shareRef, shareService, shareUrl, type ShareOutcome } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { ShareCard } from "./ShareCard";
 
@@ -21,9 +21,11 @@ interface Props {
   toast: (m: string) => void;
   /** arrived from a QR / in-app handoff to post on Instagram: cover the screen, one tap anywhere shares */
   tapToShare?: boolean;
+  /** a mini game's card: the friend's "나도 해 보기" opens that game */
+  game?: string;
 }
 
-export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = false }: Props) {
+export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = false, game }: Props) {
   const input = useAppStore((s) => s.input);
   const story = useRef<Blob | null>(null);
   const drawing = useRef<Promise<Blob | null> | null>(null);
@@ -107,7 +109,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
         <button
           onClick={() => {
             // the friend gets this very card: its picture in the chat, and the link opens it (then their own reading)
-            const card = friendCardUrl(teaser, myName, partnerName, shareRef());
+            const card = friendCardUrl(teaser, myName, partnerName, shareRef(), game);
             report(
               shareService.shareKakao({
                 ...shareText,
@@ -115,7 +117,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
                 image: `${window.location.origin}/api/share/card?c=${cardParam(teaser, myName, partnerName)}`,
                 buttons: [
                   { title: "점괘 카드 보기", url: card },
-                  { title: "나도 보기", url: shareUrl() },
+                  { title: game ? "나도 해 보기" : "나도 보기", url: game ? gameUrl(game) : shareUrl() },
                 ],
               }),
             );

@@ -111,7 +111,13 @@ export async function GET(req: NextRequest) {
               </div>
             ))}
           </div>
-          <div style={{ display: "flex", fontSize: 28, marginTop: 16, color: MUTED, textAlign: "center", lineHeight: 1.4, maxWidth: 620 }}>{cut(t(l.sub, emoji), 44)}</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", fontSize: 28, marginTop: 16, color: MUTED, lineHeight: 1.4 }}>
+            {balance(cut(t(l.sub, emoji), 44), 22).map((x) => (
+              <div key={x} style={{ display: "flex" }}>
+                {x}
+              </div>
+            ))}
+          </div>
           <div
             style={{
               display: "flex",

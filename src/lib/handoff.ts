@@ -62,6 +62,8 @@ export interface StoryShare {
   insta?: boolean;
   /** a friend opened a card sent to them (KakaoTalk): show it as received, and invite them in */
   friend?: boolean;
+  /** the mini game the card came from: the friend's "나도 해 보기" opens it */
+  play?: string;
 }
 
 /** The ?c= value for a card (love or 사주·운세): the share image is drawn from it, and the link reopens it. */
@@ -78,11 +80,15 @@ export function readCard(c: string): StoryShare | null {
   }
 }
 
-/** The link a friend opens from a KakaoTalk card: that card, received (and the sender's 초대 code, if any). */
-export function friendCardUrl(card: ShareableCard, me: string, partner: string, ref: string | null): string {
+/**
+ * The link a friend opens from a KakaoTalk card: that card, received (and the sender's 초대 code, if any). `play`:
+ * the mini game it came from (not ?game=, which would skip the card and open the game straight away).
+ */
+export function friendCardUrl(card: ShareableCard, me: string, partner: string, ref: string | null, play?: string): string {
   const u = new URL("/", window.location.origin);
   u.searchParams.set("c", cardParam(card, me, partner));
   u.searchParams.set("then", "friend");
+  if (play) u.searchParams.set("play", play);
   if (ref) u.searchParams.set("ref", ref);
   return u.toString();
 }

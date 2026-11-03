@@ -43,7 +43,7 @@ export default function Home() {
       window.history.replaceState(null, "", "/");
       if (handoff.kind === "input")
         useAppStore.setState({ input: handoff.input, screen: "loading", step: 0, teaser: null, fortune: null, report: null, level: "none", error: null });
-      else useAppStore.setState({ story: { ...handoff.share, insta: handoff.then === "insta", friend: handoff.then === "friend" }, screen: "story", error: null });
+      else useAppStore.setState({ story: { ...handoff.share, insta: handoff.then === "insta", friend: handoff.then === "friend", play: new URLSearchParams(search).get("play") ?? undefined }, screen: "story", error: null });
     }
     // Back from /api/auth/*/callback with ?login=ok|fail|cancel|off — read it once, then clean the URL.
     const q = new URLSearchParams(search);

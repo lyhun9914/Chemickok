@@ -35,6 +35,8 @@ export const setShareRef = (code: string | null) => {
 export const shareRef = () => refCode;
 /** The link to share: the site, with the sharer's 초대 code when logged in. */
 export const shareUrl = () => siteUrl() + (refCode ? `?ref=${refCode}` : "");
+/** A mini game, opened on the landing (with the 초대 code too). */
+export const gameUrl = (game: string) => `${siteUrl()}?game=${game}${refCode ? `&ref=${refCode}` : ""}`;
 
 async function copyText(text: string): Promise<ShareOutcome> {
   await navigator.clipboard.writeText(text);

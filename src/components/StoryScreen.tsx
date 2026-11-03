@@ -20,12 +20,20 @@ export function StoryScreen() {
     const love = !isFortuneCard(story.card);
     return (
       <main className="enter-dark flex flex-1 flex-col px-5 pb-10 pt-8">
-        <Say mood="smug">{story.me}의 점괘가 도착했다냥. 냥신이 직접 봐 준 거다냥 🕯️</Say>
+        <Say mood="smug">{story.me || "친구"}의 점괘가 도착했다냥. 냥신이 직접 봐 준 거다냥 🕯️</Say>
         <div className="mt-5">
           <ShareCard teaser={story.card} myName={story.me} partnerName={story.partner} />
         </div>
-        <button onClick={reset} className="btn-primary glow shine mt-7 w-full py-4 text-[17px]">
-          🔮 {love ? "나도 내 연애 팔자 보기" : "나도 내 점괘 보기"}
+        <button
+          onClick={() => {
+            const play = story.play;
+            reset();
+            // from a mini game: straight into the same game on the landing
+            if (play) useAppStore.setState({ deepLink: { game: play } });
+          }}
+          className="btn-primary glow shine mt-7 w-full py-4 text-[17px]"
+        >
+          🔮 {story.play ? "나도 해 보기" : love ? "나도 내 연애 팔자 보기" : "나도 내 점괘 보기"}
         </button>
         <p className="mt-3 text-center text-[13px] text-muted">3분 면담 · 맛보기는 무료다냥</p>
       </main>

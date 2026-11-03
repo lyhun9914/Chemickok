@@ -12,7 +12,8 @@ import { TAROT, tarotPair } from "@/lib/tarot";
 import type { FortuneStoryCard, Mode } from "@/models/types";
 import { checkinApi, dailyApi, todayApi, type DailyFortuneResponse, type ExamDayResponse, type IljuResponse, type TodayFortuneResponse, type ZodiacTodayResponse } from "@/services/apiClient";
 import { useBack } from "@/lib/back";
-import { shareService, shareUrl, siteUrl } from "@/services/shareService";
+import { cardParam, friendCardUrl } from "@/lib/handoff";
+import { gameUrl, shareRef, shareService, shareUrl, siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { type BasicInfo, InfoGate, useSavedInfo } from "./InfoGate";
@@ -23,7 +24,22 @@ import { ShareButtons } from "./ShareButtons";
  * KakaoTalk share (the friend / chat picker; a Kakao popup on PC). The SDK is readied on mount so the popup opens
  * straight from the tap. Without the SDK it falls back to the share sheet on phones, or copying the link on PC.
  */
-function KakaoShareButton({ label, title, description }: { label: string; title: string; description: string }) {
+function KakaoShareButton({
+  label,
+  title,
+  description,
+  card,
+  me,
+  game,
+}: {
+  label: string;
+  title: string;
+  description: string;
+  /** the result as a card: its picture goes in the chat, and the friend's link opens it */
+  card: FortuneStoryCard;
+  me: string;
+  game: MiniGame;
+}) {
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
     shareService.prepareKakao().catch(() => {});
@@ -33,7 +49,16 @@ function KakaoShareButton({ label, title, description }: { label: string; title:
       <button
         onClick={() =>
           shareService
-            .shareKakao({ title, description, url: shareUrl() })
+            .shareKakao({
+              title,
+              description,
+              url: friendCardUrl(card, me, "", shareRef(), game),
+              image: `${window.location.origin}/api/share/card?c=${cardParam(card, me, "")}`,
+              buttons: [
+                { title: "결과 카드 보기", url: friendCardUrl(card, me, "", shareRef(), game) },
+                { title: "나도 해 보기", url: gameUrl(game) },
+              ],
+            })
             .then((o) => o === "copied" && setNote("카톡 공유 창을 못 열어서 링크를 복사했다냥. 붙여넣어서 보내라냥 📋"))
             .catch(() => setNote("공유를 못 했다냥. 다시 눌러라냥"))
         }
@@ -128,7 +153,24 @@ function DailyFortune({ onStart }: { onStart: () => void }) {
           {BLOOD_LOVE[info.blood]}
         </p>
       )}
-      <KakaoShareButton label="카카오톡으로 연애운 보내기" title="냥신 오늘의 연애운" description={`오늘 내 연애운 ${result.score}점 - ${result.title} 🕯️ 너도 봐 봐!`} />
+      <KakaoShareButton
+        label="카카오톡으로 연애운 보내기"
+        title={`냥신 오늘의 연애운 · ${info.name} ${result.score}점`}
+        description={`${result.title} 🕯️ 너도 봐 봐!`}
+        me={info.name}
+        game="daily"
+        card={{
+          kind: "fortune",
+          label: `${info.name}의 오늘의 연애운`,
+          emoji: "🔮",
+          headline: `${result.score}점`,
+          sub: result.title,
+          meta: `${result.date} · 행운의 색 ${result.color}`,
+          slipLabel: "설레는 시간",
+          slipValue: result.time,
+          slipText: result.line,
+        }}
+      />
       <button onClick={onStart} className="btn-primary w-full py-4">
         내 연애 유형까지 제대로 보기 🐾
       </button>
@@ -197,7 +239,24 @@ function NameMatch({ onStart }: { onStart: () => void }) {
                 <span className="text-gradient">{result.score}%</span>
               </p>
               <Say mood={result.score >= 75 ? "wow" : result.score >= 40 ? "smug" : "happy"}>{nameCompatComment(result.score)}</Say>
-              <KakaoShareButton label="카카오톡으로 궁합 결과 보내기" title="냥신 이름 궁합" description={`${a} ♥ ${b} 이름 궁합 ${result.score}% 😳 너도 해 봐!`} />
+              <KakaoShareButton
+                label="카카오톡으로 궁합 결과 보내기"
+                title={`냥신 이름 궁합 · ${a} ♥ ${b} ${result.score}%`}
+                description={`${nameCompatComment(result.score)} 너도 해 봐!`}
+                me={a}
+                game="name"
+                card={{
+                  kind: "fortune",
+                  label: `${a} × ${b} 이름 궁합`,
+                  emoji: "✍️",
+                  headline: `${result.score}%`,
+                  sub: nameCompatComment(result.score),
+                  meta: "그 시절 획수 궁합",
+                  slipLabel: "이름 궁합",
+                  slipValue: `${result.score}%`,
+                  slipText: "너희 둘 이름도 넣어 봐라냥",
+                }}
+              />
               <button onClick={() => setResult(null)} className="w-full py-2 text-sm text-muted">
                 다른 이름으로 다시 하기
               </button>
@@ -419,7 +478,23 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
         <span className="rounded-full bg-violet/10 px-3 py-1.5">🔢 {result.number}</span>
         <span className="rounded-full bg-violet/10 px-3 py-1.5">⏰ {result.time}</span>
       </div>
-      <KakaoShareButton label="카카오톡으로 오늘 운세 보내기" title="냥신 오늘의 운세" description={`오늘 내 운세 ${result.score}점 - ${result.title} 🕯️ 너도 봐 봐!`} />
+      <KakaoShareButton
+        label="카카오톡으로 오늘 운세 보내기"
+        title={`냥신 오늘의 운세 · ${info.name} ${result.score}점`}
+        description={`${result.title} 🕯️ 너도 봐 봐!`}
+        me={info.name}
+        game="today"
+        card={{
+          kind: "fortune",
+          label: `${info.name}의 오늘의 운세`,
+          emoji: "📅",
+          headline: `${result.score}점`,
+          sub: result.title,
+          meta: `${result.date} · ${result.ganji}`,
+          slipLabel: "오늘 하면 좋은 것",
+          slipText: result.do,
+        }}
+      />
       <button onClick={() => onStart("saju")} className="btn-primary w-full py-4">
         타고난 사주 팔자까지 보기 📜
       </button>
@@ -433,6 +508,7 @@ const DECK = 15;
 
 /** 오늘의 타로: fifteen cards face down, pick two — today's mood and today's move — read together. Fixed for the day. */
 function TarotDraw({ onStart }: { onStart: (mode?: Mode) => void }) {
+  const myName = useAppStore((st) => st.me?.profile?.name ?? st.input.me.name ?? "");
   const [cards, setCards] = useState<number[] | null>(null);
   const [picks, setPicks] = useState<number[]>([]);
   const [shown, setShown] = useState(0);
@@ -524,8 +600,20 @@ function TarotDraw({ onStart }: { onStart: (mode?: Mode) => void }) {
           <p className="text-center text-[13px] text-muted">내일 다시 오면 새 카드를 뽑을 수 있다냥.</p>
           <KakaoShareButton
             label="카카오톡으로 내 카드 보내기"
-            title="냥신 오늘의 타로"
-            description={`오늘 내 타로는 '${TAROT[cards[0]].name}' + '${TAROT[cards[1]].name}' — ${pair.title} 🃏 너도 뽑아 봐!`}
+            title={`냥신 오늘의 타로 · ${pair.title}`}
+            description={`'${TAROT[cards[0]].name}' + '${TAROT[cards[1]].name}' 🃏 너도 뽑아 봐!`}
+            me={myName}
+            game="tarot"
+            card={{
+              kind: "fortune",
+              label: myName ? `${myName}의 오늘의 타로` : "오늘의 타로",
+              emoji: "🎴",
+              headline: pair.title,
+              sub: `${TAROT[cards[0]].name} + ${TAROT[cards[1]].name}`,
+              meta: "15장 중 2장 · 하루 한 번",
+              slipLabel: "카드가 하는 말",
+              slipText: pair.line,
+            }}
           />
           <button onClick={() => onStart()} className="btn-primary w-full py-4">
             내 연애 팔자도 보기 🐾
@@ -699,7 +787,7 @@ function IljuCard({ card, info, onStart }: { card: IljuResponse; info: BasicInfo
           </p>
         </div>
       </div>
-      <ShareButtons teaser={story} myName={me} partnerName="" toast={setNote} />
+      <ShareButtons teaser={story} myName={me} partnerName="" toast={setNote} game="ilju" />
       {note && <p className="fade-up text-center text-xs text-peach">{note}</p>}
       <button onClick={() => onStart("saju")} className="btn-primary w-full py-4">
         일주 말고 여덟 글자 전부 보기 📜
@@ -711,6 +799,7 @@ function IljuCard({ card, info, onStart }: { card: IljuResponse; info: BasicInfo
 // ───────────── 할까? 말까? 타로 ─────────────
 
 function ContactTarot({ onStart }: { onStart: (mode?: Mode) => void }) {
+  const myName = useAppStore((st) => st.me?.profile?.name ?? st.input.me.name ?? "");
   const [q, setQ] = useState<ContactQ | null>(null);
   const [picks, setPicks] = useState<number[]>([]); // slots picked (0..6)
   const [cards, setCards] = useState<number[] | null>(null); // card indices, once drawn
@@ -836,7 +925,25 @@ function ContactTarot({ onStart }: { onStart: (mode?: Mode) => void }) {
       )}
       {cards && shown >= 3 && verdict && (
         <>
-          <KakaoShareButton label="카카오톡으로 결과 보내기" title="냥신 할까? 말까?" description={`'${question.label}' 냥신의 답: ${question.verdict[verdict]} 🃏 너도 물어봐!`} />
+          <KakaoShareButton
+            label="카카오톡으로 결과 보내기"
+            title={`냥신 할까? 말까? · ${question.label}`}
+            description={`냥신의 답: ${question.verdict[verdict]} 🃏 너도 물어봐!`}
+            me={myName}
+            game="contact"
+            card={{
+              kind: "fortune",
+              label: question.label,
+              emoji: question.emoji,
+              headline: question.verdict[verdict],
+              sub: cards.map((c) => TAROT[c].name).join(" · "),
+              meta: "할까? 말까? · 카드 세 장",
+              slipLabel: "냥신의 답",
+              slipText:
+                question.advice?.[verdict] ??
+                (verdict === "go" ? "카드 셋 중 둘이 '움직여라'를 가리킨다냥." : verdict === "stop" ? "카드가 '지금은 아니다'를 가리킨다냥." : "카드가 반반이다냥. 타이밍이 열쇠다냥."),
+            }}
+          />
           <button onClick={() => onStart(q === "ex" ? "reunion" : "couple")} className="btn-primary w-full py-4">
             {q === "ex" ? "재회 가능성 제대로 보기 🔁" : "그 사람 속마음까지 보기 💞"}
           </button>
