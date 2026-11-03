@@ -111,7 +111,8 @@ export default function Home() {
 
   return (
     <>
-      <Backdrop scene={screen === "landing" ? "gate" : "inside"} />
+      {/* long reading pages: on phones the room holds still while you scroll (see Backdrop) */}
+      <Backdrop scene={screen === "landing" ? "gate" : "inside"} still={screen === "result" || screen === "my" || screen === "story"} />
       {screen === "landing" && <Landing />}
       {screen === "form" && <Questionnaire />}
       {screen === "loading" && <LoadingScreen />}

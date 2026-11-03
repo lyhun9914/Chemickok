@@ -24,10 +24,17 @@ export function enterThroughDoors(next: () => void) {
   setTimeout(next, 520);
 }
 
-export function Backdrop({ scene }: { scene: Scene }) {
+/**
+ * `still`: a long page to read (the result, 내 점괘함). On phones the room then stops moving — no drifting
+ * dust, breathing light or flickering flames — so scrolling a long page only moves the page.
+ */
+export function Backdrop({ scene, still = false }: { scene: Scene; still?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   const prev = useRef<Scene>(scene);
   const [door, setDoor] = useState<"idle" | "closing" | "opening">("idle");
+  const [phone, setPhone] = useState(false);
+  useEffect(() => setPhone(Boolean(window.matchMedia?.("(max-width: 760px), (pointer: coarse)").matches)), []);
+  const calm = still && phone;
 
   useEffect(() => {
     let raf = 0;
@@ -62,21 +69,26 @@ export function Backdrop({ scene }: { scene: Scene }) {
   }, []);
 
   useEffect(() => {
-    if (prev.current !== scene && scene === "inside" && door === "closing") {
-      setDoor("opening");
-      const t = setTimeout(() => setDoor("idle"), 1700);
-      prev.current = scene;
-      return () => clearTimeout(t);
-    }
+    if (prev.current !== scene && scene === "inside" && door === "closing") setDoor("opening");
     prev.current = scene;
     if (scene === "gate") document.documentElement.style.setProperty("--progress", "0");
   }, [scene, door]);
 
+  // Take the doors away once they've opened. (This timer used to live in the effect above, whose re-run on
+  // "opening" cancelled it: the open doors then stayed for good, a full-screen layer over every later screen that
+  // phones had to re-composite on each scroll frame — the flicker on long result pages.) A door left closing
+  // because the screen never changed is cleared too.
+  useEffect(() => {
+    if (door === "idle") return;
+    const t = setTimeout(() => setDoor("idle"), door === "opening" ? 1700 : 2500);
+    return () => clearTimeout(t);
+  }, [door]);
+
   return (
     <>
-      <div ref={root} className={`backdrop scene-${scene}`} aria-hidden>
+      <div ref={root} className={`backdrop scene-${scene}${calm ? " still" : ""}`} aria-hidden>
         {scene === "gate" ? <Gate /> : <Inside />}
-        <Particles kind={scene === "gate" ? "embers" : "dust"} />
+        {!calm && <Particles kind={scene === "gate" ? "embers" : "dust"} />}
         <div className="atmos-layer">
           <div className="incense" />
           <div className="incense" />
