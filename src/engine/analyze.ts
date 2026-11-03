@@ -35,7 +35,7 @@ import {
   TYPES,
   traitText,
 } from "./content/free";
-import { COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, partnerDecode, selfDecode, type Decoded, type HiddenKey } from "./content/decode";
+import { COLOR_QS, COLOR_VS_SAJU, HIDDEN_META, HIDDEN_READING, partnerDecode, selfDecode, type Decoded, type HiddenKey } from "./content/decode";
 import * as P from "./content/paid";
 import * as S from "./content/statusLens";
 import * as SOLO from "./content/solo";
@@ -194,7 +194,7 @@ function personalReading(c: Core): TeaserReport["personal"] {
     signature: TYPES[me.code].signature,
     traits,
     tells: tellingOrder(selfDecode(input.mode, input.status), input.self)
-      .filter((id) => id !== COLOR_Q)
+      .filter((id) => !COLOR_QS.has(id))
       .slice(0, FREE_TELLS)
       .map((id) => decodeTells(selfSet(c), mbtiShort).get(id)!),
     colorReading: colorReading(c),
@@ -206,7 +206,6 @@ function personalReading(c: Core): TeaserReport["personal"] {
 
 const ELEMENT_ORDER = ["wood", "fire", "earth", "metal", "water"] as const;
 
-const COLOR_Q = "s6";
 const FREE_TELLS = 2;
 const HIDDEN_KEYS = Object.keys(HIDDEN_META) as HiddenKey[];
 
@@ -238,10 +237,13 @@ function partnerSet(x: Couple): AnswerSet {
 }
 
 function colorReading(c: Core): string | null {
-  const r = resolve(selfDecode(c.input.mode, c.input.status)[COLOR_Q], COLOR_Q, c.input.self[COLOR_Q]);
+  const decode = selfDecode(c.input.mode, c.input.status);
+  const q = Object.keys(decode).find((id) => COLOR_QS.has(id));
+  const r = q ? resolve(decode[q], q, c.input.self[q]) : null;
   if (!r?.oid) return null;
   const pick = r.oid as (typeof ELEMENT_ORDER)[number];
-  const base = coreOf(r.read, 2);
+  // the colour questions of 썸 · 이별 후 speak about {p} ("{p}의 색", "그 시간의 색")
+  const base = fill(coreOf(r.read, 2), c.input.partner.name);
   if (!c.mySaju) return base;
   const els = c.mySaju.summary.elements;
   const max = Math.max(...Object.values(els));
@@ -559,7 +561,7 @@ function coupleTeaser(x: Couple): CoupleTeaser {
     partnerDayMaster: x.partnerSaju ? dayMasterLabel(x.partnerSaju.dm) : null,
     matchScore: x.score,
     coupleTitle: coupleTitle(x),
-    teaserSummary: `${P.PAIR_SHORT[a](x.names)} ${P.PAIR_SHORT[f](x.names)}`,
+    teaserSummary: ((short) => `${short[a](x.names)} ${short[f](x.names)}`)(S.PAIR_SHORT_BY_STATUS[x.input.status] ?? P.PAIR_SHORT),
     overallHeadline: overallHeadline(x.score, x.input.status),
     mbti: mbtiPair(x.input.me.mbti ?? "", x.input.partner.mbti ?? ""),
   };
@@ -627,7 +629,8 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
     ? (past ? S.PARTNER_HURT_PAST : P.PARTNER_HURT)[me.poles[mismatch.key] + partner.poles[mismatch.key]](n)
     : (past ? S.PARTNER_HURT_SAME_PAST : P.PARTNER_HURT_SAME)[partner.poles.attach as "A" | "S"](n);
   const hidden = past ? S.PARTNER_HIDDEN_PAST : P.PARTNER_HIDDEN;
-  const pairText = past ? S.PAIR_PAST : P.PAIR;
+  // how the two fit, told for where they are: a 썸 not yet started, a 권태기 gone quiet, a breakup looking back
+  const pairText = { crush: S.PAIR_CRUSH, slump: S.PAIR_SLUMP, breakup: S.PAIR_PAST, dating: P.PAIR }[input.status];
   const partnerMbti = input.partner.mbti ?? "";
 
   const st = input.status;
@@ -655,7 +658,7 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
   const mbti = mbtiPair(input.me.mbti ?? "", partnerMbti);
 
   const overall: ReportSection = {
-    title: "종합 궁합 & 연애 스타일",
+    title: S.OVERALL_TITLE[input.status],
     headline: overallHeadline(x.score, input.status),
     body: lines([
       P.STATUS_OPENER[input.status],
@@ -867,7 +870,7 @@ function lockedPreviews(input: QuestionnaireInput, report: FullReport): LockedPr
   const luckCount = (report.luck?.actionItems.length ?? 0) + days.length + 3;
 
   // Tease the decode with an answer that wasn't decoded for free.
-  const order = tellingOrder(selfDecode(input.mode, input.status), input.self).filter((id) => id !== COLOR_Q);
+  const order = tellingOrder(selfDecode(input.mode, input.status), input.self).filter((id) => !COLOR_QS.has(id));
   const hiddenTell = order[FREE_TELLS] ?? order[0];
   const ht = decodeTells(selfSet(core(input)), mbtiShort).get(hiddenTell)!;
   const decodeTease = `"${ht.question}" → ${ht.answer}. ${cut(ht.read, 26)}`;

@@ -7,7 +7,7 @@ import { usePayHint } from "./CoinShop";
 import { PairAnsweredCard, PairInviteCard } from "./PairSheet";
 import { josa } from "@/lib/josa";
 import { sound } from "@/lib/sound";
-import type { UnlockResponse } from "@/models/types";
+import type { RelationshipStatus, UnlockResponse } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { FlipCard } from "./FlipCard";
 import { Nyang, Say, type Mood } from "./Nyang";
@@ -46,6 +46,49 @@ interface Beat {
 }
 
 const TYPING_MS = 750;
+
+/** What 냥신 says between the cards of a 궁합 reading, for where the two are. */
+const TALK: Record<
+  RelationshipStatus,
+  { open: (me: string, p: string) => string; card: string; hook: (p: string) => string; score: (p: string) => string; ring: string; after: (p: string) => string; overall: string }
+> = {
+  crush: {
+    open: (me, p) => `${me}… ${josa(p, "이랑/랑")} 썸이구냥. 아직 아무것도 정해지지 않은 사이가 제일 설레고 제일 무섭지. 생년월일부터 보겠다냥.`,
+    card: "이제 썸 탈 때의 너를 보겠다냥. 카드 한 장 뒤집어 봐라냥.",
+    hook: (p) => `…근데 ${josa(p, "이/가")} 너한테 아직 말 못 한 마음이 있다냥. 냥신이 편지로 받아 적어 뒀다냥 🤐`,
+    score: (p) => `자, 이제 ${josa(p, "이랑/랑")} 이 썸이 어디까지 갈지 보자냥. 두근두근하냥?`,
+    ring: "썸 궁합",
+    after: (p) => `${p}도 나를 좋아할까?`,
+    overall: "💖 썸 궁합 & 다가가는 스타일",
+  },
+  dating: {
+    open: (me) => `${me}… 흥, 생년월일 보니까 대충 알겠다냥.`,
+    card: "이제 진짜 너를 보겠다냥. 카드 한 장 뒤집어 봐라냥.",
+    hook: (p) => `…근데 ${josa(p, "이/가")} 너한테 하고 싶은데 못 한 말이 있다냥. 냥신이 편지로 받아 적어 뒀다냥 🤐`,
+    score: (p) => `자, 이제 ${josa(p, "이랑/랑")} 궁합이다냥. 두근두근하냥?`,
+    ring: "궁합 지수",
+    after: (p) => `${p}의 속마음은?`,
+    overall: "💖 종합 궁합 & 연애 스타일",
+  },
+  slump: {
+    open: (me) => `${me}… 권태기구냥. 식은 건지 무뎌진 건지, 냥신이 가려 주겠다냥. 생년월일부터 보겠다냥.`,
+    card: "권태기 속의 너는 어떤 사람인지 보겠다냥. 카드 한 장 뒤집어 봐라냥.",
+    hook: (p) => `…근데 ${p}도 요즘 삼킨 말이 있다냥. 냥신이 편지로 받아 적어 뒀다냥 🤐`,
+    score: () => "자, 이제 둘의 궁합이다냥. 이 권태를 넘을 수 있는 사이인지 보자냥.",
+    ring: "둘의 궁합",
+    after: (p) => `${p}도 지쳤을까?`,
+    overall: "💖 권태기 궁합 & 다시 맞춰 가는 법",
+  },
+  breakup: {
+    open: (me) => `${me}… 끝났는데 안 끝난 마음이구냥. 아픈 데까지 짚어 주겠다냥. 생년월일부터 보겠다냥.`,
+    card: "이별 앞에 선 너를 보겠다냥. 카드 한 장 뒤집어 봐라냥.",
+    hook: (p) => `…근데 헤어지면서 ${josa(p, "이/가")} 끝내 못 한 말이 있다냥. 냥신이 편지로 받아 적어 뒀다냥 🤐`,
+    score: (p) => `자, 이제 너랑 ${p}, 둘이 어떤 사이였는지 보자냥. 아파도 끝까지 봐라냥.`,
+    ring: "둘의 궁합",
+    after: (p) => `${josa(p, "은/는")} 지금 어떤 마음일까?`,
+    overall: "💖 지나간 궁합 & 둘이 엇갈린 자리",
+  },
+};
 
 export function ResultView() {
   const { teaser, report, level, input, inputHash, applyUnlock, reset } = useAppStore();
@@ -89,7 +132,8 @@ export function ResultView() {
   const beats = useMemo<Beat[]>(() => {
     if (!teaser) return [];
     const { personal, saju, couple, solo, myType } = teaser;
-    const list: Beat[] = [{ say: `${me}… 흥, 생년월일 보니까 대충 알겠다냥.`, mood: "smug", next: "뭔데? 👀" }];
+    const talk = TALK[couple ? input.status : "dating"];
+    const list: Beat[] = [{ say: couple ? talk.open(me, p) : `${me}… 흥, 생년월일 보니까 대충 알겠다냥.`, mood: "smug", next: "뭔데? 👀" }];
     if (saju) {
       list.push({
         say: `네 사주부터 펼쳐 보겠다냥. ${saju.animal}띠구냥.`,
@@ -118,7 +162,7 @@ export function ResultView() {
       });
     }
     list.push({
-      say: "이제 진짜 너를 보겠다냥. 카드 한 장 뒤집어 봐라냥.",
+      say: talk.card,
       mood: "smug",
       node: (
         <FlipCard
@@ -166,7 +210,7 @@ export function ResultView() {
       list.push({
         say: solo
           ? "…근데 너, 연애할 때마다 똑같은 실수 하나 하고 있다냥. 이건 좀 이따 말해 주겠다냥 🤐"
-          : `…근데 ${josa(p, "이/가")} 너한테 하고 싶은데 못 한 말이 있다냥. 냥신이 편지로 받아 적어 뒀다냥 🤐`,
+          : talk.hook(p),
         mood: "wow",
         node: <LockedCard preview={hook} compact onClick={() => setPayIntent(true)} />,
         next: "뭔데 궁금하게… 계속",
@@ -223,7 +267,7 @@ export function ResultView() {
     }
     if (couple) {
       list.push({
-        say: `자, 이제 ${josa(p, "이랑/랑")} 궁합이다냥. 두근두근하냥?`,
+        say: talk.score(p),
         mood: "smug",
         node: (
           <div className="text-center">
@@ -231,7 +275,7 @@ export function ResultView() {
               {me} 💞 {p}
             </p>
             <div className="my-4">
-              <ScoreRing score={couple.matchScore} />
+              <ScoreRing score={couple.matchScore} label={talk.ring} />
             </div>
             <p className="text-[21px] font-extrabold leading-snug">
               <span className="text-gradient">{couple.coupleTitle}</span>
@@ -253,11 +297,11 @@ export function ResultView() {
             {couple.mbti && <MbtiPairLine pair={couple.mbti} />}
           </div>
         ),
-        next: `${p}의 속마음은?`,
+        next: talk.after(p),
       });
     }
     return list;
-  }, [teaser, me, p, flipped]);
+  }, [teaser, me, p, flipped, input.status]);
 
   const total = beats.length + 1; // + paywall beat
   const allShown = shown >= total;
@@ -360,7 +404,7 @@ export function ResultView() {
                   <div id="paid-report" className="fade-up scroll-mt-4">
                     {teaser.couple && (
                       <div className="mb-3 rounded-3xl border border-line bg-surface p-5">
-                        <p className="text-xs font-semibold text-muted">💖 종합 궁합 & 연애 스타일</p>
+                        <p className="text-xs font-semibold text-muted">{TALK[input.status].overall}</p>
                         <p className="mt-1 text-[17px] font-bold leading-snug">{teaser.couple.overallHeadline}</p>
                       </div>
                     )}

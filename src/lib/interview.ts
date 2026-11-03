@@ -1,6 +1,6 @@
 import type { Mode, RelationshipStatus } from "@/models/types";
 import type { Mood } from "@/components/Nyang";
-import { BREAKUP_ONLY, CRUSH_ONLY, PARTNER_BREAKUP_ONLY, PARTNER_CRUSH_ONLY, SLUMP_ONLY } from "./interviewByStatus";
+import { BREAKUP_ONLY, CRUSH_ONLY, PARTNER_BREAKUP_ONLY, PARTNER_CRUSH_ONLY, PARTNER_SLUMP_ONLY, SLUMP_ONLY } from "./interviewByStatus";
 import { josa } from "./josa";
 
 /**
@@ -587,10 +587,13 @@ export const COUPLE_INTERVIEW: InterviewQuestion[] = pick(
 
 /** The couple interview for where the two are. Keys and order mirror selfDecode in engine/content/decode.ts. */
 export const COUPLE_IDS: Record<RelationshipStatus, string[]> = {
+  // Each situation has its own questions and its own order: no question is asked in two situations, and the
+  // 색 · 어린 시절 · 마지막 질문 sit in different places with a different take (지금 떠오르는 색 / {p}의 색 /
+  // 둘 사이에 칠하고 싶은 색 / 그 시간의 색; 혼날 때 / 첫 짝사랑 / 부모님의 화해 / 잃어버렸을 때).
   dating: ["c1", "c2", "c3", "c4", "c5", "s6", "c6", "c7", "c9", "c10", "s12", "c11", "c12", "c13"],
-  crush: ["h1", "h2", "h3", "h9", "h4", "s6", "h7", "h5", "h11", "s12", "h6", "h8", "h10", "c13"],
-  slump: ["c1", "k1", "k2", "c4", "k3", "s6", "c6", "k4", "c10", "s12", "k5", "c12", "c3", "c13"],
-  breakup: ["b1", "b2", "b3", "b6", "b4", "s6", "b5", "b7", "b9", "s12", "b8", "b11", "b10", "b12"],
+  crush: ["h9", "h1", "h3", "hc", "h2", "h7", "h4", "hs", "h11", "h6", "h5", "h8", "h10", "h12"],
+  slump: ["k1", "k6", "k2", "ks", "k7", "k8", "k3", "k10", "kc", "k9", "k11", "k4", "k5", "k12"],
+  breakup: ["b1", "b2", "b3", "b6", "bs", "b4", "b5", "b7", "b11", "b9", "bc", "b8", "b10", "b13"],
 };
 const COUPLE_POOL = [...BASE, ...COUPLE_ONLY, ...CRUSH_ONLY, ...SLUMP_ONLY, ...BREAKUP_ONLY];
 const COUPLE_BY_STATUS = Object.fromEntries(
@@ -604,12 +607,13 @@ export const selfInterview = (mode: Mode, status: RelationshipStatus = "dating")
 /** What you've seen of the other person: a 썸 has no 호칭·데이트 routine yet, an ex is remembered as they were. */
 export const PARTNER_IDS: Record<RelationshipStatus, string[]> = {
   dating: ["o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9", "o10"],
-  slump: ["o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8", "o9", "o10"],
-  crush: ["o1", "x2", "x3", "x4", "x5", "o6", "x7", "o8", "x9", "x10"],
+  crush: ["x1", "x2", "x4", "x5", "x7", "x6", "x3", "x8", "x9", "x10"],
+  // 권태기: not the 연애 중 habits again, but what changed since it cooled
+  slump: ["z1", "z2", "z3", "z4", "z5", "z6", "z7", "z8", "z9", "z10"],
   breakup: ["y1", "y2", "y3", "y4", "y5", "y6", "y7", "y8", "y9", "y10"],
 };
 
-const PARTNER_POOL = [...PARTNER_INTERVIEW, ...PARTNER_CRUSH_ONLY, ...PARTNER_BREAKUP_ONLY];
+const PARTNER_POOL = [...PARTNER_INTERVIEW, ...PARTNER_CRUSH_ONLY, ...PARTNER_SLUMP_ONLY, ...PARTNER_BREAKUP_ONLY];
 const PARTNER_BY_STATUS = Object.fromEntries(
   Object.entries(PARTNER_IDS).map(([st, ids]) => [st, pick(PARTNER_POOL, ids)]),
 ) as Record<RelationshipStatus, InterviewQuestion[]>;

@@ -2,7 +2,7 @@ import "server-only";
 import { fill, optionOf, type InterviewQuestion } from "@/lib/interview";
 import type { AxisKey, ElementKey, Tell } from "@/models/types";
 import { COMBO_CONTRAST_TAIL, COMBO_SAME, TRAIT_FACE } from "./content/combo";
-import type { Decoded, Trait, Weights } from "./content/decode";
+import { COLOR_QS, type Decoded, type Trait, type Weights } from "./content/decode";
 import * as T from "./content/insight";
 import { SCENE, type Scene, relatedScene, sameScene } from "./content/scenes";
 
@@ -46,7 +46,7 @@ interface Item {
 }
 
 const AXES: AxisKey[] = ["drive", "express", "conflict", "attach"];
-const COLOR_Q = "s6";
+
 const plain = (label: string) => label.replace(/^\S+\s/, "").replace(/["']/g, "");
 const restOf = (read: string) => read.replace(/^.*?지\.\s*/, "");
 /** "'가끔 꺼내 본다'라고" / "'우리 사진'이라고" */
@@ -162,7 +162,7 @@ function crossLine(set: AnswerSet, it: Item, all: Item[], t: Trait, s: number, m
     !memo.pairs.has(`${o.qid}|${it.qid}`) && (sign(o.w[t] ?? 0) === s ? relatedScene(o.qid, it.qid) : sameScene(o.qid, it.qid));
   // And only an answer that clearly leans that way: a half-weight side note (음성 메시지 → '핸들을 쥐고 싶다') overreaches.
   const other = all
-    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && o.qid !== COLOR_Q && Math.abs(o.w[t] ?? 0) >= 1 && times(o) < 1 && comparable(o))
+    .filter((o) => o.qid !== it.qid && !o.unknown && !o.r.unread && !COLOR_QS.has(o.qid) && Math.abs(o.w[t] ?? 0) >= 1 && times(o) < 1 && comparable(o))
     .sort((a, b) => times(a) - times(b) || Number(sameScene(b.qid, it.qid)) - Number(sameScene(a.qid, it.qid)) || Math.abs(b.w[t] ?? 0) - Math.abs(a.w[t] ?? 0))[0];
   if (!other) return null;
   const same = sign(other.w[t] ?? 0) === s;
@@ -227,7 +227,7 @@ function enriched(set: AnswerSet, it: Item, all: Item[], short: (m: string) => s
   const dom = dominant(it.w);
   // Symbols (seat, dream, weather) and comforting someone else are read on their own: tying them to "the kind of
   // lover you are" overreaches (안아 주는 건 내 감정 표현이 아니라 상대를 받아 주는 거다).
-  if (dom && it.qid !== COLOR_Q && !SELF_CONTAINED.has(SCENE[it.qid])) {
+  if (dom && !COLOR_QS.has(it.qid) && !SELF_CONTAINED.has(SCENE[it.qid])) {
     const [t, v] = dom;
     const s = sign(v);
     const prof = set.aboutPartner ? null : profileLine(set, it, t, s, memo);
@@ -284,7 +284,7 @@ export function decodeBullets(set: AnswerSet, short: (m: string) => string): str
 
 const strongest = (set: AnswerSet, n: number) =>
   items(set)
-    .filter((it) => !it.unknown && it.qid !== COLOR_Q && dominant(it.r.w))
+    .filter((it) => !it.unknown && !COLOR_QS.has(it.qid) && dominant(it.r.w))
     .sort((a, b) => weightOf(b.r.w) - weightOf(a.r.w))
     .slice(0, n);
 const weightOf = (w: Weights) => Object.values(w).reduce((s, v) => s + Math.abs(v ?? 0), 0) + (Object.keys(w).some((k) => ["linger", "jealous", "doubt"].includes(k)) ? 1 : 0);
@@ -380,7 +380,7 @@ export function crossCombos(me: AnswerSet, partner: AnswerSet, max = 3): string[
  */
 export function traitEvidence(set: AnswerSet): Record<AxisKey, string> {
   // The colour pick has weights but quoting it ('빨강' 보면 직진형) reads oddly as evidence.
-  const list = items(set).filter((it) => !it.unknown && !it.r.unread && it.qid !== COLOR_Q);
+  const list = items(set).filter((it) => !it.unknown && !it.r.unread && !COLOR_QS.has(it.qid));
   const mbti = set.person.mbti.toUpperCase();
   const q = (it: Item) => `'${it.label}'`;
   const out = {} as Record<AxisKey, string>;

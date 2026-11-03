@@ -1,7 +1,18 @@
 import "server-only";
 import type { AxisKey, Mode, RelationshipStatus } from "@/models/types";
 import { COUPLE_IDS, PARTNER_IDS } from "@/lib/interview";
-import { BREAKUP_DECODE, CRUSH_DECODE, PARTNER_BREAKUP_DECODE, PARTNER_CRUSH_DECODE, SLUMP_DECODE } from "./decodeByStatus";
+import {
+  BREAKUP_DECODE,
+  BREAKUP_MORE,
+  CRUSH_DECODE,
+  CRUSH_MORE,
+  PARTNER_BREAKUP_DECODE,
+  PARTNER_CRUSH_DECODE,
+  PARTNER_CRUSH_MORE,
+  PARTNER_SLUMP_DECODE,
+  SLUMP_DECODE,
+  SLUMP_MORE,
+} from "./decodeByStatus";
 
 // Server-only: how each interview answer is scored and what 냥신 reads from it.
 // Weights: positive = the axis's first pole (G 직진 / E 표현 / F 직면 / A 확인).
@@ -345,7 +356,7 @@ export const PARTNER_DECODE: Record<string, Decoded> = {
   },
 };
 
-const PARTNER_POOL = { ...PARTNER_DECODE, ...PARTNER_CRUSH_DECODE, ...PARTNER_BREAKUP_DECODE };
+const PARTNER_POOL = { ...PARTNER_DECODE, ...PARTNER_CRUSH_DECODE, ...PARTNER_CRUSH_MORE, ...PARTNER_SLUMP_DECODE, ...PARTNER_BREAKUP_DECODE };
 const PARTNER_BY_STATUS = Object.fromEntries(
   (Object.keys(PARTNER_IDS) as RelationshipStatus[]).map((st) => [st, Object.fromEntries(PARTNER_IDS[st].map((id) => [id, PARTNER_POOL[id]]))]),
 ) as Record<RelationshipStatus, Record<string, Decoded>>;
@@ -521,7 +532,16 @@ const pickDecode = (pool: Record<string, Decoded>, ids: string[]) => Object.from
 
 /** Keys and order mirror SOLO_INTERVIEW and COUPLE_IDS in lib/interview.ts. */
 export const SOLO_DECODE = pickDecode({ ...BASE_DECODE, ...SOLO_ONLY_DECODE }, ["s1", "s2", "s3", "n1", "s4", "n2", "s6", "s7", "n3", "s10", "n4", "s12", "s13", "s14"]);
-const COUPLE_POOL = { ...BASE_DECODE, ...COUPLE_ONLY_DECODE, ...CRUSH_DECODE, ...SLUMP_DECODE, ...BREAKUP_DECODE };
+const COUPLE_POOL = {
+  ...BASE_DECODE,
+  ...COUPLE_ONLY_DECODE,
+  ...CRUSH_DECODE,
+  ...CRUSH_MORE,
+  ...SLUMP_DECODE,
+  ...SLUMP_MORE,
+  ...BREAKUP_DECODE,
+  ...BREAKUP_MORE,
+};
 const COUPLE_BY_STATUS = Object.fromEntries(
   (Object.keys(COUPLE_IDS) as RelationshipStatus[]).map((st) => [st, pickDecode(COUPLE_POOL, COUPLE_IDS[st])]),
 ) as Record<RelationshipStatus, Record<string, Decoded>>;
@@ -552,6 +572,9 @@ export const HIDDEN_READING: Record<HiddenKey, Record<"high" | "mid" | "low", st
 };
 
 /** Color pick (s6) vs the user's saju. */
+/** The colour question of each interview (the same five 오행 options): 지금 떠오르는 색 · {p}의 색 · 둘 사이에 칠하고 싶은 색 · 그 시간의 색. */
+export const COLOR_QS = new Set(["s6", "hc", "kc", "bc"]);
+
 export const COLOR_VS_SAJU = {
   lacking: "근데 소름 돋는 게 뭔지 아냥? 이게 네 사주 여덟 글자에 제일 부족한 기운이다냥. 무의식이 모자란 걸 알고 먼저 손을 뻗은 거다냥.",
   strongest: "근데 이건 네 사주에 이미 제일 많은 기운이다냥. 익숙한 것만 고르는 버릇, 연애에서도 똑같이 나온다냥. 늘 비슷한 사람한테 끌리지?",
