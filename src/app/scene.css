@@ -11,7 +11,16 @@
 
 .backdrop {
   position: fixed;
-  inset: 0;
+  /* Sized to the largest viewport, not inset: 0: phones resize the viewport as the address bar slides in and out
+     while scrolling, and a backdrop that followed would re-lay out (candles and altar jumping) on every slide. */
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: 100lvh;
+  /* its repaints stay inside it, and it rides on its own layer while the page scrolls over it */
+  contain: strict;
+  transform: translateZ(0);
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
@@ -460,4 +469,14 @@
   .drip { width: 3px; }
   .cd-2 { left: 26px; }
   .cd-3 { right: 26px; }
+  /* Frosted glass re-blurs the animated room under it on every scroll frame, which phones show as flicker and
+     torn tiles: a darker plain veil instead. Blending a seal into what's behind it does the same. */
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .bg-black\/60.backdrop-blur-sm { background-color: rgb(0 0 0 / 0.78); }
+  .seal { mix-blend-mode: normal; }
 }

@@ -3,9 +3,10 @@
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { cardParam, friendCardUrl, handoffUrl, inAppBrowser, openExternally } from "@/lib/handoff";
+import { bujeokOf, drawBujeok } from "@/lib/bujeok";
 import { drawStoryImage } from "@/lib/storyImage";
 import { isFortuneCard, type ShareableCard } from "@/models/types";
-import { gameUrl, isMobile, shareRef, shareService, shareUrl, type ShareOutcome } from "@/services/shareService";
+import { gameUrl, isMobile, shareRef, shareService, shareUrl, siteUrl, type ShareOutcome } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { ShareCard } from "./ShareCard";
 
@@ -23,9 +24,32 @@ interface Props {
   tapToShare?: boolean;
   /** a mini game's card: the friend's "나도 해 보기" opens that game */
   game?: string;
+  /** just the two buttons (a mini game, whose result is already on screen): no heading, no card preview */
+  compact?: boolean;
+  /** what the KakaoTalk card says, when the default wording doesn't fit (mini games) */
+  kakao?: { title: string; description: string };
+  kakaoLabel?: string;
+  instaLabel?: string;
 }
 
-export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = false, game }: Props) {
+/** The Instagram story picture: the 합격 부적 itself for a 부적 card, the talisman card for everything else. */
+function drawStory(card: ShareableCard, me: string, partner: string): Promise<Blob> {
+  const charm = isFortuneCard(card) ? bujeokOf(card, me, siteUrl()) : null;
+  return charm ? drawBujeok(charm) : drawStoryImage(card, me, partner);
+}
+
+export function ShareButtons({
+  teaser,
+  myName,
+  partnerName,
+  toast,
+  tapToShare = false,
+  game,
+  compact = false,
+  kakao,
+  kakaoLabel = "카카오톡으로 점괘 전하기",
+  instaLabel = "인스타 스토리에 점괘 걸기",
+}: Props) {
   const input = useAppStore((s) => s.input);
   const story = useRef<Blob | null>(null);
   const drawing = useRef<Promise<Blob | null> | null>(null);
@@ -42,7 +66,7 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
     let url: string | null = null;
     const t = setTimeout(
       () => {
-        drawing.current = drawStoryImage(teaser, myName, partnerName)
+        drawing.current = drawStory(teaser, myName, partnerName)
           .then((b) => {
             if (alive) {
               story.current = b;
@@ -63,7 +87,9 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
     };
   }, [teaser, myName, partnerName, tapToShare]);
 
-  const shareText = isFortuneCard(teaser)
+  const shareText = kakao
+    ? kakao
+    : isFortuneCard(teaser)
     ? { title: `냥신 점집 🕯️ ${teaser.label}`, description: `${teaser.emoji} ${teaser.headline} — 소름 돋게 잘 맞아 😳 너도 봐 봐!` }
     : {
         title: `냥신이 본 ${myName}의 연애 유형: ${teaser.myType.name} ${teaser.myType.emoji}`,
@@ -100,12 +126,16 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
   };
 
   return (
-    <section className="mt-10">
-      <h2 className="mb-1 text-[20px]">📜 이 점괘, 혼자 보기 아깝다냥</h2>
-      <p className="mb-4 text-sm text-muted">친구 팔자도 궁금하지? 점괘 한 장 건네 봐라냥</p>
-      <ShareCard teaser={teaser} myName={myName} partnerName={partnerName} />
+    <section className={compact ? "" : "mt-10"}>
+      {!compact && (
+        <>
+          <h2 className="mb-1 text-[20px]">📜 이 점괘, 혼자 보기 아깝다냥</h2>
+          <p className="mb-4 text-sm text-muted">친구 팔자도 궁금하지? 점괘 한 장 건네 봐라냥</p>
+          <ShareCard teaser={teaser} myName={myName} partnerName={partnerName} />
+        </>
+      )}
 
-      <div className="mt-5 space-y-3">
+      <div className={compact ? "space-y-2.5" : "mt-5 space-y-3"}>
         <button
           onClick={() => {
             // the friend gets this very card: its picture in the chat, and the link opens it (then their own reading)
@@ -116,24 +146,24 @@ export function ShareButtons({ teaser, myName, partnerName, toast, tapToShare = 
                 url: card,
                 image: `${window.location.origin}/api/share/card?c=${cardParam(teaser, myName, partnerName)}`,
                 buttons: [
-                  { title: "점괘 카드 보기", url: card },
+                  { title: game ? "결과 카드 보기" : "점괘 카드 보기", url: card },
                   { title: game ? "나도 해 보기" : "나도 보기", url: game ? gameUrl(game) : shareUrl() },
                 ],
               }),
             );
           }}
-          className="share-plaque share-kakao w-full py-4 transition active:scale-[0.98]"
+          className={`share-plaque share-kakao w-full ${compact ? "py-3.5" : "py-4"} transition active:scale-[0.98]`}
         >
           <span className="share-icon bg-[#fee500] text-[#191919]">💬</span>
-          카카오톡으로 점괘 전하기
+          {kakaoLabel}
         </button>
         <button
           onClick={onInsta}
           disabled={isMobileSafe() && !ready}
-          className="share-plaque share-insta w-full py-4 transition active:scale-[0.98] disabled:opacity-60"
+          className={`share-plaque share-insta w-full ${compact ? "py-3.5" : "py-4"} transition active:scale-[0.98] disabled:opacity-60`}
         >
           <span className="share-icon bg-gradient-to-tr from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">📸</span>
-          {isMobileSafe() && !ready ? "점괘 카드 그리는 중…" : "인스타 스토리에 점괘 걸기"}
+          {isMobileSafe() && !ready ? "카드 그리는 중…" : instaLabel}
         </button>
         <p className="text-center text-[12px] text-muted">폰: 공유 창에서 Instagram → 스토리 · PC: QR을 폰으로 찍어 이어서 올리기</p>
       </div>

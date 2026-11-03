@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BLOOD_EXAM, BLOOD_LOVE } from "@/lib/blood";
-import { drawBujeok } from "@/lib/bujeok";
+import { bujeokCard, drawBujeok } from "@/lib/bujeok";
 import { CONTACT, CONTACT_Q, POSITIONS, type ContactQ, verdictOf } from "@/lib/contactTarot";
 import { checkIn, contactToday, saveContact, saveTarot, tarotToday } from "@/lib/daily";
 import { STREAK_COINS, STREAK_EVERY } from "@/lib/config";
@@ -12,8 +12,8 @@ import { TAROT, tarotPair } from "@/lib/tarot";
 import type { FortuneStoryCard, Mode } from "@/models/types";
 import { checkinApi, dailyApi, todayApi, type DailyFortuneResponse, type ExamDayResponse, type IljuResponse, type TodayFortuneResponse, type ZodiacTodayResponse } from "@/services/apiClient";
 import { useBack } from "@/lib/back";
-import { cardParam, friendCardUrl } from "@/lib/handoff";
-import { gameUrl, shareRef, shareService, shareUrl, siteUrl } from "@/services/shareService";
+import { inAppBrowser } from "@/lib/handoff";
+import { isMobile, shareService, siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { type BasicInfo, InfoGate, useSavedInfo } from "./InfoGate";
@@ -21,11 +21,12 @@ import { Say } from "./Nyang";
 import { ShareButtons } from "./ShareButtons";
 
 /**
- * KakaoTalk share (the friend / chat picker; a Kakao popup on PC). The SDK is readied on mount so the popup opens
- * straight from the tap. Without the SDK it falls back to the share sheet on phones, or copying the link on PC.
+ * A mini game's result, shared: KakaoTalk (its card in the chat; the friend's link opens it, then the same game) and
+ * Instagram story (the card drawn 9:16; on PC a QR carries it to the phone).
  */
-function KakaoShareButton({
+function GameShare({
   label,
+  instaLabel = "인스타 스토리에 결과 걸기",
   title,
   description,
   card,
@@ -33,6 +34,7 @@ function KakaoShareButton({
   game,
 }: {
   label: string;
+  instaLabel?: string;
   title: string;
   description: string;
   /** the result as a card: its picture goes in the chat, and the friend's link opens it */
@@ -41,34 +43,25 @@ function KakaoShareButton({
   game: MiniGame;
 }) {
   const [note, setNote] = useState<string | null>(null);
-  useEffect(() => {
-    shareService.prepareKakao().catch(() => {});
-  }, []);
+  // the card is rebuilt on every render; keep one object per content, so its story image is drawn once
+  const key = JSON.stringify(card);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stable = useMemo(() => card, [key]);
   return (
-    <>
-      <button
-        onClick={() =>
-          shareService
-            .shareKakao({
-              title,
-              description,
-              url: friendCardUrl(card, me, "", shareRef(), game),
-              image: `${window.location.origin}/api/share/card?c=${cardParam(card, me, "")}`,
-              buttons: [
-                { title: "결과 카드 보기", url: friendCardUrl(card, me, "", shareRef(), game) },
-                { title: "나도 해 보기", url: gameUrl(game) },
-              ],
-            })
-            .then((o) => o === "copied" && setNote("카톡 공유 창을 못 열어서 링크를 복사했다냥. 붙여넣어서 보내라냥 📋"))
-            .catch(() => setNote("공유를 못 했다냥. 다시 눌러라냥"))
-        }
-        className="share-plaque share-kakao w-full py-3.5 transition active:scale-[0.98]"
-      >
-        <span className="share-icon bg-[#fee500] text-[#191919]">💬</span>
-        {label}
-      </button>
-      {note && <p className="fade-up -mt-2 text-center text-xs text-peach">{note}</p>}
-    </>
+    <div>
+      <ShareButtons
+        compact
+        teaser={stable}
+        myName={me}
+        partnerName=""
+        game={game}
+        kakao={{ title, description }}
+        kakaoLabel={label}
+        instaLabel={instaLabel}
+        toast={setNote}
+      />
+      {note && <p className="fade-up mt-2 text-center text-xs text-peach">{note}</p>}
+    </div>
   );
 }
 
@@ -153,7 +146,7 @@ function DailyFortune({ onStart }: { onStart: () => void }) {
           {BLOOD_LOVE[info.blood]}
         </p>
       )}
-      <KakaoShareButton
+      <GameShare
         label="카카오톡으로 연애운 보내기"
         title={`냥신 오늘의 연애운 · ${info.name} ${result.score}점`}
         description={`${result.title} 🕯️ 너도 봐 봐!`}
@@ -239,7 +232,7 @@ function NameMatch({ onStart }: { onStart: () => void }) {
                 <span className="text-gradient">{result.score}%</span>
               </p>
               <Say mood={result.score >= 75 ? "wow" : result.score >= 40 ? "smug" : "happy"}>{nameCompatComment(result.score)}</Say>
-              <KakaoShareButton
+              <GameShare
                 label="카카오톡으로 궁합 결과 보내기"
                 title={`냥신 이름 궁합 · ${a} ♥ ${b} ${result.score}%`}
                 description={`${nameCompatComment(result.score)} 너도 해 봐!`}
@@ -478,7 +471,7 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
         <span className="rounded-full bg-violet/10 px-3 py-1.5">🔢 {result.number}</span>
         <span className="rounded-full bg-violet/10 px-3 py-1.5">⏰ {result.time}</span>
       </div>
-      <KakaoShareButton
+      <GameShare
         label="카카오톡으로 오늘 운세 보내기"
         title={`냥신 오늘의 운세 · ${info.name} ${result.score}점`}
         description={`${result.title} 🕯️ 너도 봐 봐!`}
@@ -598,7 +591,7 @@ function TarotDraw({ onStart }: { onStart: (mode?: Mode) => void }) {
       {pair && cards && (
         <>
           <p className="text-center text-[13px] text-muted">내일 다시 오면 새 카드를 뽑을 수 있다냥.</p>
-          <KakaoShareButton
+          <GameShare
             label="카카오톡으로 내 카드 보내기"
             title={`냥신 오늘의 타로 · ${pair.title}`}
             description={`'${TAROT[cards[0]].name}' + '${TAROT[cards[1]].name}' 🃏 너도 뽑아 봐!`}
@@ -636,6 +629,39 @@ function animalOf(date: string): string | null {
   return Object.keys(ZODIAC_EMOJI)[(((year - 4) % 12) + 12) % 12];
 }
 
+/** Today's 띠 ranking as a card: the top three, and the sharer's own 띠 when it's known. */
+function ZodiacShare({ data, mine, me }: { data: ZodiacTodayResponse; mine: string | null; me: string }) {
+  const ranked = [...data.list].sort((a, b) => b.score - a.score);
+  const top = ranked[0];
+  const own = mine ? ranked.find((z) => z.animal === mine) : undefined;
+  const rank = own ? ranked.indexOf(own) + 1 : 0;
+  const podium = ranked
+    .slice(0, 3)
+    .map((z, i) => `${["🥇", "🥈", "🥉"][i]} ${z.animal}띠 ${z.score}점`)
+    .join(" · ");
+  return (
+    <GameShare
+      label="카카오톡으로 띠별 운세 보내기"
+      instaLabel="인스타 스토리에 띠별 운세 걸기"
+      title={own ? `오늘 ${own.animal}띠 ${own.score}점, 12띠 중 ${rank}위 🐾` : `오늘의 띠별 운세 1위는 ${top.animal}띠 🐾`}
+      description={`${podium} · 네 띠는 몇 위냥?`}
+      me={me}
+      game="zodiac"
+      card={{
+        kind: "fortune",
+        label: `${data.date} 띠별 운세`,
+        emoji: ZODIAC_EMOJI[(own ?? top).animal] ?? "🐾",
+        headline: own ? `${own.animal}띠 ${rank}위 · ${own.score}점` : `1위 ${top.animal}띠 · ${top.score}점`,
+        // first sentence only: the card has room for one line of it
+        sub: (own ?? top).line.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? (own ?? top).line,
+        meta: `${data.date} · ${data.ganji}`,
+        slipLabel: "오늘의 1~3위",
+        slipText: podium,
+      }}
+    />
+  );
+}
+
 function ZodiacList({ onStart }: { onStart: (mode?: Mode) => void }) {
   const saved = useSavedInfo();
   const birth = useAppStore((st) => st.me?.profile?.birthdate || st.input.me.birthdate);
@@ -668,6 +694,7 @@ function ZodiacList({ onStart }: { onStart: (mode?: Mode) => void }) {
           </li>
         ))}
       </ul>
+      <ZodiacShare data={data} mine={mine} me={saved?.name ?? ""} />
       <button onClick={() => onStart("daeun")} className="btn-primary w-full py-4">
         내 인생 대운 흐름 보기 🌊
       </button>
@@ -925,7 +952,7 @@ function ContactTarot({ onStart }: { onStart: (mode?: Mode) => void }) {
       )}
       {cards && shown >= 3 && verdict && (
         <>
-          <KakaoShareButton
+          <GameShare
             label="카카오톡으로 결과 보내기"
             title={`냥신 할까? 말까? · ${question.label}`}
             description={`냥신의 답: ${question.verdict[verdict]} 🃏 너도 물어봐!`}
@@ -1001,16 +1028,23 @@ function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
       setBusy(false);
     }
   };
+  // PC: straight to a download (the OS share sheet there opened nothing useful). Phone: the share sheet, whose
+  // "이미지 저장" puts it in the photos; an in-app browser can't do either, so long-press the picture instead.
   const save = () => {
     if (!img) return;
-    shareService.shareStory(img.blob).then((o) => {
-      if (o === "shared" || o === "cancelled") return;
-      // PC / no share sheet: download the PNG instead.
+    const download = () => {
       const a = document.createElement("a");
       a.href = img.url;
-      a.download = `냥신-합격부적-${name || "나"}.png`;
+      a.download = "nyang-bujeok.png"; // ASCII: some browsers drop a Korean download name
+      document.body.appendChild(a);
       a.click();
+      a.remove();
       setNote("부적을 저장했다냥! 배경화면으로 써라냥 🧧");
+    };
+    if (!isMobile()) return download();
+    if (inAppBrowser()) return setNote("이 앱 안에서는 저장 버튼이 막혀 있다냥. 위 부적을 꾹 눌러서 '이미지 저장'을 골라라냥 📌");
+    shareService.shareStory(img.blob).then((o) => {
+      if (o === "unsupported") download();
     });
   };
 
@@ -1073,9 +1107,18 @@ function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
     <div className="space-y-4">
       <img src={img.url} alt={`${name}의 합격 부적`} className="chip-pop mx-auto w-[72%] rounded-xl shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9)]" />
       <button onClick={save} className="btn-primary w-full py-4">
-        부적 저장 · 공유하기 🧧
+        💾 부적 이미지 저장
       </button>
       {note && <p className="fade-up -mt-2 text-center text-xs text-peach">{note}</p>}
+      <GameShare
+        label="카카오톡으로 부적 보내기"
+        instaLabel="인스타 스토리에 부적 걸기"
+        title={`🧧 ${name}의 ${exam} 합격 부적`}
+        description={`냥신이 직접 써 준 부적이다냥. 시험날 ${result.date}, 붙고 와라냥!`}
+        me={name}
+        game="exam"
+        card={bujeokCard({ name, exam, dateLabel: result.date, ganji: result.ganji }, result.tip)}
+      />
       <div className="rounded-3xl border border-line bg-white/[0.03] p-5">
         <p className="text-[13px] text-muted">
           시험날 {result.date} · {result.ganji}

@@ -36,10 +36,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="stylesheet" crossOrigin="anonymous" href="https://fonts.googleapis.com/css2?family=Song+Myung&display=swap" />
+        {/* Chrome may offer the install (홈 화면에 추가) before the app has drawn: keep it for the install card. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__nyangInstall=e;window.dispatchEvent(new Event("nyang-installable"))});',
+          }}
+        />
       </head>
       <body className="min-h-full">
-        {/* Mobile-first: everything lives in a 480px column centered on desktop */}
-        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[480px] flex-col">{children}</div>
+        {/* Mobile-first: everything lives in a 480px column centered on desktop. min-h-svh, not dvh: a dynamic height
+            changes while the address bar slides during a scroll, and the whole page re-laid out with it. */}
+        <div className="relative z-10 mx-auto flex min-h-svh w-full max-w-[480px] flex-col">{children}</div>
       </body>
     </html>
   );

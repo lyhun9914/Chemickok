@@ -2,6 +2,8 @@
  * 냥신 합격 부적: a 1080×1920 image (phone wallpaper / Instagram story) drawn on a canvas — yellow 괴황지 paper,
  * 경면주사 red strokes, 合格 in the middle, the name and exam, and a 냥신 seal. Drawn locally; nothing is uploaded.
  */
+import type { FortuneStoryCard } from "@/models/types";
+
 const W = 1080;
 const H = 1920;
 const RITUAL = "'Song Myung', 'Nanum Myeongjo', serif";
@@ -14,6 +16,30 @@ export interface BujeokInput {
   dateLabel: string; // "11월 19일 (목)"
   ganji: string; // "계유일"
   site: string;
+}
+
+/** Marks a share card as a 합격 부적, so the story image is the 부적 itself (here or on the phone a QR hands it to). */
+const BUJEOK_META = "猫神合格符 · 냥신 합격 부적";
+
+/** The 부적 as a share card: what the KakaoTalk picture and the friend's link show. */
+export function bujeokCard(b: Omit<BujeokInput, "site">, tip: string): FortuneStoryCard {
+  return {
+    kind: "fortune",
+    label: `${b.name}의 합격 부적`,
+    emoji: "🧧",
+    headline: `${b.exam} 합격 기원`,
+    sub: `시험날 ${b.dateLabel} · ${b.ganji}`,
+    meta: BUJEOK_META,
+    slipLabel: "냥신의 한 수",
+    slipText: tip,
+  };
+}
+
+/** Reads a 부적 back from its share card; null for any other card. */
+export function bujeokOf(card: FortuneStoryCard, name: string, site: string): BujeokInput | null {
+  if (card.meta !== BUJEOK_META) return null;
+  const [dateLabel, ganji] = card.sub.replace(/^시험날 /, "").split(" · ");
+  return { name, exam: card.headline.replace(/ 합격 기원$/, ""), dateLabel: dateLabel ?? "", ganji: ganji ?? "", site };
 }
 
 /** Talisman scribbles: loose brush curves that wrap the characters, seeded so the same name draws the same 부적. */
