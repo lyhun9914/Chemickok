@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SITE } from "@/lib/site";
 import { devLoginEnabled, getDb } from "@/services/server/db";
 import { REF_COOKIE, giftNewUser, giftQuery } from "@/services/server/gifts";
 import { authorizeUrl, enabledProviders, isProvider } from "@/services/server/oauth";
@@ -9,6 +10,16 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/auth/[provid
   const { provider } = await ctx.params;
   const next = req.nextUrl.searchParams.get("next") === "pay" ? "pay" : "";
   const back = (q: string) => NextResponse.redirect(new URL(`/?${q}${next ? `&next=${next}` : ""}`, req.url));
+  // Kakao · Naver · Google only send people back to the callback address registered for the site (else KOE006 and
+  // the like). Started on another address of this project (a branch or single-deployment URL), the login goes
+  // through the site's own address instead, and ends there.
+  // (the Host the browser asked for: nextUrl's host can be the server's own name)
+  const home = new URL(SITE);
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (process.env.VERCEL && host && host !== home.host) {
+    return NextResponse.redirect(new URL(req.nextUrl.pathname + req.nextUrl.search, home));
+  }
+
   const db = getDb();
   if (!db || !authConfigured()) return back("login=off");
 
