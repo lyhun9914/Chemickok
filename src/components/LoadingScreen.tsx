@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { unanswered } from "@/lib/answers";
 import { isFortune } from "@/lib/config";
 import { josa } from "@/lib/josa";
 import type { FortuneMode } from "@/models/types";
@@ -19,10 +20,12 @@ const FORTUNE_LINES: Record<FortuneMode, (p: string) => string[]> = {
 };
 
 export function LoadingScreen() {
-  const { input, setTeaser, setScreen, setError, error } = useAppStore();
+  const { input, setTeaser, setScreen, setError, error, startInterview } = useAppStore();
+  const preset = useAppStore((s) => s.preset);
   const [idx, setIdx] = useState(0);
   const [progress, setProgress] = useState(0);
-  const started = useRef(false);
+  const [attempt, setAttempt] = useState(0);
+  const started = useRef(-1);
 
   const solo = input.mode === "solo";
   const fortune = isFortune(input.mode);
@@ -52,8 +55,8 @@ export function LoadingScreen() {
   }, [messages.length]);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
+    if (started.current === attempt) return;
+    started.current = attempt;
     const minWait = new Promise((r) => setTimeout(r, MIN_DURATION_MS));
     const request = isFortune(input.mode)
       ? api.fortune(input).then((res) => () => useAppStore.getState().setFortune(res.teaser, res.inputHash))
@@ -79,16 +82,55 @@ export function LoadingScreen() {
         setTimeout(show, 300);
       })
       .catch((e: Error) => setError(e.message));
-  }, [input, setTeaser, setError]);
+  }, [input, setTeaser, setError, attempt]);
 
   if (error) {
+    // Answers kept from before the questions changed (a tab opened before an update, or this browser session):
+    // the server can't read them, and sending them again would fail the same way. Pick up at the changed ones.
+    const missing = unanswered(input).length;
+    if (missing) {
+      return (
+        <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <Nyang mood="wow" size={100} />
+          <p className="mt-4 font-semibold">그사이 질문이 바뀌었다냥</p>
+          <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-muted">
+            냥신이 질문을 더 꼼꼼하게 고쳤다냥. 그대로인 답은 남겨 뒀으니, 바뀐 질문 {missing}개만 답하면 된다냥.
+          </p>
+          <button onClick={() => setScreen("form")} className="btn-primary mt-6 px-8 py-3">
+            바뀐 질문 답하기
+          </button>
+        </main>
+      );
+    }
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         <Nyang mood="wow" size={100} />
         <p className="mt-4 font-semibold">점괘가 흐려졌다냥… 다시 해 보자냥</p>
-        <p className="mt-2 text-sm text-muted">{error}</p>
-        <button onClick={() => setScreen("form")} className="btn-primary mt-6 px-8 py-3">
+        <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-muted">
+          {/* the browser's own network errors ("Failed to fetch", "Load failed") aren't worth showing as they are */}
+          {/[가-힣]/.test(error) ? error : "연결이 잠깐 끊겼다냥. 다시 시도해 보자냥."}
+        </p>
+        <button
+          onClick={() => {
+            setError(null);
+            setProgress(0);
+            setIdx(0);
+            setAttempt((a) => a + 1);
+          }}
+          className="btn-primary mt-6 px-8 py-3"
+        >
           다시 시도하기
+        </button>
+        <button
+          onClick={() => startInterview({
+              mode: preset.mode ? input.mode : undefined,
+              me: preset.me ? input.me : null,
+              status: preset.status ? input.status : undefined,
+              pair: useAppStore.getState().pair ?? undefined,
+            })}
+          className="mt-3 text-sm text-muted underline underline-offset-4"
+        >
+          처음부터 다시 하기
         </button>
       </main>
     );

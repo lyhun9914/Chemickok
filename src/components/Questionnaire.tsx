@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { answers } from "@/lib/answers";
 import { useBack } from "@/lib/back";
 import { UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, koreanAge, optionsForAge, partnerInterview, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
@@ -321,6 +322,27 @@ function reactsOf(t: Turn, i: QuestionnaireInput): ReturnType<typeof n>[] {
   }
 }
 
+/**
+ * The first turn from `from` on whose answer the server won't take. Normally that's the current one; after an
+ * update changed the questions (a tab opened before it, or answers kept in this browser session) it is the first
+ * question that changed, and the interview picks up there instead of at the end.
+ */
+function firstGap(turns: Turn[], i: QuestionnaireInput, from = 0): number {
+  for (let k = from; k < turns.length; k++) {
+    const t = turns[k];
+    const gap =
+      t.kind === "q"
+        ? !answers(t.q, (t.part === "self" ? i.self : i.partnerObs)?.[t.q.id], !isFortune(i.mode))
+        : t.kind === "name"
+          ? !i.me.name.trim()
+          : t.kind === "birth"
+            ? !i.me.birthdate
+            : t.kind === "pname" && !i.partner.name.trim();
+    if (gap) return k;
+  }
+  return -1;
+}
+
 function buildThread(turns: Turn[], step: number, input: QuestionnaireInput, ctx: Ctx): { msgs: Msg[]; askStart: number } {
   const msgs: Msg[] = [];
   const push = (key: string, m: ReturnType<typeof n>) => msgs.push({ key, who: "nyang", ...m });
@@ -496,7 +518,7 @@ const delayFor = (m: Msg) => (m.who === "me" ? 140 : Math.min(420 + m.text.lengt
 
 export function Questionnaire() {
   const s = useAppStore();
-  const { step, setStep, setScreen, input } = s;
+  const { step: storedStep, setStep, setScreen, input } = s;
   const profile = useAppStore((st) => st.me?.profile);
   const preset = useAppStore((st) => st.preset);
   // Skip the info questions only when the interview actually holds the 기본 정보 (saved profile or carried over).
@@ -509,6 +531,14 @@ export function Questionnaire() {
     () => turnsFor(input.mode, input.status, saved, askBlood, Boolean(preset.status)),
     [input.mode, input.status, saved, askBlood, preset.status],
   );
+  // Every turn before the current one is answered, unless the questions changed under a kept interview: then it
+  // goes back to the first one that changed, and from there asks only the questions whose answers no longer fit.
+  const gap = useMemo(() => firstGap(turns, input), [turns, input]);
+  const step = gap >= 0 && gap < storedStep ? gap : storedStep;
+  const [resuming] = useState(() => step < storedStep);
+  useEffect(() => {
+    if (step !== storedStep) setStep(step);
+  }, [step, storedStep, setStep]);
   const cur = turns[Math.min(step, turns.length - 1)];
   const { msgs, askStart } = useMemo(
     () => buildThread(turns, Math.min(step, turns.length - 1), input, { saved, modeKnown }),
@@ -521,7 +551,8 @@ export function Questionnaire() {
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (step < prevStep.current) setRevealed(askStart);
+    // going back, or skipping questions that are still answered: what came before shows at once
+    if (step < prevStep.current || step > prevStep.current + 1) setRevealed(askStart);
     prevStep.current = step;
   }, [step, askStart]);
 
@@ -543,7 +574,10 @@ export function Questionnaire() {
   useBack(true, () => (leaving ? setLeaving(false) : step > 1 ? setLeaving(true) : setScreen("landing")));
   const advance = () => {
     flareCandles();
-    setStep(step + 1);
+    if (!resuming) return setStep(step + 1);
+    // picking up a changed interview: on to the next question that needs an answer (the store already holds this one)
+    const next = firstGap(turns, useAppStore.getState().input, step + 1);
+    setStep(next >= 0 ? next : turns.length - 1);
   };
   // Each step pulls the camera a little closer to the altar (see Backdrop).
   useEffect(() => {
