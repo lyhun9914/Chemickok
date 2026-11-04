@@ -32,6 +32,21 @@ export function ErrorsPanel({ onCount }: { onCount?: (n: number) => void }) {
   const [mail, setMail] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mailNote, setMailNote] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const testMail = async () => {
+    setSending(true);
+    setMailNote(null);
+    try {
+      const r = await fetch("/api/admin/errors", { method: "POST" });
+      const b = await r.json().catch(() => ({}));
+      setMailNote(r.ok ? `✅ ${b.to}로 테스트 메일을 보냈어요. 메일함(안 보이면 스팸함)을 확인하세요.` : `⚠️ ${b.error ?? "보내지 못했어요"}`);
+    } catch {
+      setMailNote("⚠️ 보내지 못했어요");
+    }
+    setSending(false);
+  };
 
   const load = useCallback(async () => {
     try {
@@ -74,6 +89,10 @@ export function ErrorsPanel({ onCount }: { onCount?: (n: number) => void }) {
         손님 화면·결제·로그인에서 난 오류가 자동으로 쌓여요.{" "}
         {mail ? "새로운 종류가 생기면 관리자 메일로도 알려 드려요." : "ADMIN_EMAIL을 넣으면 새로운 오류가 생길 때 메일로도 받아요 (GUIDE.md)."}
       </p>
+      <button onClick={testMail} disabled={sending} className="mt-2 rounded-xl border border-line px-3 py-1.5 text-[12.5px] disabled:opacity-50">
+        {sending ? "보내는 중…" : "✉️ 테스트 메일 보내기"}
+      </button>
+      {mailNote && <p className="mt-1.5 text-[12.5px] leading-relaxed text-peach">{mailNote}</p>}
       {error && <p className="mt-2 text-[13px] text-pink">{error}</p>}
       {!list ? (
         <p className="py-4 text-center text-[13px] text-muted">불러오는 중…</p>
