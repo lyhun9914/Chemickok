@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
 import "./globals.css";
+import { ErrorReporter } from "@/components/ErrorReporter";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Mobile-first: everything lives in a 480px column centered on desktop. min-h-svh, not dvh: a dynamic height
             changes while the address bar slides during a scroll, and the whole page re-laid out with it. */}
         <div className="relative z-10 mx-auto flex min-h-svh w-full max-w-[480px] flex-col">{children}</div>
+        <ErrorReporter />
       </body>
     </html>
   );

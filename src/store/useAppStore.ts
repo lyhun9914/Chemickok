@@ -6,6 +6,7 @@ import type { StoryShare } from "@/lib/handoff";
 import { isFortune } from "@/lib/config";
 import { accountApi, type LoginProvider, type Me, type PairView, type SavedReading } from "@/services/apiClient";
 import { setShareRef } from "@/services/shareService";
+import { newId, track } from "@/lib/track";
 import type {
   FortuneTeaser,
   FullReport,
@@ -51,6 +52,8 @@ interface AppState {
   pairView: PairView | null;
   /** opened from a link (?pair= · ?present= · ?game=): the landing opens the matching sheet once */
   deepLink: { pair?: string; gift?: string; game?: string } | null;
+  /** 이용 흐름: this interview's random id (lib/track) */
+  runId: string | null;
 
   setScreen: (s: Screen) => void;
   setStep: (n: number) => void;
@@ -102,6 +105,7 @@ const initial = {
   pair: null as { id: string; from: string } | null,
   pairView: null as PairView | null,
   deepLink: null as { pair?: string; gift?: string; game?: string } | null,
+  runId: null as string | null,
 };
 
 export const useAppStore = create<AppState>()(
@@ -114,10 +118,18 @@ export const useAppStore = create<AppState>()(
       meLoaded: false,
       setScreen: (screen) => set({ screen, error: null }),
       setStep: (step) => set({ step }),
-      setMode: (mode) => set((s) => ({ input: { ...s.input, mode } })),
+      setMode: (mode) =>
+        set((s) => {
+          track("start", s.runId, { product: mode });
+          return { input: { ...s.input, mode } };
+        }),
       updateMe: (p) => set((s) => ({ input: { ...s.input, me: { ...s.input.me, ...p } } })),
       updatePartner: (p) => set((s) => ({ input: { ...s.input, partner: { ...s.input.partner, ...p } } })),
-      setStatus: (status) => set((s) => ({ input: { ...s.input, status } })),
+      setStatus: (status) =>
+        set((s) => {
+          track("start", s.runId, { status });
+          return { input: { ...s.input, status } };
+        }),
       setSelf: (id, v) => set((s) => ({ input: { ...s.input, self: { ...s.input.self, [id]: v } } })),
       setPartnerObs: (id, v) =>
         set((s) => ({ input: { ...s.input, partnerObs: { ...s.input.partnerObs, [id]: v } } })),
@@ -127,10 +139,13 @@ export const useAppStore = create<AppState>()(
         set({ fortune, teaser: null, inputHash, report: null, level: "none", screen: "result" }),
       // Never downgrade: a later "share" unlock must not hide an already-paid full report.
       applyUnlock: ({ level, report, coins }) =>
-        set((s) => ({
+        set((s) => {
+          if (level === "full" && s.level !== "full") track("paid", s.runId, { product: s.input.mode });
+          return {
           ...(s.level === "full" ? {} : { level, report }),
           ...(coins !== undefined && s.me ? { me: { ...s.me, coins } } : {}),
-        })),
+          };
+        }),
       setError: (error) => set({ error }),
       reset: () => set({ ...initial, input: initialInput() }),
       loadMe: async () => {
@@ -148,6 +163,8 @@ export const useAppStore = create<AppState>()(
       setCoins: (coins) => set((s) => (s.me ? { me: { ...s.me, coins } } : {})),
       startInterview: (opts = {}) => {
         const base = initialInput();
+        const runId = newId();
+        track("start", runId, { product: opts.mode ?? "love", status: opts.status });
         const me = opts.me?.name && opts.me.birthdate ? opts.me : null;
         set({
           input: {
@@ -159,6 +176,7 @@ export const useAppStore = create<AppState>()(
           },
           pair: opts.pair ?? null,
           pairView: null,
+          runId,
           preset: { mode: Boolean(opts.mode), me: Boolean(me), status: Boolean(opts.status) },
           step: 0,
           screen: "form",
@@ -189,7 +207,8 @@ export const useAppStore = create<AppState>()(
       name: "love-chemistry-v6",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, pendingSpend, preset, story, pair, pairView }) => ({
+      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, pendingSpend, preset, story, pair, pairView, runId }) => ({
+        runId,
         story,
         pair,
         pairView,

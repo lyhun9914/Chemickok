@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { track } from "@/lib/track";
 import { WELCOME_COINS, isFortune, nyang, productOf, won } from "@/lib/config";
 import type { PaymentMethod, QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
@@ -27,6 +28,10 @@ const AGREE = "냥으로 여는 점괘는 여는 즉시 제공되는 디지털 �
  */
 export function PaymentModal({ open, input, inputHash, onClose, onUnlocked, onLogin }: Props) {
   const me = useAppStore((s) => s.me);
+  // 이용 흐름: the 결제 sheet was seen
+  useEffect(() => {
+    if (open) track("paysheet", useAppStore.getState().runId, { product: input.mode });
+  }, [open, input.mode]);
   const setCoins = useAppStore((s) => s.setCoins);
   const locked = useAppStore((s) => (isFortune(s.input.mode) ? s.fortune?.locked : s.teaser?.locked)) ?? [];
   const [method, setMethod] = useState<PaymentMethod>("tosspay");

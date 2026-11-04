@@ -6,6 +6,7 @@ import { isFortune } from "@/lib/config";
 import { josa } from "@/lib/josa";
 import type { FortuneMode } from "@/models/types";
 import { accountApi, api, pairApi } from "@/services/apiClient";
+import { track } from "@/lib/track";
 import { useAppStore } from "@/store/useAppStore";
 import { Nyang } from "./Nyang";
 
@@ -72,6 +73,7 @@ export function LoadingScreen() {
     Promise.all([request, minWait])
       .then(([show]) => {
         setProgress(100);
+        track("result", useAppStore.getState().runId, { product: input.mode });
         // Logged in without saved 기본 정보 (or saved before 혈액형 was asked): keep what was just typed so the next
         // interview skips it.
         const { me, setMe } = useAppStore.getState();

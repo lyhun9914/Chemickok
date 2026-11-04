@@ -78,6 +78,56 @@ export interface PaymentRow {
   amount: number;
   method: string;
   created_at: string;
+  /** Toss paymentKey (needed to cancel); null for 냥 / test payments and rows from before it was kept */
+  payment_key?: string | null;
+  refunded_at?: string | null;
+  refund_amount?: number | null;
+  refund_coins?: number | null;
+  refund_note?: string | null;
+}
+
+/** 이용 흐름: one step of an interview (or a mini game opened). */
+export interface TrackRun {
+  t: "start" | "q" | "result" | "paysheet" | "paid" | "game";
+  run: string;
+  visit: string | null;
+  product: string | null;
+  status: string | null;
+  n: number | null;
+  total: number | null;
+}
+
+export interface Funnel {
+  visits: number;
+  started: number;
+  firstQ: number;
+  half: number;
+  allQ: number;
+  result: number;
+  paysheet: number;
+  paid: number;
+  /** runs that never reached a result, by the last question answered */
+  drop: Record<string, number>;
+  products: { product: string; started: number; result: number; paid: number }[];
+  statuses: { status: string; started: number; result: number; paid: number }[];
+  games: { product: string; started: number }[];
+  sources: { source: string; n: number }[];
+  devices: { device: string; n: number }[];
+  days: { day: string; visits: number; started: number; paid: number }[];
+}
+
+export interface ErrorLog {
+  source: "client" | "server" | "api";
+  fingerprint: string;
+  message: string;
+  path: string | null;
+  detail: string | null;
+  ua: string | null;
+}
+export interface ErrorGroup extends ErrorLog {
+  count: number;
+  first: string;
+  last: string;
 }
 
 export interface AdminUserRow {
@@ -100,7 +150,7 @@ export interface Db {
   getUser(id: string): Promise<DbUser | null>;
   updateProfile(id: string, profile: PersonInput): Promise<void>;
   deleteUser(id: string): Promise<void>;
-  recordPayment(p: { orderId: string; userId: string | null; inputHash: string; amount: number; method: string }): Promise<void>;
+  recordPayment(p: { orderId: string; userId: string | null; inputHash: string; amount: number; method: string; paymentKey?: string }): Promise<void>;
   saveReading(r: Omit<ReadingRow, "id" | "created_at">): Promise<string>;
   listReadings(userId: string): Promise<ReadingSummary[]>;
   getReading(userId: string, id: string): Promise<ReadingRow | null>;
@@ -133,6 +183,19 @@ export interface Db {
   adminPayments(userId?: string): Promise<PaymentRow[]>;
   /** by hand (보상 · 환불 · 회수); never below zero */
   coinAdjust(userId: string, delta: number, reason: "admin" | "refund", ref: string): Promise<{ ok: boolean; balance: number }>;
+  getPayment(orderId: string): Promise<PaymentRow | null>;
+  /** Marks a payment refunded; false when it already was (two clicks, two tabs). */
+  markRefund(orderId: string, r: { amount: number; coins: number; note: string }): Promise<boolean>;
+
+  /** 이용 흐름 */
+  trackVisit(v: { id: string; source: string; device: string }): Promise<void>;
+  trackRun(e: TrackRun): Promise<void>;
+  adminFunnel(since: string, product?: string, status?: string): Promise<Funnel>;
+
+  /** 오류 기록: true when this kind of error is new in the last day */
+  logError(e: ErrorLog): Promise<boolean>;
+  adminErrors(since: string): Promise<ErrorGroup[]>;
+  adminClearErrors(fingerprint: string): Promise<void>;
 }
 
 // ───────────── Supabase (PostgREST over fetch) ─────────────
@@ -206,7 +269,7 @@ function supabase(url: string, key: string): Db {
       await rest("payments?on_conflict=order_id", {
         method: "POST",
         prefer: "resolution=ignore-duplicates",
-        body: JSON.stringify({ order_id: p.orderId, user_id: p.userId, input_hash: p.inputHash, amount: p.amount, method: p.method }),
+        body: JSON.stringify({ order_id: p.orderId, user_id: p.userId, input_hash: p.inputHash, amount: p.amount, method: p.method, payment_key: p.paymentKey ?? null }),
       });
     },
     async saveReading(r) {
@@ -295,10 +358,48 @@ function supabase(url: string, key: string): Db {
     async coinAdjust(userId, delta, reason, ref) {
       return rest("rpc/coin_adjust", { method: "POST", body: JSON.stringify({ p_user: userId, p_delta: delta, p_reason: reason, p_ref: ref }) });
     },
+    async getPayment(orderId) {
+      const rows = await rest<PaymentRow[]>(`payments?order_id=${eq(orderId)}&select=*`);
+      return rows[0] ?? null;
+    },
+    async markRefund(orderId, r) {
+      const rows = await rest<PaymentRow[]>(`payments?order_id=${eq(orderId)}&refunded_at=is.null`, {
+        method: "PATCH",
+        prefer: "return=representation",
+        body: JSON.stringify({ refunded_at: new Date().toISOString(), refund_amount: r.amount, refund_coins: r.coins, refund_note: r.note || null }),
+      });
+      return rows.length > 0;
+    },
+    async trackVisit(v) {
+      await rest("visits?on_conflict=id", { method: "POST", prefer: "resolution=ignore-duplicates", body: JSON.stringify(v) });
+    },
+    async trackRun(e) {
+      await rest("rpc/track_run", {
+        method: "POST",
+        body: JSON.stringify({ p_t: e.t, p_run: e.run, p_visit: e.visit, p_product: e.product, p_status: e.status, p_n: e.n, p_total: e.total }),
+      });
+    },
+    async adminFunnel(since, product, status) {
+      return rest("rpc/admin_funnel", { method: "POST", body: JSON.stringify({ p_since: since, p_product: product ?? null, p_status: status ?? null }) });
+    },
+    async logError(e) {
+      return rest("rpc/log_error", {
+        method: "POST",
+        body: JSON.stringify({ p_source: e.source, p_fp: e.fingerprint, p_message: e.message, p_path: e.path, p_detail: e.detail, p_ua: e.ua }),
+      });
+    },
+    async adminErrors(since) {
+      return rest("rpc/admin_errors", { method: "POST", body: JSON.stringify({ p_since: since }) });
+    },
+    async adminClearErrors(fingerprint) {
+      await rest(`error_logs?fingerprint=${eq(fingerprint)}`, { method: "DELETE" });
+    },
   };
 }
 
 // ───────────── In-memory (local dev only) ─────────────
+
+const kstDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 
 function memory(): Db {
   type Mem = {
@@ -310,9 +411,12 @@ function memory(): Db {
     attendance: Set<string>;
     gifts: GiftRow[];
     pairs: PairRow[];
+    visits: { id: string; day: string; source: string; device: string }[];
+    runs: { id: string; visit_id: string | null; day: string; product: string; status: string | null; total_q: number; max_q: number; result_at: string | null; paysheet_at: string | null; paid_at: string | null }[];
+    errors: (ErrorLog & { created_at: string })[];
   };
   const g = globalThis as unknown as { __nyangDb?: Mem };
-  const m: Mem = (g.__nyangDb ??= { users: [], readings: [], payments: [], wallets: new Map(), ledger: [], attendance: new Set(), gifts: [], pairs: [] });
+  const m: Mem = (g.__nyangDb ??= { users: [], readings: [], payments: [], wallets: new Map(), ledger: [], attendance: new Set(), gifts: [], pairs: [], visits: [], runs: [], errors: [] });
   const newUser = (u: { provider: string; providerId: string; nickname: string; email: string | null; passwordHash?: string }): DbUser => ({
     id: randomUUID(),
     provider: u.provider,
@@ -375,7 +479,7 @@ function memory(): Db {
     },
     async recordPayment(p) {
       if (!m.payments.some((x) => x.order_id === p.orderId))
-        m.payments.push({ order_id: p.orderId, user_id: p.userId, input_hash: p.inputHash, amount: p.amount, method: p.method, created_at: new Date().toISOString() });
+        m.payments.push({ order_id: p.orderId, user_id: p.userId, input_hash: p.inputHash, amount: p.amount, method: p.method, created_at: new Date().toISOString(), payment_key: p.paymentKey ?? null });
     },
     async saveReading(r) {
       const row = { ...r, id: randomUUID(), created_at: new Date().toISOString() };
@@ -476,7 +580,7 @@ function memory(): Db {
     },
     async adminStats() {
       const toss = m.payments.filter((x) => x.method === "toss");
-      return { users: m.users.length, usersToday: m.users.length, users7d: m.users.length, salesToday: 0, sales7d: 0, sales30d: 0, salesAll: toss.reduce((a, x) => a + x.amount, 0), paidCount30d: toss.length, coinsOut: [...m.wallets.values()].reduce((a, v) => a + v, 0), coinsSpent30d: -m.ledger.filter((x) => x.reason === "spend").reduce((a, x) => a + x.delta, 0), readings: m.readings.length, pairs: m.pairs.length, pairsAnswered: m.pairs.filter((x) => x.answered_at).length, gifts: m.gifts.length, testMode: m.payments.some((x) => x.method === "test") };
+      return { users: m.users.length, usersToday: m.users.length, users7d: m.users.length, salesToday: 0, sales7d: 0, sales30d: 0, salesAll: toss.reduce((a, x) => a + x.amount - (x.refund_amount ?? 0), 0), paidCount30d: toss.length, refunds30d: toss.reduce((a, x) => a + (x.refund_amount ?? 0), 0), errors24h: m.errors.length, coinsOut: [...m.wallets.values()].reduce((a, v) => a + v, 0), coinsSpent30d: -m.ledger.filter((x) => x.reason === "spend").reduce((a, x) => a + x.delta, 0), readings: m.readings.length, pairs: m.pairs.length, pairsAnswered: m.pairs.filter((x) => x.answered_at).length, gifts: m.gifts.length, testMode: m.payments.some((x) => x.method === "test") };
     },
     async adminUsers(q) {
       const t = q.trim().toLowerCase();
@@ -493,6 +597,83 @@ function memory(): Db {
       const b = m.wallets.get(userId) ?? 0;
       if (b + delta < 0) return { ok: false, balance: b };
       return { ok: true, balance: log(userId, delta, reason, ref) };
+    },
+    async getPayment(orderId) {
+      return m.payments.find((x) => x.order_id === orderId) ?? null;
+    },
+    async markRefund(orderId, r) {
+      const p = m.payments.find((x) => x.order_id === orderId);
+      if (!p || p.refunded_at) return false;
+      Object.assign(p, { refunded_at: new Date().toISOString(), refund_amount: r.amount, refund_coins: r.coins, refund_note: r.note || null });
+      return true;
+    },
+    async trackVisit(v) {
+      if (!m.visits.some((x) => x.id === v.id)) m.visits.push({ ...v, day: kstDay() });
+    },
+    async trackRun(e) {
+      let r = m.runs.find((x) => x.id === e.run);
+      if (!r) {
+        r = { id: e.run, visit_id: e.visit, day: kstDay(), product: e.product ?? "love", status: e.status, total_q: e.total ?? 0, max_q: 0, result_at: null, paysheet_at: null, paid_at: null };
+        m.runs.push(r);
+      }
+      const now = new Date().toISOString();
+      if (e.product) r.product = e.product;
+      if (e.status) r.status = e.status;
+      if (e.total) r.total_q = e.total;
+      r.max_q = Math.max(r.max_q, e.n ?? 0);
+      if (e.t === "result") r.result_at ??= now;
+      if (e.t === "paysheet") r.paysheet_at ??= now;
+      if (e.t === "paid") r.paid_at ??= now;
+    },
+    async adminFunnel(since, product, status) {
+      const game = (x: { product: string }) => x.product.startsWith("game:");
+      const all = m.runs.filter((x) => x.day >= since);
+      const r = all.filter((x) => !game(x) && (!product || x.product === product) && (!status || x.status === status));
+      const v = m.visits.filter((x) => x.day >= since);
+      const count = <T,>(xs: T[], key: (x: T) => string) => xs.reduce<Record<string, T[]>>((a, x) => ((a[key(x)] ??= []).push(x), a), {});
+      const drop: Record<string, number> = {};
+      for (const x of r) if (!x.result_at) drop[x.max_q] = (drop[x.max_q] ?? 0) + 1;
+      const tally = (xs: typeof r) => ({ started: xs.length, result: xs.filter((x) => x.result_at).length, paid: xs.filter((x) => x.paid_at).length });
+      const days: Funnel["days"] = [];
+      for (let d = since; d <= kstDay(); d = new Date(Date.parse(d) + 864e5).toISOString().slice(0, 10))
+        days.push({ day: d, visits: m.visits.filter((x) => x.day === d).length, started: m.runs.filter((x) => x.day === d && !game(x)).length, paid: m.runs.filter((x) => x.day === d && x.paid_at).length });
+      return {
+        visits: v.length,
+        started: r.length,
+        firstQ: r.filter((x) => x.max_q >= 1).length,
+        half: r.filter((x) => x.total_q > 0 && x.max_q * 2 >= x.total_q).length,
+        allQ: r.filter((x) => x.total_q > 0 && x.max_q >= x.total_q).length,
+        result: r.filter((x) => x.result_at).length,
+        paysheet: r.filter((x) => x.paysheet_at).length,
+        paid: r.filter((x) => x.paid_at).length,
+        drop,
+        products: Object.entries(count(all.filter((x) => !game(x)), (x) => x.product)).map(([p, xs]) => ({ product: p, ...tally(xs) })).sort((a, b) => b.started - a.started),
+        statuses: Object.entries(count(all.filter((x) => x.product === "couple" && x.status), (x) => x.status!)).map(([st, xs]) => ({ status: st, ...tally(xs) })).sort((a, b) => b.started - a.started),
+        games: Object.entries(count(all.filter(game), (x) => x.product)).map(([p, xs]) => ({ product: p, started: xs.length })).sort((a, b) => b.started - a.started),
+        sources: Object.entries(count(v, (x) => x.source)).map(([source, xs]) => ({ source, n: xs.length })).sort((a, b) => b.n - a.n).slice(0, 10),
+        devices: Object.entries(count(v, (x) => x.device)).map(([device, xs]) => ({ device, n: xs.length })).sort((a, b) => b.n - a.n),
+        days,
+      };
+    },
+    async logError(e) {
+      const now = Date.now();
+      const same = m.errors.filter((x) => x.fingerprint === e.fingerprint);
+      if (same.filter((x) => now - Date.parse(x.created_at) < 600e3).length >= 50) return false;
+      const fresh = !same.some((x) => now - Date.parse(x.created_at) < 864e5);
+      m.errors.push({ ...e, created_at: new Date().toISOString() });
+      return fresh;
+    },
+    async adminErrors(since) {
+      const groups = new Map<string, ErrorGroup>();
+      for (const x of m.errors.filter((x) => x.created_at >= since)) {
+        const g = groups.get(x.fingerprint);
+        if (!g) groups.set(x.fingerprint, { ...x, count: 1, first: x.created_at, last: x.created_at });
+        else Object.assign(g, { ...x, count: g.count + 1, first: g.first, last: x.created_at });
+      }
+      return [...groups.values()].sort((a, b) => b.last.localeCompare(a.last));
+    },
+    async adminClearErrors(fingerprint) {
+      m.errors = m.errors.filter((x) => x.fingerprint !== fingerprint);
     },
   };
 }

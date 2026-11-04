@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { answers } from "@/lib/answers";
 import { useBack } from "@/lib/back";
+import { track } from "@/lib/track";
 import { UNKNOWN_ANSWER, UNKNOWN_LABEL, answerLabel, fill, isCustom, koreanAge, optionsForAge, partnerInterview, selfInterview, optionOf, type InterviewQuestion } from "@/lib/interview";
 import { josa } from "@/lib/josa";
 import { GENDER_LABEL, MBTI_TYPES, MODE_OPTIONS, STATUS_OPTIONS } from "@/lib/questions";
@@ -768,6 +769,13 @@ export function Questionnaire() {
           onAnswer={(a) => {
             if (self) s.setSelf(q.id, a);
             else s.setPartnerObs(q.id, a);
+            // 이용 흐름: how far into the questions (which one people stop at)
+            track("q", useAppStore.getState().runId, {
+              product: input.mode,
+              status: input.mode === "couple" ? input.status : undefined,
+              n: turns.slice(0, step + 1).filter((t) => t.kind === "q").length,
+              total: qTurns.length,
+            });
             advance();
           }}
         />

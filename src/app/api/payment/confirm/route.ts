@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { reportError } from "@/services/server/errors";
 import { buildReport, buildTeaser, inputHash, validateInput } from "@/engine/analyze";
 import { buildFortuneReport, buildFortuneTeaser, fortuneHash, fortuneTitle, isFortuneMode, validateFortune } from "@/engine/fortune";
 import { productOf } from "@/lib/config";
@@ -66,7 +67,10 @@ export async function POST(req: Request) {
         orderId: body.orderId,
         amount: body.amount,
       });
-      if (!result.ok) return NextResponse.json({ error: result.message }, { status: 402 });
+      if (!result.ok) {
+        after(() => reportError({ source: "server", message: `점괘 결제 승인 실패: ${result.message}`, path: "/api/payment/confirm", detail: `orderId ${body.orderId}`, ua: req.headers.get("user-agent") }));
+        return NextResponse.json({ error: result.message }, { status: 402 });
+      }
       break;
     }
     default:
@@ -83,8 +87,11 @@ export async function POST(req: Request) {
     try {
       if (orderId)
         await db
-          .recordPayment({ orderId, userId: uid, inputHash: hash, amount: productOf(input.mode).price, method: body.method })
-          .catch((e) => console.error("recording payment failed", e));
+          .recordPayment({ orderId, userId: uid, inputHash: hash, amount: productOf(input.mode).price, method: body.method, paymentKey: body.method === "toss" ? body.paymentKey : undefined })
+          .catch((e) => {
+            console.error("recording payment failed", e);
+            after(() => reportError({ source: "server", message: "결제 기록 저장 실패", path: "/api/payment/confirm", detail: `${orderId}\n${String(e).slice(0, 500)}`, ua: null }));
+          });
       if (uid && !spentBefore) {
         // First paid reading of a user who logged in before the interview: keep their 기본 정보 too.
         const user = await db.getUser(uid);
@@ -95,6 +102,7 @@ export async function POST(req: Request) {
       }
     } catch (e) {
       console.error("saving payment/reading failed", e);
+      after(() => reportError({ source: "server", message: "결제 후 점괘함 저장 실패", path: "/api/payment/confirm", detail: String(e).slice(0, 500), ua: null }));
     }
   }
   return NextResponse.json(res);

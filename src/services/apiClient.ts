@@ -1,3 +1,4 @@
+import { reportClientError } from "@/lib/track";
 import type { AnalyzeResponse, FortuneAnalyzeResponse, FortuneTeaser, FullReport, Gender, Mode, PairResult, PersonInput, QuestionnaireInput, RelationshipStatus, TeaserReport, UnlockResponse } from "@/models/types";
 
 async function post<T>(url: string, body: unknown, method = "POST"): Promise<T> {
@@ -7,8 +8,15 @@ async function post<T>(url: string, body: unknown, method = "POST"): Promise<T> 
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error ?? `요청 실패 (${res.status})`);
+  if (!res.ok) failed(`${method} ${url}`, res.status, data);
   return data as T;
+}
+
+/** A failed call: server errors and rejected input (400) also go to the 관리자 오류 기록, then it throws. */
+function failed(what: string, status: number, data: unknown): never {
+  const msg = (data as { error?: string }).error;
+  if (status >= 500 || status === 400) reportClientError("api", `${what.split("?")[0]} → ${status}`, msg);
+  throw new Error(msg ?? `요청 실패 (${status})`);
 }
 
 export const api = {
@@ -150,7 +158,7 @@ export interface SavedReading {
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: "no-store" });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error ?? `요청 실패 (${res.status})`);
+  if (!res.ok) failed(`GET ${url}`, res.status, data);
   return data as T;
 }
 

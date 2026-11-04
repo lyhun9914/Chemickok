@@ -14,6 +14,7 @@ import { SoundToggle } from "@/components/SoundToggle";
 import { StoryScreen } from "@/components/StoryScreen";
 import { isFortune } from "@/lib/config";
 import { readHandoff } from "@/lib/handoff";
+import { trackVisit } from "@/lib/track";
 import { sound } from "@/lib/sound";
 import { accountApi } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
@@ -38,6 +39,7 @@ export default function Home() {
     // Arrived with a result handed over from another device / browser (?r=…): re-read it here.
     // read before the handoff cleans the URL: a card sent to a friend carries the sender's 초대 code too
     const search = window.location.search;
+    trackVisit(search);
     const handoff = readHandoff(search);
     if (handoff) {
       window.history.replaceState(null, "", "/");

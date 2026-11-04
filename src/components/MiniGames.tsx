@@ -13,6 +13,7 @@ import type { FortuneStoryCard, Mode } from "@/models/types";
 import { checkinApi, dailyApi, todayApi, type DailyFortuneResponse, type ExamDayResponse, type IljuResponse, type TodayFortuneResponse, type ZodiacTodayResponse } from "@/services/apiClient";
 import { useBack } from "@/lib/back";
 import { inAppBrowser } from "@/lib/handoff";
+import { newId, track } from "@/lib/track";
 import { isMobile, shareService, siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
@@ -277,6 +278,10 @@ const TITLES: Record<MiniGame, string> = {
 
 export function MiniGameSheet({ game, onClose, onStart }: { game: MiniGame | null; onClose: () => void; onStart: (mode?: Mode) => void }) {
   useBack(game !== null, onClose);
+  // 이용 흐름: each mini game opened counts once
+  useEffect(() => {
+    if (game) track("game", newId(), { product: `game:${game}` });
+  }, [game]);
   if (!game) return null;
   return (
     <Sheet title={TITLES[game]} onClose={onClose}>

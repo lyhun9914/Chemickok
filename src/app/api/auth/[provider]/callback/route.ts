@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
+import { reportError } from "@/services/server/errors";
 import { getDb } from "@/services/server/db";
 import { REF_COOKIE, giftNewUser, giftQuery } from "@/services/server/gifts";
 import { fetchProfile, isProvider } from "@/services/server/oauth";
@@ -35,6 +36,9 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/auth/[provid
     console.error("oauth callback failed", provider, e);
     // A short, non-secret cause (e.g. "token-KOE010", "db-401") so failures can be diagnosed from the screen.
     const m = /^(token|profile|db)\W+(\w+)/.exec(String((e as Error).message));
+    after(() =>
+      reportError({ source: "server", message: `${provider} 로그인 실패: ${m ? `${m[1]}-${m[2]}` : "unknown"}`, path: `/api/auth/${provider}/callback`, detail: String((e as Error).message).slice(0, 500), ua: req.headers.get("user-agent") }),
+    );
     return finish(`login=fail&reason=${m ? `${m[1]}-${m[2]}` : "unknown"}`);
   }
 }

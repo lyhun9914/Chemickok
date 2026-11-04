@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
+import { reportError } from "@/services/server/errors";
 import { INVITE_LIMIT, chargeTag, packOf } from "@/lib/config";
 import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
@@ -42,21 +43,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "결제 정보가 올바르지 않아요." }, { status: 400 });
     }
     const result = await confirmTossPayment({ paymentKey: body.paymentKey, orderId: body.orderId, amount: body.amount });
-    if (!result.ok) return NextResponse.json({ error: result.message }, { status: 402 });
+    if (!result.ok) {
+      after(() => reportError({ source: "server", message: `냥 충전 결제 승인 실패: ${result.message}`, path: "/api/coins", detail: `orderId ${body.orderId}`, ua: req.headers.get("user-agent") }));
+      return NextResponse.json({ error: result.message }, { status: 402 });
+    }
     orderId = body.orderId;
   } else {
     return NextResponse.json({ error: "지원하지 않는 결제 방식입니다." }, { status: 400 });
   }
 
   await db
-    .recordPayment({ orderId, userId: uid, inputHash: `charge:${pack.id}`, amount: pack.price, method: body.method })
-    .catch((e) => console.error("recording payment failed", e));
+    .recordPayment({ orderId, userId: uid, inputHash: `charge:${pack.id}`, amount: pack.price, method: body.method, paymentKey: body.method === "toss" ? body.paymentKey : undefined })
+    .catch((e) => {
+      console.error("recording payment failed", e);
+      after(() => reportError({ source: "server", message: "결제 기록 저장 실패", path: "/api/coins", detail: `${orderId}\n${String(e).slice(0, 500)}`, ua: null }));
+    });
   try {
     const { balance } = await db.coinAdd(uid, pack.coins, "charge", orderId);
     return NextResponse.json({ balance, added: pack.coins });
   } catch (e) {
     // Paid but not credited: the orderId is in payments, so this can be fixed by hand from 고객문의.
     console.error("crediting coins failed", orderId, e);
+    after(() => reportError({ source: "server", message: "결제됐는데 냥 지급 실패", path: "/api/coins", detail: `${orderId}\n${String(e).slice(0, 500)}`, ua: null }));
     return NextResponse.json({ error: `결제는 됐는데 냥을 넣지 못했어요. 주문번호 ${orderId}로 고객문의 주세요.` }, { status: 500 });
   }
 }

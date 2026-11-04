@@ -1,12 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ErrorsPanel } from "@/components/admin/ErrorsPanel";
+import { FunnelPanel } from "@/components/admin/FunnelPanel";
 import { ShortsStudio } from "@/components/admin/ShortsStudio";
 
 type Stats = Record<string, number | boolean>;
 type UserRow = { id: string; provider: string; nickname: string; email: string | null; created_at: string; balance: number };
 type Ledger = { delta: number; reason: string; ref: string; balance_after: number; created_at: string };
-type Payment = { order_id: string; user_id: string | null; amount: number; method: string; created_at: string };
+type Payment = {
+  order_id: string;
+  user_id: string | null;
+  input_hash: string;
+  amount: number;
+  method: string;
+  created_at: string;
+  payment_key?: string | null;
+  refunded_at?: string | null;
+  refund_amount?: number | null;
+  refund_coins?: number | null;
+  refund_note?: string | null;
+};
 type Detail = { user: Omit<UserRow, "balance">; balance: number; history: Ledger[]; payments: Payment[] };
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -20,6 +34,104 @@ const won = (n: number | boolean | undefined) => `${Number(n ?? 0).toLocaleStrin
 const num = (n: number | boolean | undefined) => Number(n ?? 0).toLocaleString("ko-KR");
 const when = (iso: string) => new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "short", timeStyle: "short" });
 const REASON: Record<string, string> = { charge: "충전", spend: "사용", bonus: "선물·출석·초대", refund: "환불", admin: "관리자", gift: "냥 선물" };
+const METHOD: Record<string, string> = { toss: "토스", test: "테스트" };
+/** 냥 a 충전 gave: "charge:<pack>" orders are `c<냥>-…` (or `test-c<냥>-…`). */
+const chargeCoins = (p: Payment) => (p.input_hash?.startsWith("charge:") ? Number(/(?:^|-)c(\d+)-/.exec(p.order_id)?.[1] ?? 0) : 0);
+
+/** One payment, with its refund state and the 환불 form (토스 결제 취소 + 냥 회수 in one go). */
+function PaymentItem({ p, onDone }: { p: Payment; onDone: () => void }) {
+  const coinsGiven = chargeCoins(p);
+  const [form, setForm] = useState<{ amount: string; coins: string; note: string; manual: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [needManual, setNeedManual] = useState(false);
+
+  const submit = async () => {
+    if (!form) return;
+    const amount = Number(form.amount);
+    const coins = Number(form.coins || 0);
+    const what = [`${won(amount)} 환불`, coins ? `${coins}냥 회수` : "", form.manual ? "(토스에서 이미 취소함: 기록만)" : p.method === "toss" ? "(토스 결제 취소)" : ""].filter(Boolean).join(" · ");
+    if (!window.confirm(`${p.order_id}\n${what}\n진행할까요?`)) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await call<{ amount: number; coins: number; balance?: number }>("/api/admin/payments/refund", {
+        method: "POST",
+        body: JSON.stringify({ orderId: p.order_id, amount, coins, note: form.note, manual: form.manual }),
+      });
+      setMsg(`환불했어요: ${won(r.amount)}${r.coins ? ` · ${r.coins}냥 회수 (남은 냥 ${r.balance}냥)` : ""}`);
+      setForm(null);
+      onDone();
+    } catch (e) {
+      const m = (e as Error).message;
+      setMsg(m);
+      if (/직접 취소/.test(m)) setNeedManual(true);
+    }
+    setBusy(false);
+  };
+
+  const input = "w-full rounded-lg border border-line bg-black/30 px-2.5 py-1.5 text-[13px] outline-none focus:border-peach";
+  return (
+    <li className="py-1.5 text-[13px]">
+      <div className="flex justify-between gap-2">
+        <span className="min-w-0 truncate">
+          {when(p.created_at)} · {METHOD[p.method] ?? p.method}
+          {coinsGiven ? ` · ${coinsGiven}냥 충전` : " · 점괘 결제"} · <span className="text-muted">{p.order_id}</span>
+        </span>
+        <span className={`shrink-0 font-bold ${p.refunded_at ? "text-muted line-through" : ""}`}>{won(p.amount)}</span>
+      </div>
+      {p.refunded_at ? (
+        <p className="mt-0.5 text-[12px] text-peach">
+          ↩ {when(p.refunded_at)} 환불 {won(p.refund_amount ?? p.amount)}
+          {p.refund_coins ? ` · ${p.refund_coins}냥 회수` : ""}
+          {p.refund_note ? ` · ${p.refund_note}` : ""}
+        </p>
+      ) : form ? (
+        <div className="mt-2 space-y-1.5 rounded-xl bg-black/20 p-2.5">
+          <div className="grid grid-cols-2 gap-1.5">
+            <label className="text-[11.5px] text-muted">
+              환불 금액 (원)
+              <input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} inputMode="numeric" className={input} />
+            </label>
+            <label className="text-[11.5px] text-muted">
+              회수할 냥 (최대 {coinsGiven})
+              <input value={form.coins} onChange={(e) => setForm({ ...form, coins: e.target.value })} inputMode="numeric" disabled={!coinsGiven} className={input} />
+            </label>
+          </div>
+          <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="환불 사유 (토스에도 전달돼요)" className={input} />
+          {(needManual || p.method === "toss") && (
+            <label className="flex items-center gap-2 text-[12px] text-muted">
+              <input type="checkbox" checked={form.manual} onChange={(e) => setForm({ ...form, manual: e.target.checked })} />
+              토스 상점관리자에서 이미 취소함 (여기선 기록과 냥 회수만)
+            </label>
+          )}
+          <div className="flex gap-1.5">
+            <button onClick={submit} disabled={busy} className="btn-primary flex-1 py-2 text-[13px]">
+              {busy ? "처리 중…" : "환불하기"}
+            </button>
+            <button onClick={() => setForm(null)} className="rounded-xl border border-line px-3 text-[13px] text-muted">
+              취소
+            </button>
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted">
+            냥을 먼저 회수하고{p.method === "toss" ? " 토스 결제를 취소해요" : ""}. 회원이 냥을 이미 썼으면 남은 만큼만 회수하고 금액도 줄여서 부분 환불하세요.
+          </p>
+        </div>
+      ) : (
+        <button
+          onClick={() => {
+            setMsg(null);
+            setForm({ amount: String(p.amount), coins: String(coinsGiven), note: "", manual: false });
+          }}
+          className="mt-1 rounded-lg border border-line px-2.5 py-1 text-[12px] text-muted"
+        >
+          ↩ 환불
+        </button>
+      )}
+      {msg && <p className="mt-1 text-[12px] text-peach">{msg}</p>}
+    </li>
+  );
+}
 
 /** 관리자 화면: 숫자, 회원 찾기, 냥 보상 · 회수 · 환불 처리, 최근 결제. */
 export default function AdminPage() {
@@ -156,6 +268,8 @@ export default function AdminPage() {
         ["30일 매출", won(stats.sales30d)],
         ["누적 매출", won(stats.salesAll)],
         ["30일 결제 건수", `${num(stats.paidCount30d)}건`],
+        ["30일 환불", won(stats.refunds30d)],
+        ["오류 (24시간)", `${num(stats.errors24h)}건`],
         ["회원 (오늘 / 7일)", `${num(stats.users)}명 (+${num(stats.usersToday)} / +${num(stats.users7d)})`],
         ["회원이 가진 냥", `${num(stats.coinsOut)}냥`],
         ["30일 사용한 냥", `${num(stats.coinsSpent30d)}냥`],
@@ -186,6 +300,10 @@ export default function AdminPage() {
           </div>
         ))}
       </section>
+
+      <ErrorsPanel />
+
+      <FunnelPanel />
 
       <ShortsStudio />
 
@@ -241,7 +359,7 @@ export default function AdminPage() {
               처리하기
             </button>
             <p className="text-[11.5px] leading-relaxed text-muted">
-              환불은 토스페이먼츠 상점관리자에서 결제를 먼저 취소한 뒤, 여기서 그만큼 냥을 빼세요(예: -5, 환불 처리). 잔액보다 많이 뺄 수는 없어요.
+              결제 환불은 아래 결제 목록의 ↩ 환불 버튼으로 하세요 (토스 결제 취소와 냥 회수를 한 번에). 여기는 보상이나 결제 없는 회수용이에요. 잔액보다 많이 뺄 수는 없어요.
             </p>
           </div>
 
@@ -264,12 +382,7 @@ export default function AdminPage() {
           <h3 className="mt-4 text-[14px] font-bold">결제</h3>
           <ul className="mt-1 divide-y divide-line text-[13px]">
             {detail.payments.map((p) => (
-              <li key={p.order_id} className="flex justify-between gap-2 py-1.5">
-                <span className="min-w-0 truncate">
-                  {when(p.created_at)} · {p.method} · <span className="text-muted">{p.order_id}</span>
-                </span>
-                <span className="shrink-0 font-bold">{won(p.amount)}</span>
-              </li>
+              <PaymentItem key={p.order_id} p={p} onDone={() => (open(detail.user.id), loadAll())} />
             ))}
             {detail.payments.length === 0 && <li className="py-2 text-muted">결제가 없어요.</li>}
           </ul>
@@ -280,12 +393,7 @@ export default function AdminPage() {
         <h2 className="text-[16px] font-bold">최근 결제</h2>
         <ul className="mt-2 divide-y divide-line text-[13px]">
           {payments.map((p) => (
-            <li key={p.order_id} className="flex justify-between gap-2 py-1.5">
-              <span className="min-w-0 truncate">
-                {when(p.created_at)} · {p.method} · <span className="text-muted">{p.order_id}</span>
-              </span>
-              <span className="shrink-0 font-bold">{won(p.amount)}</span>
-            </li>
+            <PaymentItem key={p.order_id} p={p} onDone={loadAll} />
           ))}
           {payments.length === 0 && <li className="py-2 text-muted">결제가 없어요.</li>}
         </ul>
