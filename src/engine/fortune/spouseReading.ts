@@ -19,7 +19,7 @@ import {
   thisYear,
   yearlyLuck,
 } from "./chart";
-import { LUCK, basisCard, daNyang, josa, lines, locked, sec } from "./common";
+import { LUCK, basisCard, daNyang, josa, lines, locked, mbtiLove, sec } from "./common";
 
 // ───────────── 미래 배우자운 ─────────────
 
@@ -151,6 +151,47 @@ const PATTERN: Record<string, string> = {
   few: "경험이 적다고 했지. 대신 첫 진짜 인연이 배우자가 될 확률이 높다냥.",
 };
 
+/** 연애 패턴 (sp5) in the year the 인연 comes: how to recognise the person. */
+const PATTERN_YEAR: Record<string, string> = {
+  me: "네가 먼저 빠지는 사람이라, 그해엔 먼저 다가가기보다 너한테 다가오는 사람을 눈여겨봐라냥.",
+  them: "그해엔 다가오는 사람이 많다냥. 이번엔 받기만 하지 말고 네가 한 발 먼저 가라냥.",
+  even: "그해엔 비슷한 속도로 서로 가까워지는 사람이 그 사람이다냥. 한쪽만 뜨거우면 아니다냥.",
+  flip: "그해 만난 사람한테도 처음엔 미지근할 거다냥. 그 미지근함 때문에 놓치지 마라냥. 너는 늦게 깊어지는 사람이다냥.",
+  few: "경험이 적어도 그해엔 알아본다냥. 처음으로 '편하다'는 느낌이 드는 사람이다냥.",
+};
+
+/** 부모님 사이 (sp6) → what to watch in one's own marriage (the 결혼 전 조심할 것 side). */
+const PARENTS_HOME: Record<string, string> = {
+  good: "부모님 결혼을 잣대로 상대를 재지 마라냥. '우리 부모님은 안 그랬는데'가 제일 아픈 말이다냥.",
+  fight: "싸움이 나면 입을 닫는 버릇이 있을 거다냥. 결혼에선 큰소리보다 침묵이 더 위험하다냥.",
+  dry: "결혼해선 네가 먼저 표현하는 쪽이 돼라냥. 그게 무덤덤한 결혼을 대물림하지 않는 법이다냥.",
+  apart: "첫 위기가 오면 '역시 결혼은…' 하는 생각이 먼저 든다냥. 그 두려움은 부모님 몫이지 네 몫이 아니다냥.",
+  gone: "배우자한테 부모 몫까지 바라면 상대가 지친다냥. 대신 배우자 집안에서 부모 정을 다시 받는 팔자다냥.",
+};
+
+/** 끌리는 사람 (sp3) against the 배우자 별: does the type they fall for match the work the spouse does? */
+const ATTRACT_JOB: Record<string, (el: ElementKey, count: number) => string> = {
+  flashy: (el) =>
+    el === "fire" || el === "metal"
+      ? "화려한 사람한테 끌린다고 했지. 배우자 별도 눈에 띄는 기운이라, 실제로 사람들 앞에 서는 일을 하는 사람이다냥."
+      : "화려한 사람한테 끌리지만, 배우자는 화려함보다 실속으로 버는 사람이다냥. 처음엔 수수해 보여도 알면 알수록 단단하다냥.",
+  warm: () => "다정한 사람을 찾는다고 했지. 배우자는 밖에선 일 잘하고 집에선 무장 해제되는 사람이다냥. 그 두 얼굴을 다 봐라냥.",
+  able: (_, n) => (n >= 2 ? "능력부터 본다고 했지. 그 눈이 맞다냥. 능력 있는 배우자 복이 있는 사주다냥." : "능력부터 본다고 했지. 배우자의 능력은 처음엔 안 보이다가 결혼하고 나서 드러난다냥."),
+  fun: () => "재밌는 사람한테 끌린다고 했지. 배우자는 일은 진지하게, 노는 건 화끈하게 하는 사람이다냥.",
+  steady: () => "듬직한 사람을 찾는다고 했지. 배우자는 한 직장, 한 분야를 오래 지키는 사람이다냥.",
+  mystic: () => "속을 알 수 없는 사람한테 끌린다고 했지. 배우자는 하는 일을 자랑하지 않는 사람이라, 직업을 알고 나면 놀란다냥.",
+};
+
+/** 만날 곳 감 (sp7) → what you notice first there. */
+const PLACE_FIRST: Record<string, string> = {
+  work: "일하는 곳에서 만나면, 일 처리하는 모습에서 먼저 눈이 간다냥.",
+  intro: "소개로 만나면 첫 만남엔 심심하다냥. 두 번째에 얼굴이 다르게 보인다냥.",
+  hobby: "모임에서 만나면, 다들 웃을 때 혼자 덜 웃는 그 사람한테 눈이 간다냥.",
+  app: "앱·SNS로 만나면 사진보다 실물이 낫다냥. 첫 만남을 미루지 마라냥.",
+  chance: "우연히 만나면 첫마디가 오래 기억에 남는다냥. 그게 신호다냥.",
+  school: "배우는 곳에서 만나면, 옆자리에서 먼저 말을 거는 쪽이 그 사람이다냥.",
+};
+
 const CANT_STAND: Record<string, (c: Chart) => string> = {
   money: (c) =>
     c.gods.includes("겁재") || c.groups.비겁 >= 2.5
@@ -248,6 +289,17 @@ function meetPlace(c: Chart): { id: string; text: string } {
   return { id: "intro", text: "가까운 사람 소개가 제일 확실한 길이다냥." };
 }
 
+/** 원하는 결혼 시기 (sp2) against the gap to the strongest year, without giving the year away. */
+const WANT_GAP: Record<string, (gap: number) => string> = {
+  asap: (g) => (g <= 1 ? "빨리 하고 싶다던 마음, 운도 같은 쪽이다냥." : "빨리 하고 싶다던 마음보다 운은 조금 늦다냥."),
+  soon: (g) => (g <= 3 ? "2~3년 안이라던 네 계획 안에 들어온다냥." : "2~3년 안이라던 계획보다 조금 뒤다냥."),
+  later: (g) => (g >= 2 ? "자리 잡고 나서라던 네 계획과 맞는다냥." : "천천히 하려던 계획보다 빨리 온다냥."),
+  flow: () => "인연 오면 그때라더니, 그 인연이 오는 해가 보인다냥.",
+  no: () => "생각 없다던 너도 그해엔 마음이 움직인다냥 😼",
+};
+
+const CANT_LABEL: Record<string, string> = { money: "돈 문제", lie: "거짓말", family: "집안 간섭", vice: "술·도박·게임", cold: "무심함", obsess: "집착" };
+
 const PLACE_LABEL: Record<string, string> = {
   work: "일·직장",
   intro: "지인 소개",
@@ -274,29 +326,65 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
   const look = LOOK[sEl];
   const count = c.gods.filter((g) => GROUP_OF[g] === sg).length;
   const palaceGod = branchTenGod(c.dayStem, c.dayBranch);
-  const years = marriageYears(c).slice(0, 3);
+  const allYears = marriageYears(c);
+  const years = allYears.slice(0, 3);
+  // Someone already with a person needs the best of the next three years, not the strongest year of twelve.
+  const nearTop = allYears.find((y) => y.year - aheadYear() <= 2);
   const top = years[0];
   const place = meetPlace(c);
   const starWord = c.gender === "male" ? "재성(財星)" : "관성(官星)";
   const now = thisYear();
 
   const attract = a("sp3") ? ATTRACT[a("sp3")!] : null;
+  const attractFits = Boolean(attract?.palaces.includes(c.dayBranch));
   const attractLine = attract
-    ? attract.palaces.includes(c.dayBranch)
+    ? attractFits
       ? `${attract.label}한테 끌린다고 했지. 배우자 자리랑 맞다냥. 끌리는 사람이랑 결혼하는 팔자다냥.`
       : `끌리는 건 ${attract.label}인데, 결혼은 ${palace.keys[0]}·${palace.keys[1]} 있는 사람이랑 한다냥. 그래서 끌린 사람들과는 끝까지 못 갔던 거다냥.`
     : null;
+  // The 맛보기 tells the hook; the 감정서 goes one step further instead of saying it again.
+  const attractNext = attract
+    ? attractFits
+      ? `그러니 첫눈에 끌린 사람을 괜히 의심하지 마라냥. 대신 ${josa(palace.keys[1], "이/가")} 있는지만 확인해라냥.`
+      : `${attract.label}한테 또 끌리면, ${josa(palace.keys[0], "이/가")} 있는지 한 번만 따져 봐라냥. 그게 배우자를 가려내는 체다냥.`
+    : null;
+  // The 맛보기 hook, and which story it used (so the 감정서 doesn't tell it twice).
+  const hookIs = attractLine ? "attract" : PARENTS[a("sp6") ?? ""] ? "parents" : "palace";
+  const hook =
+    attractLine ??
+    PARENTS[a("sp6") ?? ""] ??
+    `배우자 자리에 ${josa(palaceGod, "이/가")} 앉은 사주다냥. 배우자 복은 연애보다 결혼한 뒤에 더 드러나는 팔자다냥.`;
+  const STATUS_NOW: Record<string, string> = {
+    some: "썸 타는 사람이 있다고 했지. 그 사람이 배우자 자리의 사람인지는 아래 '지금 그 사람'에 적었다냥.",
+    dating: "연애 중이라고 했지. 지금 그 사람과 배우자 자리를 맞춰 본 건 맨 아래에 적었다냥.",
+    talk: "결혼 얘기가 오간다고 했지. 도장 찍기 전에 볼 것을 맨 아래에 적었다냥.",
+  };
 
   // ── 유료 감정서 ──
   const traitSec = sec(
     "배우자의 성격",
     `${josa(palace.keys[0], "과/와")} ${palace.keys[1]}의 사람이다냥`,
-    lines(`배우자 자리(일지)에 ${josa(ANIMALS[c.dayBranch], "이/가")} 앉아 있다냥.`, palace.trait, attractLine, STATUS_LINE[a("sp1") ?? ""] ?? null),
+    lines(
+      `배우자 자리(일지)에 ${josa(ANIMALS[c.dayBranch], "이/가")} 앉아 있다냥.`,
+      palace.trait,
+      attractNext,
+      STATUS_LINE[a("sp1") ?? ""] ?? STATUS_NOW[a("sp1") ?? ""] ?? null,
+    ),
     [`🔑 키워드: ${palace.keys.join(" · ")}`],
   );
-  const lookSec = sec("외모와 분위기", `${look.key}의 사람이다냥`, lines(`배우자 별 ${starWord}의 기운이 ${daNyang(elementLabel(sEl))}.`, look.look), [
-    `👀 첫눈에 보이는 것: ${look.key}`,
-  ]);
+  const lookSec = sec(
+    "외모와 분위기",
+    `${look.key}의 사람이다냥`,
+    lines(
+      `배우자 별 ${starWord}의 기운이 ${daNyang(elementLabel(sEl))}.`,
+      look.look,
+      // Said where the chart says you meet; a different guess (sp7) is answered in 만나는 곳.
+      !a("sp7") || a("sp7") === place.id ? PLACE_FIRST[place.id] : `${PLACE_LABEL[a("sp7")!]}에서만 찾으면 이 얼굴이 잘 안 보인다냥. ${PLACE_FIRST[place.id]}`,
+    ),
+    [
+      `👀 첫눈에 보이는 것: ${look.key}`,
+    ],
+  );
   const jobSec = sec(
     "직업과 능력",
     `${look.job} 쪽 기운이다냥`,
@@ -307,6 +395,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
         : count === 0
           ? "원국에 배우자 별이 없어서, 늦게 만나도 운에서 들어올 때 확 만난다냥."
           : "배우자 별이 제자리에 있다냥. 억지로 찾지 않아도 들어온다냥.",
+      ATTRACT_JOB[a("sp3") ?? ""]?.(sEl, count) ?? null,
     ),
     [`💼 직업 기운: ${look.job}`],
   );
@@ -342,6 +431,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
       top
         ? `${top.year}년은 ${top.ganji}년이다냥. ${GROUP_OF[top.god] === sg ? "배우자 별이 직접 들어오는 해다냥." : "배우자 자리와 합이 드는 해다냥."} 계절로는 ${seasonFor(c, top.year)}이 문이 열린다냥.`
         : null,
+      PATTERN_YEAR[a("sp5") ?? ""] ?? null,
     ),
     years.map((y, i) => `${["🥇", "🥈", "🥉"][i]} ${y.year}년(${y.age}세) ${y.ganji}${i === 0 ? ` · ${seasonFor(c, y.year)}` : ""}`),
   );
@@ -367,7 +457,8 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
     lines(
       MARRIED[palaceGod],
       GROUP_OF[palaceGod] === sg ? "배우자 자리에 배우자 별이 앉은 사주다냥. 부부 금슬이 좋은 자리다냥." : null,
-      a("sp1") === "remarry" ? "두 번째 결혼은 첫 결혼과 다른 결의 사람이 맞다냥. 같은 사람을 또 고르지 마라냥." : (PARENTS[a("sp6") ?? ""] ?? null),
+      a("sp1") === "remarry" ? "두 번째 결혼은 첫 결혼과 다른 결의 사람이 맞다냥. 같은 사람을 또 고르지 마라냥." : hookIs === "parents" ? null : (PARENTS[a("sp6") ?? ""] ?? null),
+      mbtiLove(input.me.mbti),
     ),
     [`🐾 잘 맞는 띠: ${goodSpouseAnimals(c).join("띠 · ")}띠`, `⚡ 부딪치는 띠: ${ANIMALS[(c.dayBranch + 6) % 12]}띠`, ...(c.blood ? [`🩸 잘 맞는 혈액형: ${BLOOD_MATCH[c.blood].map((b) => `${b}형`).join(" · ")}`] : [])],
   );
@@ -378,20 +469,50 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
     lines(
       CANT_STAND[a("sp4") ?? ""]?.(c) ?? null,
       PATTERN[a("sp5") ?? ""] ?? null,
+      PARENTS_HOME[a("sp6") ?? ""] ?? null,
       c.sinsal.dohwa ? "도화살이 있어서 결혼 후에도 눈길이 온다냥. 선을 먼저 그어 두면 문제없다냥." : null,
     ),
     [],
   );
 
   const status = a("sp1");
-  const nowSec =
-    status === "dating" || status === "talk" || status === "some"
-      ? sec("지금 그 사람이 배우자일까", "세 가지로 확인해라냥", lines("지금 만나는 사람이 배우자인지, 사주로 확인하는 법이다냥."), [
-          `🐾 그 사람 띠가 ${goodSpouseAnimals(c).join("·")} 중 하나면 배우자 자리와 맞는다냥`,
-          `👀 ${palace.keys[0]}·${josa(palace.keys[1], "이/가")} 보이면 배우자 자리의 사람이다냥`,
-          top ? `📅 ${top.year}년에 관계가 한 단계 넘어가면 그 사람이다냥` : "📅 인연 해에 관계가 깊어지면 그 사람이다냥",
-        ])
-      : null;
+  const soonTop = top && top.year - now <= 2;
+  const NOW: Record<string, { title: string; head: string; body: string; when: string }> = {
+    some: {
+      title: "지금 그 썸, 배우자 인연일까",
+      head: "썸이 연애로 넘어가는 때를 봐라냥",
+      body: soonTop
+        ? `썸 타는 중이라고 했지. 운이 ${top!.year}년으로 기울어 있어서, 이 썸이 오래 안 간다냥. 빨리 정해지는 쪽이다냥.`
+        : "썸 타는 중이라고 했지. 이 썸이 배우자 인연이면, 미적거림 없이 석 달 안에 정해진다냥. 길어지면 아니다냥.",
+      when: top ? `📅 ${top.year}년 전에 연인이 되면 그 사람이다냥` : "📅 인연 해에 연인이 되면 그 사람이다냥",
+    },
+    dating: {
+      title: "지금 그 사람이 배우자일까",
+      head: "세 가지로 확인해라냥",
+      body: soonTop
+        ? `연애 중이라고 했지. 결혼 기운이 ${top!.year}년에 바로 들어온다냥. 지금 사람과 그해를 넘기면 결혼까지 간다냥.`
+        : "연애 중이라고 했지. 지금 사람이 배우자 자리의 사람인지는 아래 세 가지로 가려진다냥.",
+      when: top ? `📅 ${top.year}년에 관계가 한 단계 넘어가면 그 사람이다냥` : "📅 인연 해에 관계가 깊어지면 그 사람이다냥",
+    },
+    talk: {
+      title: "결혼 얘기 오가는 그 사람",
+      head: soonTop ? "운도 결혼 쪽으로 기울어 있다냥" : "도장 찍기 전에 확인해라냥",
+      body: soonTop
+        ? `결혼 얘기가 오간다고 했지. 운도 같은 쪽을 가리킨다냥. ${top!.year}년이면 날짜까지 맞는다냥.`
+        : nearTop
+          ? `결혼 얘기가 오간다고 했지. 가까운 세 해 중엔 ${nearTop.year}년(${nearTop.ganji})이 제일 낫다냥. 인연 기운이 제일 센 해는 ${top!.year}년이지만, 이미 만난 인연이면 가까운 해에 맺는 게 맞다냥.`
+          : "결혼 얘기가 오간다고 했지. 도장 찍기 전에 아래 세 가지를 꼭 맞춰 봐라냥.",
+      when: soonTop || !nearTop ? (top ? `📅 날짜는 ${top.year}년 ${seasonFor(c, top.year)}이 제일 좋다냥` : "📅 인연 해에 날을 잡아라냥") : `📅 날짜는 ${nearTop.year}년 ${seasonFor(c, nearTop.year)}이 제일 좋다냥`,
+    },
+  };
+  const nw = status ? NOW[status] : undefined;
+  const nowSec = nw
+    ? sec(nw.title, nw.head, nw.body, [
+        `🐾 그 사람 띠가 ${goodSpouseAnimals(c).join("·")} 중 하나면 배우자 자리와 맞는다냥`,
+        `👀 ${palace.keys[0]}·${josa(palace.keys[1], "이/가")} 보이면 배우자 자리의 사람이다냥`,
+        nw.when,
+      ])
+    : null;
 
   const sections = [
     { id: "trait", icon: "💍", section: traitSec },
@@ -406,7 +527,6 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
   const report: FullReport = { subScores: [], sections, luck: null };
 
   // ── 무료 맛보기 ──
-  const hook = attractLine ?? PARENTS[a("sp6") ?? ""] ?? MARRIED[palaceGod];
   const beats: FortuneBeat[] = [
     {
       say: `${name}… 배우자는 사주에 이미 앉아 있다냥. 원국부터 본다냥.`,
@@ -415,7 +535,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
       next: "감정 근거는?",
     },
     {
-      say: "감정 근거다냥. 배우자 자리와 배우자 별을 표시해 뒀다냥.",
+      say: `${name}의 배우자 자리는 일지 ${daNyang(ANIMALS[c.dayBranch])}. 배우자 별까지 표시해 뒀다냥.`,
       mood: "talk",
       card: basisCard(c, [
         ["배우자 자리", `일지 ${ANIMALS[c.dayBranch]} · ${palaceGod}`],
@@ -430,7 +550,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
         kind: "keywords",
         title: "배우자 키워드",
         items: [palace.keys[0], palace.keys[1], look.key],
-        body: palace.trait,
+        body: `${palace.keys[0]}, ${palace.keys[1]}, 그리고 ${look.key}. 이 셋이 한 사람한테 보이면 그 사람이다냥.`,
       },
       next: "소름…",
     },
@@ -441,14 +561,14 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
       next: "언제 만나?",
     },
     {
-      say: years.length >= 3 ? "앞으로 결혼 기운이 센 해가 세 번 들어온다냥." : "결혼 기운이 들어오는 해가 보인다냥.",
+      say: years.length >= 3 ? `${c.age}세 ${name}, 앞으로 결혼 기운이 센 해가 세 번 들어온다냥.` : `${name}, 결혼 기운이 들어오는 해가 보인다냥.`,
       mood: "wow",
       card: {
         kind: "text",
         icon: "📅",
         title: "만나는 시기",
         body: top
-          ? `제일 센 해는 ${String(top.year).slice(0, 2)}○○년이다냥. 몇 월 무렵인지까지 보인다냥. 감정서에 적어 뒀다냥.`
+          ? `제일 센 해는 ${String(top.year).slice(0, 2)}○○년, ${top.age}세 무렵이다냥. ${WANT_GAP[a("sp2") ?? ""]?.(top.year - now) ?? "몇 월 무렵인지까지 보인다냥."} 감정서에 적어 뒀다냥.`
           : "운에서 들어오는 해가 보인다냥. 감정서에 적어 뒀다냥.",
       },
       next: "몇 년인데?",
@@ -459,7 +579,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
     title: `${name}의 배우자 감정서`,
     saju: c.saju.summary,
     beats,
-    paywall: "…여기서부터가 진짜다냥. 배우자 얼굴과 직업, 만나는 해와 계절, 어디서 만나는지, 결혼 전에 피해야 할 것까지 다 적어 뒀다냥. 듣고 갈래? 😼",
+    paywall: `…여기서부터가 진짜다냥. 배우자 얼굴과 직업, 만나는 해와 계절, ${a("sp7") ? `네 감(${PLACE_LABEL[a("sp7")!]})이 맞는지` : "어디서 만나는지"}, ${a("sp4") && CANT_LABEL[a("sp4")!] ? `${CANT_LABEL[a("sp4")!]} 걱정까지` : "결혼 전에 피해야 할 것까지"} 다 적어 뒀다냥. 듣고 갈래? 😼`,
     locked: sections.map((s) => locked(s.id, s.icon, s.section)),
     story: {
       kind: "fortune",

@@ -272,11 +272,12 @@ export function decodeTells(set: AnswerSet, short: (m: string) => string): Map<s
   );
 }
 
-export function decodeBullets(set: AnswerSet, short: (m: string) => string): string[] {
+/** Every answer decoded, in interview order; `skip` = questions the free result already decoded word for word. */
+export function decodeBullets(set: AnswerSet, short: (m: string) => string, skip: Set<string> = new Set()): string[] {
   const tells = decodeTells(set, short);
   return set.qs.flatMap((q, i) => {
     const t = tells.get(q.id);
-    return t ? [`Q${i + 1}. ${t.question}\n→ ${t.answer}\n🔮 ${t.read}`] : [];
+    return t && !skip.has(q.id) ? [`Q${i + 1}. ${t.question}\n→ ${t.answer}\n🔮 ${t.read}`] : [];
   });
 }
 
@@ -388,6 +389,8 @@ export function traitEvidence(set: AnswerSet): Record<AxisKey, string> {
   // Same branch → next phrasing; an answer already quoted for another axis yields to a fresh one.
   const used = new Map<string, number>();
   const cited = new Set<string>();
+  // A closing remark ("좋아할수록 그 얼굴이 나온다냥.") is said once across the four traits.
+  const tails = new Set<string>();
   const fresh = (it: Item) => (cited.has(it.qid) ? 0.6 : 0);
   for (const ax of PROFILE_AXES) {
     const dir = set.person.profile.raw[ax.key] > 0 ? 1 : -1;
@@ -438,7 +441,11 @@ export function traitEvidence(set: AnswerSet): Record<AxisKey, string> {
     const n = used.get(branch) ?? 0;
     used.set(branch, n + 1);
     [a, b, c].forEach((it) => it && cited.add(it.qid));
-    out[ax.key] = fill(pick(variants, seed + n), set.p);
+    const text = fill(pick(variants, seed + n), set.p);
+    const parts = text.split(/(?<=냥\.)\s+/);
+    const tail = parts[parts.length - 1];
+    out[ax.key] = parts.length > 1 && tails.has(tail) ? parts.slice(0, -1).join(" ") : text;
+    tails.add(tail);
   }
   return out;
 }

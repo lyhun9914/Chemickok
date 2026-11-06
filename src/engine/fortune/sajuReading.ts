@@ -19,6 +19,8 @@ import {
   josa,
   lines,
   locked,
+  mbtiLove,
+  mbtiLuck,
   scoreWord,
   sec,
   sinsalList,
@@ -63,6 +65,68 @@ const SIBLING_UNKNOWN: Record<"high" | "mid" | "low", string> = {
   low: "형제 덕보다 네 힘으로 서는 팔자다냥. 일찍 혼자 서는 법을 배웠다냥.",
 };
 
+/** 형제 순서 (sj3) as it shows in today's relationships (the 사람 section; the 맛보기 tells the childhood side). */
+const SIBLING_NOW: Record<string, string> = {
+  first: "그래서 지금도 모임에선 총무·정리 담당이 네 몫이다냥. 네가 빠지면 판이 안 굴러간다냥.",
+  middle: "그래서 지금도 양쪽 말을 다 들어 주는 중재자다냥. 정작 네 편은 적다냥.",
+  last: "그래서 지금도 윗사람한테 귀여움받는 재주가 있다냥. 그게 네 귀인 복이다냥.",
+  only: "그래서 지금도 사람을 많이 두기보다 깊게 둔다냥. 셋이면 충분한 사람이다냥.",
+  complex: "그래서 사람을 쉽게 안 믿는다냥. 대신 한 번 믿으면 끝까지 간다냥.",
+};
+/** 형제 순서 (sj3) in love. */
+const LOVE_ROLE: Record<string, string> = {
+  first: "맏이라 연애에서도 챙기는 쪽이 된다냥. 챙김받는 연습이 필요하다냥.",
+  middle: "가운데라 상대 기분부터 읽는다냥. 네 기분도 말로 꺼내라냥.",
+  last: "막내라 연애에선 애교가 무기인데, 결혼에선 책임을 먼저 보여라냥.",
+  only: "외동이라 연애해도 혼자 시간이 꼭 필요하다냥. 그걸 서운해하지 않는 사람이 맞다냥.",
+  complex: "집안 얘기를 꺼내기 어려운 사람이다냥. 캐묻지 않고 기다려 주는 사람이 맞다냥.",
+};
+/** 사람들이 하는 말 (sj6) → how it plays out with people. */
+const PEOPLE_SEE: Record<string, string> = {
+  stubborn: "고집 세다는 말은, 네가 한 말을 끝까지 지켜서 듣는 말이다냥. 그 고집에 기대는 사람도 많다냥.",
+  kind: "착하다는 말 듣는 사람한테 부탁이 몰린다냥. 세 번 중 한 번은 거절해라냥.",
+  sharp: "똑 부러진다는 사람 곁엔 기대는 사람이 많다냥. 가끔은 허술한 모습도 보여라냥. 그래야 진짜가 남는다냥.",
+  bright: "밝은 사람 곁엔 사람이 꼬인다냥. 근데 네가 힘들 때 알아채는 사람은 몇 없다냥. 그 몇을 챙겨라냥.",
+  mystery: "속을 모르겠다는 말을 듣는 사람은 한 명한테만 다 연다냥. 그 한 명을 잘 골라라냥.",
+  solid: "든든하다는 말은 네가 다 받아 줘서 듣는 말이다냥. 너도 기댈 사람을 하나 정해 둬라냥.",
+};
+/** 몸에서 신경 쓰이는 곳 (sj4) → what to do about it. */
+const HEALTH_CARE: Record<string, string> = {
+  wood: "목·어깨 뭉침은 참는 버릇에서 온다냥. 하루 한 번은 크게 기지개를 켜라냥.",
+  fire: "두근거림·잠 설침은 삼킨 화다냥. 자기 전에 오늘 화난 일을 한 줄 적고 자라냥.",
+  earth: "소화가 안 되는 건 걱정을 같이 씹어서다냥. 밥 먹을 땐 폰을 내려놔라냥.",
+  metal: "기관지·피부가 예민한 건 공기와 사람을 같이 타서다냥. 환기와 거리 두기가 약이다냥.",
+  water: "허리·관절·부종은 오래 버틴 몸의 신호다냥. 물을 자주 마시고 한 시간마다 일어나라냥.",
+  none: "지금 멀쩡한 게 제일 위험하다냥. 아픈 걸 늦게 알아채는 몸이니 검진 날짜를 정해 둬라냥.",
+};
+/** 지금 하는 일 (sj2) → how money comes to that life. */
+const JOB_MONEY: Record<string, string> = {
+  office: "월급으로 사는 지금은, 월급 말고 두 번째 돈 길 하나를 내는 게 숙제다냥.",
+  biz: "장사하는 사람 돈은 사람 따라 들어온다냥. 단골 셋이 매출 절반을 만든다냥.",
+  free: "재주로 버는 돈은 들쭉날쭉하다냥. 잘 버는 달에 석 달 치를 떼어 둬라냥.",
+  study: "아직은 버는 때보다 쓰는 법을 배우는 때다냥. 지금 들인 돈 습관이 평생 간다냥.",
+  home: "살림을 맡은 손이라 집안 돈은 네 손에서 불어난다냥. 네 이름 통장 하나는 꼭 만들어라냥.",
+  rest: "쉬는 동안 돈은 줄어드는 게 정상이다냥. 다음 자리를 잡는 달까지 쓸 돈만 정해 둬라냥.",
+  retired: "노후 돈은 불리는 것보다 지키는 게 버는 거다냥. 큰 투자 권유는 한 번 더 거절해라냥.",
+};
+/** 돈이 새는 곳 (sj5) → a 개운 habit with the 용신. */
+const SPEND_LUCK: Record<string, (l: { color: string; numbers: string; direction: string }) => string> = {
+  self: (l) => `나한테 쓸 땐 ${l.color} 계열을 골라라냥. 같은 돈을 써도 운이 남는다냥.`,
+  others: () => "남한테 줄 돈은 한 달 한도를 미리 정해 두고, 넘으면 '다음에'라고 해라냥. 그게 네 개운법이다냥.",
+  invest: (l) => `큰돈을 넣을 땐 ${l.numbers}이 든 날, ${l.direction}을 보고 앉아서 정해라냥.`,
+  save: (l) => `통장 하나를 ${l.color} 통장으로 정해 두고 절대 손대지 마라냥. 모으는 운이 거기 붙는다냥.`,
+  debt: (l) => `갚는 날을 ${l.numbers}이 든 날로 맞춰 두면 마음이 덜 무겁다냥.`,
+  leak: () => "결제 앱 하나를 지우는 게 네 개운법이다냥. 새는 구멍 하나가 운 하나다냥.",
+};
+/** 인생의 계절 (sj8) → what 개운 means right now. */
+const SEASON_LUCK: Record<string, string> = {
+  spring: "봄 같은 지금은 새로 배우는 게 개운이다냥.",
+  summer: "한여름 같은 지금은 쉬는 날을 지키는 게 개운이다냥.",
+  autumn: "거두는 지금은 정리와 저축이 개운이다냥.",
+  winter: "버티는 지금은 잠과 밥을 지키는 게 개운이다냥.",
+  between: "환절기 같은 지금은 큰 결정을 한 박자 늦추는 게 개운이다냥.",
+};
+
 const PEOPLE_SAY: Record<string, [string, string]> = {
   // [신강, 신약]
   stubborn: ["고집 맞다냥. 사주가 신강이라 꺾이질 않는다냥.", "고집이 아니라 버팀이다냥. 신약 사주는 무너질까 봐 더 세게 버틴다냥."],
@@ -98,6 +162,17 @@ const EVENT_LABEL: Record<string, string> = {
   loss: "큰돈이 나갔다",
   family: "집안에 큰일이 있었다",
   calm: "별일 없었다",
+};
+
+const EVENT_WHY_LABEL: Record<string, string> = {
+  move: "이사한 이유",
+  job: "일이 바뀐 이유",
+  breakup: "인연이 끝난 이유",
+  meet: "새 인연의 정체",
+  sick: "몸이 아팠던 이유",
+  loss: "돈이 나간 이유",
+  family: "집안에 일이 생긴 이유",
+  calm: "조용했던 이유",
 };
 
 const SEASON: Record<string, { warm: boolean; label: string }> = {
@@ -359,12 +434,12 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
     "타고난 성격 · 겉과 속",
     `${stem.name}, ${stem.image}의 팔자다냥`,
     lines(
-      stem.core,
-      stem.gift,
-      stem.shadow,
+      // The 맛보기 opened with stem.core and (the answer to sj6, else stem.shadow); the 감정서 carries on.
+      `${name}의 그릇 위에 무기와 그림자를 하나씩 얹어 보겠다냥. 무기부터 말하면, ${stem.gift}`,
+      say ? stem.shadow : null,
+      focus === "life" ? `인생 전체를 보자고 했지. 한 줄로 줄이면, ${josa(`'${stem.image}'`, "이/가")} ${josa(elementLabel(c.yongsin), "을/를")} 만나야 피는 팔자다냥.` : null,
       c.age >= 60 ? GROUP_STRONG[top].replace("윗사람과 부딪친다냥", "가까운 사람과 말로 부딪친다냥") : GROUP_STRONG[top],
       GROUP_WEAK[low],
-      say,
       c.blood ? BLOOD_CHART[c.blood][c.strong ? 0 : 1] : null,
     ),
     [
@@ -386,6 +461,8 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
       stem.money,
       moneyLine(c, a("sj5")),
       `네 재물 기운은 ${daNyang(elementLabel(jaeEl))}. ${c.yongsin === jaeEl ? "용신이 곧 재물이라, 돈 쫓는 게 곧 운을 쫓는 거다냥." : "돈보다 실력과 이름을 먼저 키우면 돈이 따라온다냥."}`,
+      JOB_MONEY[a("sj2") ?? ""] ?? null,
+      focus === "money" ? `돈이 제일 궁금하다고 했지. 지금은 ${c.groups.재성 >= 2.5 ? "벌 길보다 새는 길부터 막을 때" : "실력을 돈으로 바꿀 준비를 할 때"}다냥.` : null,
     ),
     [
       moneyYears.length
@@ -413,6 +490,9 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
         : c.groups.관성 <= 0.5
           ? "관성이 약해서 위에서 누르는 곳은 못 버틴다냥. 자율이 곧 성과다냥."
           : null,
+      focus === "work" && now
+        ? `일이 제일 궁금하다고 했지. 지금 대운이 ${GOD_SHORT[now.god]}의 10년이라, ${["정관", "편관", "정인", "식신", "편재"].includes(now.god) && now.score >= 55 ? "일에 힘이 실리는 때다냥. 지금 이름을 걸어라냥." : "일보다 다른 게 먼저 움직이는 때다냥. 자리를 옮기기보다 실력을 쌓아라냥."}`
+        : null,
     ),
     [
       `✅ 맞는 일: ${FIELD[top]}`,
@@ -453,6 +533,14 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
             : "배우자 별이 제자리에 있다냥. 억지로 찾지 않아도 들어온다냥.",
       c.sinsal.dohwa ? "도화살까지 있어서 가만있어도 눈길을 끈다냥." : null,
       c.sinsal.hongyeom ? "홍염살이 있어서 은근히 끌리는 매력이 있다냥." : null,
+      LOVE_ROLE[a("sj3") ?? ""] ?? null,
+      a("sj7") === "meet"
+        ? "올해 들어온 그 인연, 아래 배우자 자리의 사람인지 맞춰 봐라냥."
+        : a("sj7") === "breakup"
+          ? `올해 끝난 인연 다음 사람은 ${loveYear ? `${loveYear.year}년에 든다냥.` : "운에서 들어오는 해에 온다냥."}`
+          : null,
+      focus === "love" ? "연애·결혼이 제일 궁금하다고 했지. 그래서 배우자 자리부터 짚었다냥." : null,
+      mbtiLove(input.me.mbti),
       `배우자 자리(일지)에 ${josa(animalOfBranch(c.dayBranch), "이/가")} 앉아 있다냥. ${settled ? "네 짝은" : "배우자는"} ${["눈치 빠르고 생활력 강한", "묵묵하고 성실한", "추진력 있고 자존심 센", "부드럽고 다정한", "그릇 크고 욕심 있는", "똑똑하고 속정 깊은", "밝고 활동적인", "온순하고 가정적인", "재주 많고 말솜씨 좋은", "깔끔하고 기준 높은", "의리 있고 책임감 강한", "마음 넓고 정 많은"][c.dayBranch]} 사람이다냥.`,
     ),
     [
@@ -470,7 +558,12 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
   const health = sec(
     "건강 · 약한 고리",
     `${josa(ORGANS[c.saju.summary.lacking], "을/를")} 지켜라냥`,
-    lines(...healthLines(c, a("sj4")), c.strong ? "신강 사주라 버티는 힘은 좋다냥. 그래서 아픈 걸 늦게 안다냥." : "신약 사주라 기운이 쉽게 빠진다냥. 잠이 곧 보약이다냥."),
+    lines(
+      ...healthLines(c, a("sj4")).slice(1),
+      HEALTH_CARE[a("sj4") ?? ""] ?? null,
+      focus === "health" ? `건강이 제일 궁금하다고 했지. ${LUCK[c.saju.summary.lacking].act}, 이것 하나만 매일 해라냥.` : null,
+      c.strong ? "신강 사주라 버티는 힘은 좋다냥. 그래서 아픈 걸 늦게 안다냥." : "신약 사주라 기운이 쉽게 빠진다냥. 잠이 곧 보약이다냥.",
+    ),
     [`🍵 도움 되는 음식: ${LUCK[c.saju.summary.lacking].food}`, `🚶 도움 되는 습관: ${LUCK[c.saju.summary.lacking].act}`],
   );
 
@@ -480,8 +573,11 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
     "사람과 귀인",
     c.sinsal.gwiin ? "막판에 꼭 누가 돕는 팔자다냥" : "사람보다 실력이 지켜 주는 팔자다냥",
     lines(
-      c.sinsal.gwiin ? SINSAL_TEXT.gwiin : "천을귀인은 없다냥. 대신 네가 쌓은 실력이 귀인 노릇을 한다냥.",
-      sibLine,
+      // The 천을귀인 line opens the 맛보기's 살 card when it is the first 살.
+      c.sinsal.gwiin && sinsals[0] !== "gwiin" ? SINSAL_TEXT.gwiin : c.sinsal.gwiin ? "막히는 순간마다 누가 손을 내미는 팔자, 그게 네 귀인 복이다냥." : "천을귀인은 없다냥. 대신 네가 쌓은 실력이 귀인 노릇을 한다냥.",
+      SIBLING_NOW[sib ?? ""] ?? null,
+      PEOPLE_SEE[a("sj6") ?? ""] ?? null,
+      focus === "people" ? `사람이 제일 궁금하다고 했지. 지쳤다면 ${clashAnimal}띠와의 돈 거래부터 끊어라냥.` : null,
       c.groups.비겁 >= 2.5
         ? "친구는 많은데 진짜는 손에 꼽는다냥. 돈 얽히면 사람도 잃는다냥."
         : c.groups.인성 >= 2.5
@@ -519,6 +615,9 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
     lines(
       `네 용신은 ${daNyang(elementLabel(c.yongsin))}. 이 기운을 가까이 두면 막힌 게 풀린다냥.`,
       `반대로 ${josa(elementLabel(c.gisin), "은/는")} 기신이다냥. 넘치면 일이 꼬인다냥.`,
+      SEASON_LUCK[a("sj8") ?? ""] ?? null,
+      SPEND_LUCK[a("sj5") ?? ""]?.(L) ?? null,
+      mbtiLuck(input.me.mbti, Boolean(now && now.score < 52)),
     ),
     [
       `🎨 색: ${L.color}`,
@@ -556,7 +655,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
       next: "감정 근거는?",
     },
     {
-      say: "감정 근거다냥. 냥신은 숨기지 않는다냥. 이 글자들이 아래 모든 풀이의 뿌리다냥.",
+      say: `${name}의 여덟 글자, ${c.strong ? "신강" : "신약"}에 ${top} 강·${low} 약이다냥. 이 글자들이 아래 모든 풀이의 뿌리다냥.`,
       mood: "talk",
       card: basisCard(c),
       next: "그래서 나는?",
@@ -568,7 +667,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
         kind: "text",
         icon: "🔮",
         title: "타고난 그릇",
-        body: lines(stem.core, stem.shadow),
+        body: lines(stem.core, say ?? stem.shadow),
       },
       next: "소름…",
     },
@@ -608,7 +707,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
     title: `${name}의 사주 감정서`,
     saju: c.saju.summary,
     beats,
-    paywall: `…여기서부터가 감정서 본문이다냥. 네가 궁금해한 ${FOCUS_LABEL[focus]}부터, ${years[0].year}·${years[1].year}년 운과 개운법까지 다 적어 뒀다냥. 듣고 갈래? 😼`,
+    paywall: `…여기서부터가 감정서 본문이다냥. 네가 궁금해한 ${FOCUS_LABEL[focus]}부터, ${EVENT_WHY_LABEL[a("sj7") ?? ""] ? `올해 ${EVENT_WHY_LABEL[a("sj7")!]}, ` : ""}${years[0].year}·${years[1].year}년 운과 개운법까지 다 적어 뒀다냥. 듣고 갈래? 😼`,
     locked: sections.map((s) => locked(s.id, s.icon, s.section)),
     story: {
       kind: "fortune",

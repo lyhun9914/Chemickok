@@ -334,6 +334,47 @@ export function locked(id: string, icon: string, s: ReportSection): LockedPrevie
   };
 }
 
+/** A valid 4-letter MBTI from 기본 정보, upper-cased, or null. */
+export const mbtiOf = (m: string | undefined) => (m && /^[EI][NS][TF][JP]$/i.test(m) ? m.toUpperCase() : null);
+
+/**
+ * How this MBTI moves when the 운 is heavy or light: E/I (where they go when it hurts) × J/P (plan or flow).
+ * One line, said once per reading, so the advice fits the person and not only the chart.
+ */
+export function mbtiLuck(mbti: string | undefined, heavy: boolean): string | null {
+  const m = mbtiOf(mbti);
+  if (!m) return null;
+  const e = m[0] === "E";
+  const j = m[3] === "J";
+  const who = josa(m, "은/는");
+  if (heavy)
+    return e
+      ? j
+        ? `${who} 힘들수록 일과 약속을 더 늘린다냥. 무거운 운엔 그게 독이다냥. 계획을 반으로 줄여 잡아라냥.`
+        : `${who} 힘들면 사람 만나서 털어 버리지. 그건 약인데, 무거운 운엔 술자리와 지출이 같이 는다냥.`
+      : j
+        ? `${who} 힘들 때 혼자 계획을 다시 짠다냥. 무거운 운엔 계획보다 잠이 먼저다냥.`
+        : `${who} 힘들면 연락을 끊고 숨지. 숨는 건 괜찮은데, 한 사람한테는 꼭 말해 둬라냥.`;
+  return e
+    ? j
+      ? `${who} 판이 열리면 바로 판을 짠다냥. 좋은 운엔 그 속도가 그대로 돈이 된다냥.`
+      : `${who} 기회 냄새를 제일 먼저 맡는다냥. 대신 벌여 놓고 마무리를 놓친다냥. 좋은 운엔 하나만 끝까지 가라냥.`
+    : j
+      ? `${who} 준비가 끝나야 움직이지. 좋은 운은 기다려 주지 않는다냥. 80%면 시작해라냥.`
+      : `${who} 좋은 운이 와도 혼자 망설인다냥. 누가 끌어 줄 때 못 이기는 척 따라가라냥.`;
+}
+
+/** How this MBTI loves: E/I (time alone or out) × T/F (how hurt comes out). One line for love / marriage sections. */
+export function mbtiLove(mbti: string | undefined): string | null {
+  const m = mbtiOf(mbti);
+  if (!m) return null;
+  const who = josa(`${m}인 너`, "은/는");
+  const space =
+    m[0] === "I" ? "같이 살아도 혼자 있는 시간이 꼭 있어야 숨을 쉰다냥. 그걸 미리 말해 두면 싸울 일이 반으로 준다냥." : "밖에서 사람을 만나야 기운이 차는 사람이다냥. 그걸 서운해하지 않는 사람이어야 오래 간다냥.";
+  const hurt = m[2] === "F" ? "서운한 걸 표정으로만 보내지 말고 말로 꺼내라냥." : "맞는 말보다 다정한 말이 관계를 지킨다냥.";
+  return `${who} ${space} ${hurt}`;
+}
+
 export const scoreWord = (n: number) => (n >= 85 ? "대길(大吉)" : n >= 72 ? "길(吉)" : n >= 58 ? "평(平)" : n >= 45 ? "소흉(小凶)" : "흉(凶)");
 
 export { josa };

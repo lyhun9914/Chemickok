@@ -274,12 +274,25 @@ function hiddenReadings(me: Profile): string[] {
 /** The one combo the free result already showed (couples: my answer × theirs); the paid sections skip it. */
 const teaserCombo = (c: Core, x?: Couple) => (x ? crossCombos(selfSet(c), partnerSet(x), 1)[0] : undefined) ?? selfCombos(selfSet(c), 1)[0] ?? null;
 
+/** The questions the free result decodes in full (two tells and the colour pick): the paid decode doesn't repeat them. */
+function shownInTeaser(c: Core): Set<string> {
+  const decode = selfDecode(c.input.mode, c.input.status);
+  const tells = tellingOrder(decode, c.input.self)
+    .filter((id) => !COLOR_QS.has(id))
+    .slice(0, FREE_TELLS);
+  const color = colorReading(c) ? Object.keys(decode).find((id) => COLOR_QS.has(id)) : undefined;
+  return new Set([...tells, ...(color ? [color] : [])]);
+}
+
 function decodeSection(c: Core, intro: string, shown: string | null): ReportSection {
+  const qs = selfInterview(c.input.mode, c.input.status);
+  const skip = shownInTeaser(c);
+  const skipped = qs.map((q, i) => (skip.has(q.id) ? `Q${i + 1}` : null)).filter(Boolean);
   return {
     title: "면담 기록 전체 해석 · 냥신이 그 질문을 한 이유",
-    headline: `'왜 이런 걸 묻지?' 싶었던 ${selfInterview(c.input.mode, c.input.status).length}개, 전부 이유가 있었다냥 🔍`,
-    body: intro,
-    bullets: [...selfCombos(selfSet(c)).filter((l) => l !== shown), ...decodeBullets(selfSet(c), mbtiShort)],
+    headline: `'왜 이런 걸 묻지?' 싶었던 ${qs.length}개, 전부 이유가 있었다냥 🔍`,
+    body: skipped.length ? `${intro}\n맛보기에서 먼저 짚은 ${skipped.join("·")}는 빼고 나머지를 하나씩 풀었다냥.` : intro,
+    bullets: [...selfCombos(selfSet(c)).filter((l) => l !== shown), ...decodeBullets(selfSet(c), mbtiShort, skip)],
   };
 }
 
@@ -434,7 +447,8 @@ function buildSoloReport(c: Core, level: "share" | "full"): FullReport {
   const lackingLabel = mySaju ? ELEMENT_LABEL[mySaju.summary.lacking] : null;
   const luck: LuckSection = {
     title: "이번 달 연애운 & 인연이 들어오는 날",
-    headline: loveLuck.loveLuckHeadline,
+    // The 맛보기 showed this month's % line; the 감정서 leads with the day itself.
+    headline: days.length ? `${josa(days[0], "이/가")} 인연이 드는 날이다냥 🍀` : `${name}, 이번 달 인연을 부르는 법이다냥 🍀`,
     body: lines([
       SOLO.MONTH_FLOW[soloMonthFlow(c)],
       lackingLabel ? `네 사주에서 제일 약한 기운은 ${daNyang(lackingLabel)}. 이 기운을 채우는 색이랑 장소가 인연을 불러온다냥.` : "",
@@ -659,11 +673,12 @@ function buildCoupleReport(x: Couple, level: "share" | "full"): FullReport {
 
   const overall: ReportSection = {
     title: S.OVERALL_TITLE[input.status],
-    headline: overallHeadline(x.score, input.status),
+    // The 맛보기 already gave the score line and the MBTI pair line; the 감정서 says what the score is made of.
+    headline: `${x.score}점, 무기는 ${SUB_LABEL[sortedSub[0]]}, 숙제는 ${daNyang(SUB_LABEL[sortedSub[sortedSub.length - 1]])}`,
     body: lines([
       P.STATUS_OPENER[input.status],
       sajuParagraph(x),
-      mbti ? `MBTI로는 ${mbti.pair}, '${mbti.level}' 조합이다냥. ${mbti.line}` : "",
+      mbti ? `MBTI로는 ${mbti.pair}, '${mbti.level}' 조합이다냥.` : "",
       rel(pairText[g](n), st),
       rel(pairText[e](n), st),
     ]),

@@ -19,7 +19,7 @@ import {
   tenGod,
   yearPillar,
 } from "./chart";
-import { GOD_YEAR_SENIOR, LUCK, ORGANS, basisCard, josa, lines, locked, scoreWord, sec } from "./common";
+import { GOD_YEAR_SENIOR, LUCK, ORGANS, basisCard, daNyang, josa, lines, locked, mbtiLuck, scoreWord, sec } from "./common";
 
 // ───────────── 신년운세 ─────────────
 
@@ -48,6 +48,7 @@ const NY: Record<
     money: "버는 만큼 나눠 쓰게 되는 해다냥. 동업·보증·돈 빌려주기는 올해 금물이다냥.",
     single: "친구 같은 인연이 온다냥. 동호회·동창 모임처럼 '같은 편' 사이에서 시작된다냥.",
     couple: "둘 다 고집이 세지는 해다냥. 주도권 싸움만 피하면 동지처럼 단단해진다냥.",
+    married: "부부가 각자 일로 바빠지는 해다냥. 주말 하루는 꼭 같이 보내라냥.",
     work: "독립·창업·프리랜서 생각이 커진다냥. 준비된 사람에겐 기회고, 아니면 상반기는 실력부터 쌓아라냥.",
     study: "혼자 파고드는 공부가 맞는 해다냥. 스터디보다 독학이다냥.",
     health: "근육·관절을 쓰는 운동이 운을 돋운다냥. 무리한 승부욕만 조심해라냥.",
@@ -73,6 +74,7 @@ const NY: Record<
     money: "재주가 돈이 되는 해다냥. 부업·취미 수익이 생기기 좋다냥. 큰 한 방보다 꾸준한 수입이다냥.",
     single: "편하게 웃게 해 주는 인연이 온다냥. 맛집·취미 모임에서 시작된다냥.",
     couple: "같이 먹고 노는 게 행복인 해다냥. 여행 한 번이 관계를 살린다냥.",
+    married: "집밥과 여행이 부부 사이를 살리는 해다냥. 집안에 작은 경사가 든다냥.",
     work: "일이 즐거워지는 해다냥. 기획·콘텐츠·요리·교육처럼 손과 재주를 쓰는 일이 풀린다냥.",
     study: "좋아하는 과목이 확 늘어나는 해다냥. 재미 붙인 게 성적이 된다냥.",
     health: "몸이 편해지는 해인데, 그만큼 살이 붙는다냥. 과식만 조심해라냥.",
@@ -85,6 +87,7 @@ const NY: Record<
     money: "아이디어가 돈이 되는 해다냥. 다만 기분 따라 쓰는 돈이 커진다냥.",
     single: "말이 잘 통하는 사람한테 확 끌린다냥. 첫 만남에 수다로 반한다냥.",
     couple: "말 한마디로 싸우고, 말 한마디로 푼다냥. 서운한 걸 쌓지 말고 그날 말해라냥.",
+    married: "말 한마디가 부부 싸움을 키우는 해다냥. 잔소리는 하루 한 번만 해라냥.",
     work: "윗사람·규칙과 부딪치는 해다냥. 이직·전업 생각이 커지는데, 홧김에 그만두지는 마라냥.",
     study: "말하기·글쓰기·예체능이 터지는 해다냥. 대신 선생님과 부딪치지 마라냥.",
     health: "신경이 예민해져 잠이 얕아진다냥. 목·기관지를 아껴라냥.",
@@ -123,6 +126,7 @@ const NY: Record<
     money: "나갈 돈이 갑자기 생긴다냥. 수리비·병원비 같은 돈이다냥. 비상금을 따로 둬라냥.",
     single: "강하고 카리스마 있는 사람한테 끌리는 해다냥. 끌리는 만큼 휘둘리기도 한다냥.",
     couple: "책임이 무거워지는 해다냥. 서로 지친 티를 내도 탓하지는 마라냥.",
+    married: "집안의 책임이 무거워지는 해다냥. 지친 배우자한테 '고생했다' 한마디가 보약이다냥.",
     work: "큰 프로젝트·시험·조직 개편 같은 도전이 온다냥. 피하지 말고 정면으로 받으면 승진 운이다냥.",
     study: "시험 압박이 센 해다냥. 버티면 한 단계 오른다냥.",
     health: "과로·스트레스로 몸이 상하기 쉬운 해다냥. 검진을 미루지 마라냥.",
@@ -148,6 +152,7 @@ const NY: Record<
     money: "돈보다 배움에 쓰는 해다냥. 자격증·강의에 쓴 돈은 몇 년 뒤 돌아온다냥.",
     single: "말없이 통하는 묘한 인연이 온다냥. 빨리 진도 나가기보다 천천히 스며든다냥.",
     couple: "혼자만의 시간이 필요해지는 해다냥. 거리를 두는 걸 식은 걸로 오해하지 마라냥.",
+    married: "부부도 각자 혼자만의 시간이 필요해지는 해다냥. 따로 보내는 저녁 하루가 오히려 사이를 지킨다냥.",
     work: "업종을 바꾸거나 새 분야를 배우기 좋은 해다냥. 연구·기획·IT·상담처럼 머리를 쓰는 일이다냥.",
     study: "진로 생각이 확 바뀌는 해다냥. 새 분야를 탐색해 봐라냥.",
     health: "생각이 많아 잠을 설친다냥. 밤에는 휴대폰을 내려놓아라냥.",
@@ -160,6 +165,7 @@ const NY: Record<
     money: "계약·부동산·문서로 들어오는 돈이 있다냥. 도장 찍을 일이 생기면 꼼꼼히 읽고 찍어라냥.",
     single: "나를 챙겨 주는 따뜻한 인연이 온다냥. 윗사람 소개가 좋다냥.",
     couple: "서로 기대고 챙기는 해다냥. 집안 어른의 도움을 받는다냥.",
+    married: "양가 어른의 도움을 받는 해다냥. 집·문서 일이 같이 풀린다냥.",
     work: "시험·자격증·학위 운이 좋다냥. 윗사람이 끌어 준다냥.",
     study: "공부 운이 제일 좋은 해다냥. 선생님·선배 도움이 붙는다냥.",
     health: "몸이 회복되는 해다냥. 쉬면 쉬는 만큼 채워진다냥.",
@@ -205,6 +211,30 @@ const LAST_YEAR: Record<string, (up: boolean, god: TenGod, clash: boolean) => st
     ["비견", "정인", "식신", "정관"].includes(god)
       ? "외로웠다고 했지. 새해는 사람이 들어오는 해다냥."
       : "외로웠다고 했지. 새해는 혼자 있는 시간이 실력이 되는 해다냥. 사람은 하반기에 붙는다냥.",
+};
+
+/** 걱정 (ny5) → the area it belongs to, for the 조심할 달 of that worry. */
+const WORRY_AREA: Record<string, Area> = { money: "money", work: "work", people: "people", health: "health", love: "love", family: "people", mind: "health" };
+const WORRY_LABEL: Record<string, string> = { money: "돈", work: "일·진로", people: "사람", health: "건강", love: "연애", family: "가족", mind: "번아웃" };
+
+/** 버리고 싶은 버릇 (ny6) → the 십성 months that stir it up. */
+const HABIT_GODS: Record<string, { label: string; gods: TenGod[] }> = {
+  late: { label: "늦잠·미루기", gods: ["식신", "편인", "정인"] },
+  spend: { label: "충동구매", gods: ["겁재", "편재", "상관"] },
+  phone: { label: "새벽 폰", gods: ["편인", "상관", "식신"] },
+  worry: { label: "생각 과다", gods: ["편인", "편관", "정인"] },
+  drink: { label: "술·야식", gods: ["식신", "겁재", "비견"] },
+  people: { label: "거절 못 하기", gods: ["정인", "비견", "정관"] },
+};
+
+/** 올해 (ny1) → where the new year's 12 months turn it. */
+const LAST_FLOW: Record<string, string> = {
+  good: "잘 풀린 올해의 기세는",
+  busy: "정신없던 올해와 달리, 새해에 숨 돌릴 틈은",
+  hard: "버티기만 한 올해 끝에, 새해 첫 숨통은",
+  change: "확 바뀐 올해의 판이 자리 잡는 건",
+  stuck: "제자리였던 올해와 달리, 발이 떨어지는 건",
+  lonely: "외로웠던 올해와 달리, 사람이 붙는 건",
 };
 
 const WANT_AREA: Record<string, Area> = { money: "money", love: "love", work: "work", study: "work", health: "health", people: "people" };
@@ -365,6 +395,9 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
           ? `${yGanji}년의 기운이 네 일지와 삼합(三合)을 이룬다냥. 같은 편이 생기는 해다냥.`
           : null;
   const wantKey = a("ny2");
+  /** The area the reader most wants (ny2): its section says so and pushes its months. */
+  const wantHere = (area: Area) =>
+    wantKey && WANT_AREA[wantKey] === area ? `새해에 제일 잡고 싶다던 운이 바로 이거다냥. 아래 달엔 다른 약속보다 이 일을 먼저 잡아라냥.` : null;
   const wantLine = wantKey
     ? (() => {
         const ar = areaOf(WANT_AREA[wantKey]);
@@ -373,6 +406,8 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
       })()
     : null;
 
+  // The 맛보기 hook tells last year's story only when there is no plan and no 삼재 to tell.
+  const hookIsLast = !(a("ny3") && a("ny3") !== "none") && !sj && Boolean(LAST_YEAR[a("ny1") ?? ""]);
   const totalSec = sec(
     `${Y} ${yGanji}년 총운`,
     `${t.title}다냥`,
@@ -381,7 +416,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
       senior ? GOD_YEAR_SENIOR[god] : t.body,
       tail,
       relLine,
-      LAST_YEAR[a("ny1") ?? ""]?.(score >= lastScore, god, rel === "clash") ?? null,
+      hookIsLast ? null : (LAST_YEAR[a("ny1") ?? ""]?.(score >= lastScore, god, rel === "clash") ?? null),
       daeunNow
         ? `지금 대운(${daeunNow.ganji}, ${daeunNow.score}점) 위에 올라탄 해라, ${daeunNow.score >= 65 ? "큰 흐름이 받쳐 준다냥." : daeunNow.score < 52 ? "큰 흐름이 무거우니 욕심은 반만 내라냥." : "큰 흐름은 평탄하다냥. 이 해의 기운이 결과를 정한다냥."}`
         : null,
@@ -404,6 +439,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
       t.money,
       bg === "재성" && yg !== "재성" ? `지지에도 재성(${bGod})이 깔려 있어서, 눈에 안 보이는 돈 길이 하나 더 있다냥.` : null,
       a("ny5") === "money" ? "돈 걱정이 제일 크다고 했지. 새해 돈은 '버는 달'과 '지키는 달'을 나눠 쓰면 걱정이 반으로 준다냥." : null,
+      wantHere("money"),
     ),
     [`💰 돈이 들어오는 달: ${mm(moneyMonths)}`, `🚫 지갑 닫을 달: ${moneyCare.month}월(${moneyCare.ganji})`],
   );
@@ -432,6 +468,8 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
       loveBody,
       dohwa.includes(yp.branch) && !senior ? "새해 지지에 도화(桃花)가 든다냥. 가만있어도 눈길이 오는 해다냥." : null,
       yg === spouseGroup && !senior && !student ? `새해 천간에 배우자 별(${c.gender === "male" ? "재성" : "관성"})이 들어온다냥. 진지한 인연의 해다냥.` : null,
+      a("ny5") === "love" ? "연애가 제일 걱정이라고 했지. 새해 인연은 걱정하는 사람보다 움직이는 사람한테 온다냥. 아래 달엔 약속을 거절하지 마라냥." : null,
+      wantHere("love"),
     ),
     [`💘 인연이 드는 달: ${mm(loveMonths)}`, ...(rel === "clash" && !senior ? ["⚡ 일지 충이 드는 해: 다툼은 그날 풀고 자라냥"] : [])],
   );
@@ -444,6 +482,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
       student ? t.study : senior ? "일보다 하루의 리듬이 운을 정하는 해다냥. 배우는 모임 하나를 들면 사람과 활력이 같이 온다냥." : t.work,
       yeokma.includes(yp.branch) ? "새해에 역마(驛馬)가 든다냥. 이동·출장·이직 기운이 세다냥. 움직이면 붙는 해다냥." : null,
       a("ny5") === "work" ? "앞길이 걱정이라고 했지. 걱정은 계획으로 바꾸면 줄어든다냥. 아래 달에 맞춰 한 걸음씩 가라냥." : null,
+      wantHere("work"),
     ),
     [`💼 힘이 실리는 달: ${mm(workMonths)}`],
   );
@@ -461,6 +500,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
           ? "번아웃이 걱정이라고 했지. 새해 운은 쉬는 사람에게 들어온다냥. 일주일에 하루는 아무것도 안 하는 날로 비워 둬라냥."
           : "건강이 걱정이라고 했지. 미뤄 둔 검진은 새해 상반기에 받아라냥. 그게 운을 지키는 제일 싼 방법이다냥."
         : null,
+      wantHere("health"),
     ),
     [`🩺 조심할 달: ${healthCare.month}월(${healthCare.ganji})`, `💗 챙길 곳: ${ORGANS[c.gisin]}`],
   );
@@ -482,16 +522,31 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
       a("ny5") === "people" ? "사람 때문에 지쳤다고 했지. 새해엔 거리를 두는 것도 운을 지키는 법이다냥." : null,
       a("ny5") === "family" ? "가족이 걱정이라고 했지. 새해엔 네가 다 짊어지지 말고, 말로 나눠라냥. 나누면 가벼워지는 해다냥." : null,
       `${clashAnimal}띠와는 부딪치기 쉽다냥. 돈 거래·동업만 피하면 된다냥.`,
+      wantHere("people"),
     ),
     [`🤝 귀인 띠: ${gwiin.map((b) => ANIMALS[b]).join(" · ")}`, ...(gwiinMonths.length ? [`🌟 귀인이 드는 달: ${mm(gwiinMonths)}`] : []), `⚡ 부딪치기 쉬운 띠: ${clashAnimal}`],
   );
 
+  const habitMonth = a("ny6") && HABIT_GODS[a("ny6")!] ? months.find((m) => HABIT_GODS[a("ny6")!].gods.includes(m.god)) : undefined;
   const flowSec = sec(
     "12달 흐름",
     `최고의 달은 ${top.month}월이다냥`,
     lines(
       `${Y}년 열두 달을 하나씩 짚었다냥. 월운(月運)은 절기로 바뀌어서, 각 달 초순(4~8일 무렵)부터 기운이 넘어간다냥.`,
       `제일 좋은 달은 ${best.map((m) => `${m.month}월`).join("·")}, 몸을 낮출 달은 ${worst.map((m) => `${m.month}월`).join("·")}이다냥.`,
+      a("ny1") && LAST_FLOW[a("ny1")!]
+        ? (() => {
+            // The first month that answers last year: busy → the calmest month; the rest → the first strong month.
+            const turnM =
+              a("ny1") === "busy"
+                ? worst[0]
+                : a("ny1") === "lonely"
+                  ? (months.find((m) => m.rel === "harmony" || gwiin.includes(m.branch) || m.group === "인성") ?? best[0])
+                  : (months.find((m) => m.score >= Math.max(62, mean)) ?? top);
+            return `${LAST_FLOW[a("ny1")!]} ${turnM.month}월(${turnM.ganji})부터다냥.`;
+          })()
+        : null,
+      habitMonth ? `${josa(HABIT_GODS[a("ny6")!].label, "이/가")} 제일 도지기 쉬운 달은 ${habitMonth.month}월(${habitMonth.god})이다냥. 그 달만 넘기면 버릇이 끊긴다냥.` : null,
     ),
     months.map((m) => `${m === top ? "🌟" : worst.includes(m) ? "⚠️" : "·"} ${m.month}월 ${m.ganji} ${m.score}점 · ${MONTH[m.god][0]}${tag(m)}${heavy(m)}`),
   );
@@ -557,6 +612,12 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
       ownYear ? `${Y}년은 네 띠의 해(본명년)다냥. 기운이 들뜨기 쉬우니 큰 결정은 한 박자 늦춰라냥.` : null,
       birthClash ? `${ANIMALS[yp.branch]}해는 ${ANIMALS[birth]}띠와 충이 드는 해다냥. 계약서는 두 번 읽고, 이동은 여유 있게 잡아라냥.` : null,
       `몸을 낮출 달은 ${worst.map((m) => `${m.month}월(${m.ganji})`).join("·")}이다냥. 이 달엔 새 일을 벌이기보다 하던 걸 지켜라냥.`,
+      a("ny5") && WORRY_AREA[a("ny5")!]
+        ? (() => {
+            const w = careful(WORRY_AREA[a("ny5")!]);
+            return `${WORRY_LABEL[a("ny5")!]} 걱정이 제일 커지는 달은 ${w.month}월(${w.ganji})이다냥. 그 달엔 큰 결정을 미루고, 걱정을 혼자 키우지 마라냥.`;
+          })()
+        : null,
     ),
     [`🧿 삼재: ${sj ? `${SAMJAE_NAME[sj]} (${Y})` : "해당 없음"}`, `⚠️ 몸 낮출 달: ${worst.map((m) => `${m.month}월`).join(" · ")}`],
   );
@@ -567,6 +628,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
     lines(
       `네 용신은 ${c.yongsin === "wood" ? "목(木)" : c.yongsin === "fire" ? "화(火)" : c.yongsin === "earth" ? "토(土)" : c.yongsin === "metal" ? "금(金)" : "수(水)"}이다냥. 새해 내내 이 기운을 곁에 두면 운이 붙는다냥.`,
       HABIT[a("ny6") ?? ""]?.(L.act) ?? null,
+      mbtiLuck(input.me.mbti, raw < 52),
       `행운의 날을 고를 땐 ${best.map((m) => `${m.month}월`).join("·")} 안에서 골라라냥.`,
     ),
     [`🎨 색: ${L.color}`, `🧭 방향: ${L.direction}`, `🔢 숫자: ${L.numbers}`, `🍽️ 음식: ${L.food}`, `📍 기운 받는 곳: ${L.place}`, `🧸 소품: ${L.item}`, `🏃 행동: ${L.act}`],
@@ -600,7 +662,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
       next: "감정 근거는?",
     },
     {
-      say: "새해 기운을 네 원국에 맞대 봤다냥. 근거부터 보여 주겠다냥.",
+      say: `${name}의 원국에 ${Y}년 기운을 맞대 봤다냥. ${rel === "harmony" ? "일지와 합이 드는 해다냥." : rel === "clash" ? "일지와 충이 드는 해다냥." : together ? "일지와 삼합이 드는 해다냥." : "근거부터 보여 주겠다냥."}`,
       mood: "talk",
       card: basisCard(c, [
         ["세운", `${Y} ${yGanji}(${yHanja})년 · ${god}`],
@@ -613,11 +675,18 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
     {
       say: `${Y}년 총운이다냥.`,
       mood: "wow",
-      card: { kind: "score", label: `${Y} 총운`, score, headline: t.title, body: `${senior ? GOD_YEAR_SENIOR[god] : t.body} ${tail}` },
+      // The 감정서 opens with the full year reading; the 맛보기 compares it with this year.
+      card: {
+        kind: "score",
+        label: `${Y} 총운`,
+        score,
+        headline: t.title,
+        body: `${josa(god, "이/가")} 들어오는 해다냥. ${raw >= 70 ? "네 사주엔 반갑게 들어온다냥." : raw < 52 ? "네 사주엔 무겁게 들어온다냥." : "네 사주엔 무난하게 들어온다냥."} 올해(${Y - 1})보다 ${score > lastScore + 2 ? "기운이 한 칸 오른다냥." : score < lastScore - 2 ? "기운이 한 칸 내려간다냥." : "기운은 비슷한데 방향이 바뀐다냥."}`,
+      },
       next: "12달은?",
     },
     {
-      say: "열두 달을 하나씩 세웠다냥. 막대가 높을수록 운이 센 달이다냥.",
+      say: `열두 달을 하나씩 세웠다냥. 막대가 높을수록 운이 센 달, ${name}한텐 ${top.month}월이 제일 높다냥.`,
       mood: "talk",
       card: {
         kind: "timeline",
@@ -638,7 +707,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
     {
       say: "새해를 세 단어로 줄이면 이렇다냥.",
       mood: "wow",
-      card: { kind: "keywords", title: `${Y} 키워드`, items: [...t.keys], body: `한 줄 조언: ${t.advice}` },
+      card: { kind: "keywords", title: `${Y} 키워드`, items: [...t.keys], body: `${name}의 ${Y}년은 '${t.keys[0]}'에서 시작해 '${t.keys[2]}'로 끝나는 해다냥.` },
       next: "다 듣고 싶어",
     },
   ];
@@ -647,7 +716,7 @@ export function newyearReading(input: QuestionnaireInput, c: Chart): { teaser: F
     title: `${name}의 ${Y} 신년운세`,
     saju: c.saju.summary,
     beats,
-    paywall: `…여기서부터가 진짜다냥. 재물·연애·일·건강·사람운 점수와 들어오는 달, 열두 달 하나하나, ${P ? `${P.label} 날짜, ` : ""}삼재와 조심할 달, 새해 개운법까지 다 적어 뒀다냥. 듣고 갈래? 😼`,
+    paywall: `…여기서부터가 진짜다냥. ${wantKey ? `잡고 싶다던 ${josa(wantKey === "study" ? "합격운" : WANT_LABEL[wantKey], "이/가")} 열리는 달, ` : ""}다섯 가지 운 점수, 열두 달 하나하나, ${P ? `${P.label} 날짜, ` : ""}${a("ny5") && WORRY_LABEL[a("ny5")!] ? `${WORRY_LABEL[a("ny5")!]} 걱정이 커지는 달, ` : ""}새해 개운법까지 다 적어 뒀다냥. 듣고 갈래? 😼`,
     locked: sections.map((s) => locked(s.id, s.icon, s.section)),
     story: {
       kind: "fortune",

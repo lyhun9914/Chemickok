@@ -2,7 +2,7 @@ import "server-only";
 import type { ElementKey, FortuneBeat, FortuneTeaser, FullReport, QuestionnaireInput } from "@/models/types";
 import { ANIMALS, SOLAR_TERMS, branchRelation, dayCycleIndex, stemRelation } from "../saju";
 import { type Chart, BRANCHES_HANGUL, STEMS_HANGUL, buildChart, elementLabel, monthlyPillars, samhapWith, thisYear } from "./chart";
-import { STEM, basisCard, daNyang, josa, lines, locked, sec } from "./common";
+import { STEM, basisCard, daNyang, josa, lines, locked, mbtiLove, sec } from "./common";
 
 // ───────────── 재회운 ─────────────
 
@@ -207,6 +207,78 @@ const AFTER: Record<string, string> = {
   mine: "같은 실수 한 번이면 이번엔 진짜 끝이다냥. 바뀐 걸 말 말고 행동으로 세 번 보여라냥.",
 };
 
+/** 진짜 이유 (rq3) as a short noun, for lines that read it against the 궁합. */
+const REASON_LABEL: Record<string, string> = {
+  fight: "반복된 싸움",
+  cool: "식은 마음",
+  third: "다른 사람",
+  real: "현실 문제",
+  talk: "쌓인 서운함",
+  mine: "네 실수",
+  nowhy: "듣지 못한 이유",
+};
+type Rel = "combine" | "theyGenerate" | "iGenerate" | "same" | "iControl" | "theyControl";
+/** That reason, seen through how the two 일간 meet. */
+const REL_REASON: Record<Rel, string> = {
+  combine: "끌림이 큰 궁합이라, 그 문제만 풀리면 다시 붙는다냥.",
+  theyGenerate: "그 사람이 너를 채워 주는 궁합이라, 그 문제보다 빈자리가 더 크게 느껴지는 거다냥.",
+  iGenerate: "네가 채워 주는 궁합이라, 그 문제 밑에는 네 지침이 깔려 있었다냥.",
+  same: "같은 기운끼리라 그 문제 앞에서 둘 다 안 물러섰던 거다냥.",
+  iControl: "네가 누르는 궁합이라, 그 문제가 그 사람한텐 두 배로 아팠다냥.",
+  theyControl: "그 사람이 누르는 궁합이라, 그 문제 앞에서 네가 참다 터졌던 거다냥.",
+};
+/** The same 궁합 if they get back together. */
+const REL_AGAIN: Record<Rel, string> = {
+  combine: "다시 만나면 금방 뜨거워진다냥. 대신 같은 속도로 식지 않게, 처음 석 달은 천천히 가라냥.",
+  theyGenerate: "다시 만나면 또 기대게 된다냥. 받은 만큼 표현해야 이번엔 오래 간다냥.",
+  iGenerate: "다시 만나면 또 네가 주는 쪽이 된다냥. 이번엔 달라고 말하는 연습부터 해라냥.",
+  same: "다시 만나면 친구처럼 편하다냥. 고집이 부딪칠 땐 먼저 웃는 쪽이 이긴다냥.",
+  iControl: "다시 만나면 네 말의 무게부터 줄여라냥. 맞는 말도 반만 해라냥.",
+  theyControl: "다시 만나면 참지 말고 그때그때 말해라냥. 쌓아 두면 또 같은 데서 터진다냥.",
+};
+/** How long they were together (rq6), when the other birthday is unknown. */
+const SPAN_PULL: Record<string, string> = {
+  short: "짧게 만난 인연이라, 정보다 끌림이 컸다냥. 그 끌림은 네 사주 쪽에서 나온 거다냥.",
+  year: "정이 막 들 때 끝나서, 아쉬움이 제일 크게 남는 때다냥.",
+  mid: "1~3년이면 생활이 섞인 사이다냥. 습관처럼 생각나는 게 당연하다냥.",
+  long: "3년 넘게 만났으면 그 사람이 네 일상의 일부였다냥. 끊는 데도 시간이 그만큼 든다냥.",
+  again: "헤어졌다 다시 만난 적이 있다면, 네 사주가 끊긴 줄을 다시 잇는 힘이 있다는 거다냥.",
+};
+/** 헤어진 지 (rq2) → how the first message should sound. */
+const FIRST_TONE: Record<string, string> = {
+  w1: "지금은 첫 문장보다 침묵이 먼저다냥. 아래 문장은 3주 뒤에 쓸 문장이다냥.",
+  m1: "한 달 안쪽이라 무겁게 가면 도망간다냥. 안부처럼 가볍게 시작해라냥.",
+  m3: "석 달이면 좋은 기억이 올라올 때다냥. 둘만 아는 추억 하나를 꺼내도 된다냥.",
+  y1: "시간이 꽤 지나서, 근황부터 물어야 자연스럽다냥.",
+  long: "1년이 넘었으니 재회가 아니라 '다시 아는 사이'부터다냥. 첫 문장은 인사 한 줄이면 된다냥.",
+};
+/** The line never to send, by reason (rq3). */
+const BAN: Record<string, string> = {
+  fight: '"그때 너도 잘한 거 없잖아"',
+  cool: '"아직 나 좋아해?"',
+  third: '"그 사람이랑은 잘돼?"',
+  real: '"이제 상황 괜찮으니까 다시 만나자"',
+  talk: '"나 그때 진짜 서운했어"로 시작하는 장문',
+  mine: '"내가 다 잘못했어, 다 고칠게" 같은 반성문',
+  nowhy: '"왜 그랬는지 말해 줘" 연달아 보내기',
+};
+/** 지금 네 마음 (rq8) → how the 하지 말 것 list opens. */
+const DONT_HEAD: Record<string, string> = {
+  must: "간절할수록 하나라도 덜 해야 한다냥. 재회는 하는 것보다 안 하는 게 더 중요하다냥.",
+  torn: "고민 중일 땐 행동부터 멈추는 게 이기는 거다냥. 아래만 안 해도 판이 안 깨진다냥.",
+  close: "정리하려는 마음이라도, 아래를 하면 정리가 더 늦어진다냥.",
+  wait: "기다리는 쪽이라도 아래를 하면 기다림이 티가 난다냥.",
+  curious: "궁금한 마음에 아래를 하는 순간, 궁금함이 미련으로 바뀐다냥.",
+};
+/** 그 사람 연락 (rq4) → the signal that it is over. */
+const LETGO_SIGNAL: Record<string, string> = {
+  none: "네가 보낸 연락에 두 번 연속 답이 없으면",
+  noreply: "이미 한 번 답이 없었으니, 한 번 더 답이 없으면",
+  some: "오가던 안부 답장이 점점 짧아지다 끊기면",
+  they: "먼저 연락해 놓고 다시 연락이 끊기면",
+  blocked: "차단이 석 달 넘게 안 풀리면",
+};
+
 const EL_HINT: Record<ElementKey, string> = {
   wood: "추진력과 앞날을 그리는 힘",
   fire: "따뜻함과 표현",
@@ -325,14 +397,26 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
   }
   score = Math.round(Math.max(12, Math.min(93, score)));
   const mind = mindOf(a);
+  // Which story the 맛보기 hook tells (so the 감정서 doesn't tell it twice).
+  const hookIs = missing ? "missing" : a("rq6") === "again" ? "again" : a("rq1") === "fade" ? "fade" : sajuLine ? "saju" : "mine";
   const mindLine = P(mind.line);
+  // What set the 온도: the answers that pushed it most, said in the reader's own words.
+  const WARM: Record<string, Record<string, string>> = {
+    rq4: { they: "{p:이/가} 먼저 연락해 온 것", some: "안부가 아직 오가는 것", noreply: "네 연락에 답이 없었던 것", blocked: "차단당한 것" },
+    rq5: { watch: "네 스토리를 보는 것", erase: "너를 지운 것", new: "새 사람 흔적" },
+    rq1: { me: "네가 먼저 끝낸 것", ghost: "잠수로 끝난 것", them: "{p:이/가} 먼저 끝낸 것" },
+    rq2: { long: "1년 넘게 흐른 시간", w1: "아직 일주일도 안 된 시간", m1: "한 달도 안 된 시간" },
+  };
+  const why = (["rq4", "rq5", "rq1", "rq2"] as const).map((q) => WARM[q][a(q) ?? ""]).filter(Boolean).slice(0, 2).map((x) => P(x!));
+  const mindWhy = why.length ? P(`{p} 마음 온도 ${mind.temp}도를 만든 건 ${daNyang(why.join(", "))}.`) : P(`{p} 마음 온도는 ${mind.temp}도, ${tempWord(mind.temp)}`);
 
   // ── 유료 감정서 ──
   const mindSec = sec(
     `${pName}의 지금 속마음`,
     `마음 온도 ${mind.temp}도다냥`,
     lines(
-      mindLine,
+      // The 맛보기 showed the main line; the 감정서 opens with what set the 온도, then goes deeper.
+      mindWhy,
       a("rq5") === "new" && a("rq2") ? NEW_PERSON[a("rq2")!] : null,
       a("rq1") === "me" ? P("{p:은/는} 버림받았다고 생각한다냥. 그래서 먼저 오진 않는다냥. 자존심이 허락하는 문을 네가 열어 줘야 한다냥.") : null,
       a("rq1") === "them" ? P("떠난 쪽도 아프다냥. {p:은/는} 지금 '내가 잘한 걸까'를 몇 번이고 되묻는 중이다냥.") : null,
@@ -351,15 +435,18 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
     [`🌡️ 마음 온도 ${mind.temp}도 · ${tempWord(mind.temp)}`],
   );
 
+  const shownFactor = (good[0] ?? bad[0]) || undefined;
   const chanceSec = sec(
     "재회 가능성 상세",
     `${score}점, ${BAND(score)}`,
     lines(
       them ? "네 답 여덟 개와 두 사람 사주를 겹쳐 본 결과다냥." : P("네 답 여덟 개와 네 사주로 본 결과다냥. {p} 생일을 알면 더 또렷해진다냥."),
-      good.length ? `유리한 게 ${good.length}개, 불리한 게 ${bad.length}개다냥.` : "지금은 불리한 게 더 많다냥. 그래도 아래를 봐라냥.",
+      good.length
+        ? `유리한 게 ${good.length}개, 불리한 게 ${bad.length}개다냥. 맛보기에서 말한 하나 말고 나머지를 아래 적었다냥.`
+        : "지금은 불리한 게 더 많다냥. 그래도 아래를 봐라냥.",
       P(HEART[a("rq8") ?? ""] ?? ""),
     ),
-    [...good.map((g) => `✅ ${g}`), ...bad.map((b) => `⚠️ ${b}`)],
+    [...good.filter((g) => g !== shownFactor).map((g) => `✅ ${g}`), ...bad.filter((b) => b !== shownFactor).map((b) => `⚠️ ${b}`)],
   );
 
   // Waiting advice and dates must agree: after a fresh breakup or an unanswered message, the dates start after the wait.
@@ -400,11 +487,12 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
       replied
         ? P("{p:이/가} 먼저 문을 두드렸다냥. 이제 네 답장이 첫 문장이다냥. 재회는 세 번째 대화쯤에 나온다냥.")
         : "첫 문장의 목적은 '대화를 다시 여는 것' 하나다냥. 재회는 세 번째 대화쯤에 나온다냥.",
+      replied ? null : (FIRST_TONE[a("rq2") ?? ""] ?? null),
     ),
     [
       ...(replied ? [] : [`💬 ${P(FIRST_LINE[a("rq3") ?? ""] ?? '"잘 지내? 문득 생각나서."')}`]),
       ...(a("rq4") && SECOND_LINE[a("rq4")!] ? [`💬 ${P(SECOND_LINE[a("rq4")!])}`] : []),
-      '🚫 보내면 안 되는 문장: "우리 다시 만나면 안 돼?" · "나 아직 너 못 잊었어"',
+      `🚫 보내면 안 되는 문장: "우리 다시 만나면 안 돼?" · ${BAN[a("rq3") ?? ""] ?? '"나 아직 너 못 잊었어"'}`,
     ],
   );
 
@@ -414,13 +502,27 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
     a("rq5") === "watch" ? "📸 스토리로 신호 보내기·저격글 — 다 보이고, 다 읽힌다냥" : "🔍 SNS 염탐하다 좋아요 누르기 — 한 번이면 끝이다냥",
     a("rq4") === "blocked" ? "👤 다른 계정으로 연락 — 영영 잠긴다냥" : "⏰ 답 늦다고 연달아 보내기 — 기다리는 것도 대화다냥",
   ];
-  const dontSec = sec("절대 하면 안 되는 행동", "이것만 안 해도 반은 간다냥", lines("재회는 하는 것보다 안 하는 게 더 중요하다냥."), donts);
+  const dontSec = sec(
+    "절대 하면 안 되는 행동",
+    "이것만 안 해도 반은 간다냥",
+    lines(DONT_HEAD[a("rq8") ?? ""] ?? "재회는 하는 것보다 안 하는 게 더 중요하다냥."),
+    donts,
+  );
 
+  const rel = them ? (stemRelation(c.saju.dm, them.saju.dm) as Rel) : null;
+  // "싸움이었다고" / "문제였다고": 이었 after a final consonant.
+  const was = (w: string) => (josa(w, "이/가").endsWith("이") ? `${w}이었` : `${w}였`);
+  const reasonRel = rel && a("rq3") ? `이별 이유가 ${was(REASON_LABEL[a("rq3")!])}다고 했지. ${REL_REASON[rel]}` : null;
   const matchSec = them
     ? sec(
         "두 사람 사주 궁합",
         `${STEM[c.dayStem].name} × ${STEM[them.dayStem].name}`,
-        lines(sajuLine, missing, `${pName}의 일간은 ${daNyang(`'${STEM[them.dayStem].image}'`)}. ${STEM[them.dayStem].love}`),
+        lines(
+          hookIs === "saju" ? null : sajuLine,
+          hookIs === "missing" ? null : missing,
+          reasonRel,
+          `${pName}의 일간은 ${daNyang(`'${STEM[them.dayStem].image}'`)}. ${STEM[them.dayStem].love}`,
+        ),
         (() => {
           const rel = stemRelation(c.saju.dm, them.saju.dm);
           const br = branchRelation(c.dayBranch, them.dayBranch);
@@ -444,7 +546,8 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
         "네 쪽에서 본 인연 자리",
         `${pName} 생일을 몰라도 네 사주엔 보인다냥`,
         lines(
-          `네 일간은 ${daNyang(`'${STEM[c.dayStem].image}'`)}. ${STEM[c.dayStem].love}`,
+          hookIs === "mine" ? null : `네 일간은 ${daNyang(`'${STEM[c.dayStem].image}'`)}. ${STEM[c.dayStem].love}`,
+          SPAN_PULL[a("rq6") ?? ""] ?? null,
           c.sinsal.dohwa ? "도화살이 있어서 끝난 인연도 다시 끌려오는 팔자다냥." : "도화살은 없어서, 한번 끝난 인연은 네가 움직여야 돌아온다냥.",
           `${pName} 생일을 알게 되면 둘의 일간 궁합까지 볼 수 있다냥.`,
         ),
@@ -458,14 +561,16 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
       AFTER[a("rq3") ?? ""] ?? "다시 만나기 전에, 그때 왜 끝났는지 한 문장으로 말할 수 있어야 한다냥.",
       a("rq7") === "same" ? "똑같을 것 같다고 했지. 그럼 다시 만나기 전에 바뀔 하나를 정해라냥. 그게 없으면 재회는 연장전일 뿐이다냥." : null,
       a("rq6") === "again" ? "헤어졌다 다시 만난 적이 있다고 했지. 이번이 세 번째 기회가 아니라 마지막 기회라고 생각해라냥." : null,
+      rel ? REL_AGAIN[rel] : null,
+      mbtiLove(input.me.mbti),
     ),
     [],
   );
 
   const letgo = [
     a("rq5") === "new" && (a("rq2") === "y1" || a("rq2") === "long") ? "새 사람과 반년 넘게 이어지고 있다면" : "새 사람과 공개적으로 사진을 올리기 시작하면",
-    "네가 보낸 연락에 두 번 연속 답이 없으면",
-    "같이 아는 사람들한테 너 얘기를 아예 안 하면",
+    LETGO_SIGNAL[a("rq4") ?? ""] ?? "네가 보낸 연락에 두 번 연속 답이 없으면",
+    a("rq3") === "third" ? "그 다른 사람과 공개적으로 만나기 시작하면" : "같이 아는 사람들한테 너 얘기를 아예 안 하면",
   ];
   const letgoSec = sec(
     "놓아야 할 때의 신호",
@@ -473,7 +578,7 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
     lines(
       score < 35
         ? "지금 기운으론 붙잡을수록 멀어진다냥. 놓는 게 지는 게 아니다냥. 놓아야 다음 인연이 들어온다냥."
-        : "가능성은 있다냥. 그래도 아래 신호가 오면 그땐 네 마음부터 지켜라냥.",
+        : `가능성 ${score}점이면 아직 해 볼 만하다냥. 그래도 아래 신호가 오면 그땐 네 마음부터 지켜라냥.`,
       a("rq8") === "close" ? "정리하고 싶다고 했지. 그 마음이 들었다면, 이미 반은 정리된 거다냥." : null,
     ),
     letgo.map((l) => `🍂 ${l}`),
@@ -507,13 +612,13 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
       next: "감정 근거는?",
     },
     {
-      say: "감정 근거다냥. 네 쪽 기운부터 본다냥.",
+      say: them ? P(`${name}의 기운부터 깔고, {p} 생일까지 나란히 놓았다냥.`) : P(`${name}의 기운부터 본다냥. {p} 생일을 몰라도 네 쪽에 다 보인다냥.`),
       mood: "talk",
       card: basisCard(c, them ? [["상대 일간", STEM[them.dayStem].name]] : []),
       next: "다시 만날 수 있어?",
     },
     {
-      say: "재회 가능성부터 말하겠다냥.",
+      say: a("rq2") ? `헤어진 지 ${{ w1: "일주일", m1: "한 달 안쪽", m3: "석 달 안쪽", y1: "1년 안쪽", long: "1년 넘게" }[a("rq2")!]}, 재회 가능성부터 말하겠다냥.` : "재회 가능성부터 말하겠다냥.",
       mood: "smug",
       card: {
         kind: "score",
@@ -553,7 +658,9 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
     title: P(`${name} → {p} 재회 감정서`),
     saju: c.saju.summary,
     beats,
-    paywall: P("…여기서부터가 진짜다냥. {p}의 속마음 전부, 연락해도 되는 날짜, 보내야 할 첫 문장과 절대 보내면 안 되는 문장까지 다 적어 뒀다냥. 듣고 갈래? 😼"),
+    paywall: P(
+      `…여기서부터가 진짜다냥. {p}의 속마음 전부, ${days.length ? `연락해도 되는 날짜 ${days.length}개` : "연락해도 되는 달"}, ${replied ? "답장 첫 줄" : "보내야 할 첫 문장"}과 절대 보내면 안 되는 문장, ${a("rq8") === "close" ? "미련을 끝내는 법" : "다시 만난 뒤 안 헤어지는 법"}까지 다 적어 뒀다냥. 듣고 갈래? 😼`,
+    ),
     locked: sections.map((s) => locked(s.id, s.icon, s.section)),
     story: {
       kind: "fortune",
