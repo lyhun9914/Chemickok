@@ -41,7 +41,11 @@ export function ErrorsPanel({ onCount }: { onCount?: (n: number) => void }) {
     try {
       const r = await fetch("/api/admin/errors", { method: "POST" });
       const b = await r.json().catch(() => ({}));
-      setMailNote(r.ok ? `✅ ${b.to}로 테스트 메일을 보냈어요. 메일함(안 보이면 스팸함)을 확인하세요.` : `⚠️ ${b.error ?? "보내지 못했어요"}`);
+      setMailNote(
+        r.ok
+          ? `✅ ${b.from} 계정으로 ${b.to}에 테스트 메일을 보냈어요. ${b.to} 메일함을 확인하세요. 받은편지함에 없으면 스팸함, 전체보관함에서 "오류 알림 테스트"로 검색해 보세요.`
+          : `⚠️ ${b.error ?? "보내지 못했어요"}`,
+      );
     } catch {
       setMailNote("⚠️ 보내지 못했어요");
     }
