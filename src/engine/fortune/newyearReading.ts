@@ -19,7 +19,7 @@ import {
   tenGod,
   yearPillar,
 } from "./chart";
-import { GOD_YEAR_SENIOR, LUCK, ORGANS, basisCard, daNyang, josa, lines, locked, mbtiLuck, scoreWord, sec } from "./common";
+import { GOD_YEAR_SENIOR, LUCK, ORGANS, basisCard, josa, lines, locked, mbtiLuck, scoreWord, sec } from "./common";
 
 // ───────────── 신년운세 ─────────────
 
