@@ -8,6 +8,7 @@ import { accountApi, coinApi, type CoinHistoryRow, type ReadingSummary, type Wal
 import { shareService } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { useBack } from "@/lib/back";
+import { useLive } from "@/lib/liveSettings";
 import { WalletSheet, useSocialLabel } from "./CoinShop";
 import { GiftSendSheet } from "./GiftSheet";
 import { DateTimeSelects } from "./DateTimeSelects";
@@ -44,6 +45,8 @@ function WalletSection() {
   const [more, setMore] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
   const social = useSocialLabel();
+  const { costs } = useLive().pricing;
+  const oneCost = Math.min(...(Object.keys(costs) as Mode[]).filter((m) => m !== "couple").map((m) => costs[m]));
   useEffect(() => {
     if (!open) coinApi.wallet().then(setWallet).catch(() => null);
     shareService.prepareKakao().catch(() => null);
@@ -68,7 +71,9 @@ function WalletSection() {
           </button>
         </div>
         <div className="mt-2 flex items-center justify-between">
-          <p className="text-[12px] text-muted">점괘 하나 1냥 · 궁합 2냥</p>
+          <p className="text-[12px] text-muted">
+            점괘 하나 {nyang(oneCost)} · 궁합 {nyang(costs.couple)}
+          </p>
           <button onClick={() => setGiftOpen(true)} className="rounded-full border border-peach/40 px-3 py-1 text-[12px] font-semibold text-peach">
             🎁 냥 선물하기
           </button>
@@ -272,6 +277,21 @@ export function MyPage() {
           <p className="text-xs text-muted">{PROVIDER_LABEL[me.provider] ?? me.provider} 로그인</p>
         </div>
       </div>
+
+      {/* 내 계정: the 별명 and email the login service gave (what 네이버 로그인 검수 checks as 제공 정보 활용처) */}
+      <dl className="mt-4 divide-y divide-line rounded-2xl border border-line bg-surface text-[13px]">
+        <div className="flex justify-between gap-3 px-4 py-2.5">
+          <dt className="shrink-0 text-muted">닉네임</dt>
+          <dd className="min-w-0 truncate font-semibold">{me.nickname || "-"}</dd>
+        </div>
+        <div className="flex justify-between gap-3 px-4 py-2.5">
+          <dt className="shrink-0 text-muted">이메일</dt>
+          <dd className="min-w-0 truncate font-semibold">{me.email || "제공 안 함"}</dd>
+        </div>
+        <p className="px-4 py-2 text-[11.5px] leading-relaxed text-muted">
+          {me.provider === "email" ? "가입한 이메일이에요." : `${PROVIDER_LABEL[me.provider] ?? me.provider}에서 받은 정보예요.`} 이메일은 결제·환불 문의 때 회원을 확인하는 데 써요.
+        </p>
+      </dl>
 
       <WalletSection />
 

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const user = db && uid ? await db.getUser(uid).catch(() => null) : null;
   const coins = db && user ? await db.coins(user.id).catch(() => 0) : 0;
   const res = NextResponse.json({
-    user: user && { id: user.id, provider: user.provider, nickname: user.nickname, profile: user.profile, coins, refCode: user.ref_code, email: user.provider === "email" ? user.email : null },
+    user: user && { id: user.id, provider: user.provider, nickname: user.nickname, profile: user.profile, coins, refCode: user.ref_code, email: user.email ?? null },
     providers: providers(),
   });
   if (uid && !user) clearSession(res);
