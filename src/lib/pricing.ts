@@ -99,9 +99,12 @@ export function cleanBanner(v: unknown): { ok: true; value: Banner } | { ok: fal
   return { ok: true, value: { on: Boolean(b.on), text, tone, link } };
 }
 
-/** Is the sale running at `now`? */
-export const saleLive = (s: Sale | null | undefined, now = Date.now()): s is Sale =>
-  Boolean(s?.on && (s.discountPct || s.bonusPct) && (!s.from || Date.parse(s.from) <= now) && (!s.to || now < Date.parse(s.to)));
+/** Is the sale running at `now`? (the clock is read only when a sale is switched on) */
+export function saleLive(s: Sale | null | undefined, now?: number): s is Sale {
+  if (!s?.on || !(s.discountPct || s.bonusPct)) return false;
+  const t = now ?? Date.now();
+  return (!s.from || Date.parse(s.from) <= t) && (!s.to || t < Date.parse(s.to));
+}
 
 /** A pack as it sells now: the sale price and the 냥 it gives (base + bonus). */
 export interface SellPack extends CoinPack {
@@ -112,7 +115,7 @@ export interface SellPack extends CoinPack {
   /** coins + bonus: what lands in the 복주머니 */
   total: number;
 }
-export function sellPack(p: CoinPack, sale: Sale | null | undefined, now = Date.now()): SellPack {
+export function sellPack(p: CoinPack, sale: Sale | null | undefined, now?: number): SellPack {
   const live = saleLive(sale, now);
   const price = live && sale.discountPct ? Math.max(100, Math.round((p.price * (100 - sale.discountPct)) / 1000) * 10) : p.price;
   const bonus = live && sale.bonusPct ? Math.floor((p.coins * sale.bonusPct) / 100) : 0;

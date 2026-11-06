@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { BUSINESS } from "@/lib/config";
 import { InquirySheet } from "./InquirySheet";
@@ -19,13 +20,17 @@ export function Footer() {
           개인정보처리방침
         </button>
         <span aria-hidden>|</span>
+        <Link href="/pricing" className="underline-offset-2 hover:underline">
+          요금 안내
+        </Link>
+        <span aria-hidden>|</span>
         <button onClick={() => setAsk(true)} className="underline-offset-2 hover:underline">
           고객문의
         </button>
       </div>
 
-      {/* 전자상거래법 제10조 표시사항 — collapsed by default to keep the page clean */}
-      <details className="group">
+      {/* 전자상거래법 제10조 표시사항 — open, so it's seen without a tap (결제대행 심사도 이걸 봐요) */}
+      <details className="group" open>
         <summary className="flex cursor-pointer list-none items-center gap-1 text-xs text-muted [&::-webkit-details-marker]:hidden">
           {BUSINESS.company} 사업자 정보
           <span className="transition group-open:rotate-180" aria-hidden>
