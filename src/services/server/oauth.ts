@@ -68,10 +68,13 @@ export function enabledProviders(): ProviderId[] {
   });
 }
 
-export function authorizeUrl(id: ProviderId, state: string, redirectUri: string): string {
+/** `again`: show the provider's 정보 제공 동의 screen even to someone who agreed before (네이버 · 구글). */
+export function authorizeUrl(id: ProviderId, state: string, redirectUri: string, again = false): string {
   const p = PROVIDERS[id];
   const q = new URLSearchParams({ response_type: "code", client_id: p.clientId()!, redirect_uri: redirectUri, state });
   if (p.scope) q.set("scope", p.scope);
+  if (again && id === "naver") q.set("auth_type", "reprompt");
+  if (again && id === "google") q.set("prompt", "consent");
   return `${p.authorizeUrl}?${q}`;
 }
 

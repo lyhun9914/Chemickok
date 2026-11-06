@@ -5,7 +5,10 @@ import { REF_COOKIE, giftNewUser, giftQuery } from "@/services/server/gifts";
 import { authorizeUrl, enabledProviders, isProvider } from "@/services/server/oauth";
 import { authConfigured, randomToken, setSession, setStateCookie } from "@/services/server/session";
 
-/** GET /api/auth/{kakao|naver|google}/login?next=pay — starts the OAuth round-trip. */
+/**
+ * GET /api/auth/{kakao|naver|google}/login?next=pay — starts the OAuth round-trip. `?again=1` asks 네이버 · 구글 to show
+ * the 정보 제공 동의 screen again (for a review capture, or to give the email after declining it).
+ */
 export async function GET(req: NextRequest, ctx: RouteContext<"/api/auth/[provider]/login">) {
   const { provider } = await ctx.params;
   const next = req.nextUrl.searchParams.get("next") === "pay" ? "pay" : "";
@@ -38,7 +41,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/auth/[provid
   if (!isProvider(provider) || !enabledProviders().includes(provider)) return back("login=off");
   const state = randomToken();
   const redirectUri = new URL(`/api/auth/${provider}/callback`, req.url).toString();
-  const res = NextResponse.redirect(authorizeUrl(provider, state, redirectUri));
+  const res = NextResponse.redirect(authorizeUrl(provider, state, redirectUri, req.nextUrl.searchParams.get("again") === "1"));
   setStateCookie(res, { state, provider, next });
   return res;
 }
