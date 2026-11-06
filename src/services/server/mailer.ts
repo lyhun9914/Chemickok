@@ -1,5 +1,6 @@
 import "server-only";
 import { createTransport } from "nodemailer";
+import { BUSINESS } from "@/lib/config";
 
 /**
  * Outgoing mail (비밀번호 재설정) over SMTP. With a Gmail account: SMTP_USER = the address, SMTP_PASS = an app password
@@ -17,6 +18,8 @@ export async function sendMail(to: string, subject: string, text: string): Promi
   // Gmail shows an app password as four groups of four; it's often pasted with the spaces.
   const pass = host === "smtp.gmail.com" ? process.env.SMTP_PASS!.replace(/\s+/g, "") : process.env.SMTP_PASS!;
   const transport = createTransport({ host, port, secure: port === 465, auth: { user, pass } });
-  const info = await transport.sendMail({ from: `"냥신 점괘" <${mailSender()}>`, to, subject, text });
+  // Replies (e.g. to a 비밀번호 재설정 mail) go to the 고객문의 inbox, whichever account sends.
+  const replyTo = (process.env.MAIL_REPLY_TO || BUSINESS.email).trim();
+  const info = await transport.sendMail({ from: `"냥신 점괘" <${mailSender()}>`, replyTo: `"냥신 점괘" <${replyTo}>`, to, subject, text });
   return { response: String(info.response ?? ""), accepted: (info.accepted ?? []).map(String), rejected: (info.rejected ?? []).map(String) };
 }
