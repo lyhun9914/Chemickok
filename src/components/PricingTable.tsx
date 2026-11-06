@@ -75,6 +75,7 @@ export function PricingTable() {
       <ul className="mt-6 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-muted">
         <li>카카오·네이버·구글로 처음 가입하면 {nyang(WELCOME_COINS)}을 선물로 드려요.</li>
         <li>결제 수단: 토스페이, 카카오페이, 네이버페이, 신용·체크카드 (토스페이먼츠 결제창)</li>
+        <li>제공 방법: 결제가 끝나면 그 자리에서 화면으로 바로 열려요. 실물 배송은 없어요. 회원이 연 감정서는 내 점괘함에서 언제든 다시 볼 수 있어요.</li>
         <li>
           열람한 감정서는 디지털 콘텐츠라 환불되지 않아요. 충전한 냥은 7일 안에 하나도 쓰지 않았다면 환불돼요. 자세한 내용은{" "}
           <Link href="/terms" className="text-ink underline underline-offset-2">
