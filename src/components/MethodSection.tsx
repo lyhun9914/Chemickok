@@ -170,7 +170,7 @@ export function MethodSection() {
           <dt className="text-violet">통신판매</dt>
           <dd className="text-muted">{BUSINESS.ecommerceNo}</dd>
           <dt className="text-violet">결제</dt>
-          <dd className="text-muted">토스페이먼츠 결제창 (토스페이 · 카카오페이 · 카드)</dd>
+          <dd className="text-muted">토스페이먼츠 결제창 (토스페이 · 카카오페이 · 네이버페이 · 카드)</dd>
         </dl>
       </div>
     </section>

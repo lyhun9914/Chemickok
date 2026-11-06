@@ -14,15 +14,16 @@ import { Coin } from "./Coin";
 const METHODS: { id: PaymentMethod; label: string; on: string }[] = [
   { id: "tosspay", label: "토스페이", on: "border-[#3182f6] bg-[#3182f6]/15 text-[#7fb2ff]" },
   { id: "kakaopay", label: "카카오페이", on: "border-[#fee500] bg-[#fee500]/15 text-[#fee500]" },
+  { id: "naverpay", label: "네이버페이", on: "border-[#03C75A] bg-[#03C75A]/15 text-[#3ee38a]" },
   { id: "card", label: "카드·기타", on: "border-peach bg-peach/15 text-peach" },
 ];
 
-/** 토스페이 · 카카오페이 open the pay app directly; 카드·기타 opens Toss's window with every card and pay app. */
+/** 토스페이 · 카카오페이 · 네이버페이 open the pay app directly; 카드·기타 opens Toss's window with every card and pay app. */
 export function MethodPicker({ value, onChange }: { value: PaymentMethod; onChange: (m: PaymentMethod) => void }) {
   return (
     <div>
       <p className="mb-2 text-sm text-muted">결제 수단</p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {METHODS.map((m) => (
           <button
             key={m.id}

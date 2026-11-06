@@ -19,7 +19,7 @@ const KINDS: { id: Kind; emoji: string; label: string; fields: { key: string; la
     fields: [
       { key: "when", label: "결제 일시", placeholder: "예: 10월 29일 오후 3시쯤" },
       { key: "what", label: "상품과 금액", placeholder: "예: 타고난 사주 팔자 990원" },
-      { key: "method", label: "결제 수단", placeholder: "예: 카드, 카카오페이, 토스" },
+      { key: "method", label: "결제 수단", placeholder: "예: 카드, 카카오페이, 네이버페이, 토스" },
     ],
   },
   {

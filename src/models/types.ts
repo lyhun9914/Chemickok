@@ -298,4 +298,4 @@ export interface PairResult {
 }
 
 /** 간편결제 opened directly (토스페이 · 카카오페이), or Toss's own window with every card and pay app. */
-export type PaymentMethod = "tosspay" | "kakaopay" | "card";
+export type PaymentMethod = "tosspay" | "kakaopay" | "naverpay" | "card";

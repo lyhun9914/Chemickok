@@ -22,12 +22,13 @@ const TOSS_SDK_URL = "https://js.tosspayments.com/v2/standard";
 const ANONYMOUS = "@@ANONYMOUS";
 
 /**
- * How each choice opens Toss's window. 토스페이 · 카카오페이 go straight to the pay app (자체창, flowMode DIRECT);
+ * How each choice opens Toss's window. 토스페이 · 카카오페이 · 네이버페이 go straight to the pay app (자체창, flowMode DIRECT);
  * "card" opens Toss's own window with every card company and the other pay apps.
  */
 const METHOD: Record<PaymentMethod, Record<string, unknown>> = {
   tosspay: { method: "CARD", card: { flowMode: "DIRECT", easyPay: "TOSSPAY" } },
   kakaopay: { method: "CARD", card: { flowMode: "DIRECT", easyPay: "KAKAOPAY" } },
+  naverpay: { method: "CARD", card: { flowMode: "DIRECT", easyPay: "NAVERPAY" } },
   card: { method: "CARD" },
 };
 
