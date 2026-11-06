@@ -1,6 +1,8 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { reportError } from "@/services/server/errors";
-import { INVITE_LIMIT, chargeTag, packOf } from "@/lib/config";
+import { INVITE_LIMIT, chargeTag } from "@/lib/config";
+import { sellPack, type SellPack } from "@/lib/pricing";
+import { getSettings } from "@/services/server/settings";
 import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
 import { confirmTossPayment, serverTestMode } from "@/services/server/tossConfirm";
@@ -31,8 +33,15 @@ export async function POST(req: NextRequest) {
   const uid = sessionUserId(req);
   if (!db || !uid) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
   const body = (await req.json().catch(() => null)) as ChargeBody | null;
-  const pack = packOf(body?.packId);
-  if (!body || !pack) return NextResponse.json({ error: "충전 상품이 올바르지 않아요." }, { status: 400 });
+  // the pack as it sells now (관리자 가격 + 세일); a page that showed a just-changed price gets a fresh read
+  const live = async (fresh: boolean): Promise<SellPack | null> => {
+    const s = await getSettings(fresh);
+    const p = s.pricing.packs.find((x) => x.id === body?.packId);
+    return p ? sellPack(p, s.sale) : null;
+  };
+  let pack = await live(false);
+  if (body?.method === "toss" && (!pack || body.amount !== pack.price)) pack = await live(true);
+  if (!body || !pack) return NextResponse.json({ error: "충전 상품이 바뀌었어요. 화면을 새로고침해 주세요." }, { status: 400 });
 
   let orderId: string;
   if (body.method === "test") {
@@ -40,7 +49,7 @@ export async function POST(req: NextRequest) {
     orderId = `test-c${pack.coins}-${chargeTag(uid)}-${Date.now().toString(36)}`;
   } else if (body.method === "toss") {
     if (!body.paymentKey || !body.orderId || body.amount !== pack.price || !body.orderId.startsWith(`c${pack.coins}-${chargeTag(uid)}-`)) {
-      return NextResponse.json({ error: "결제 정보가 올바르지 않아요." }, { status: 400 });
+      return NextResponse.json({ error: "가격이 방금 바뀌었어요. 화면을 새로고침한 뒤 다시 충전해 주세요. (결제는 되지 않았어요)" }, { status: 400 });
     }
     const result = await confirmTossPayment({ paymentKey: body.paymentKey, orderId: body.orderId, amount: body.amount });
     if (!result.ok) {
@@ -53,14 +62,14 @@ export async function POST(req: NextRequest) {
   }
 
   await db
-    .recordPayment({ orderId, userId: uid, inputHash: `charge:${pack.id}`, amount: pack.price, method: body.method, paymentKey: body.method === "toss" ? body.paymentKey : undefined })
+    .recordPayment({ orderId, userId: uid, inputHash: `charge:${pack.id}`, amount: pack.price, method: body.method, paymentKey: body.method === "toss" ? body.paymentKey : undefined, coins: pack.total })
     .catch((e) => {
       console.error("recording payment failed", e);
       after(() => reportError({ source: "server", message: "결제 기록 저장 실패", path: "/api/coins", detail: `${orderId}\n${String(e).slice(0, 500)}`, ua: null }));
     });
   try {
-    const { balance } = await db.coinAdd(uid, pack.coins, "charge", orderId);
-    return NextResponse.json({ balance, added: pack.coins });
+    const { balance } = await db.coinAdd(uid, pack.total, "charge", orderId);
+    return NextResponse.json({ balance, added: pack.total });
   } catch (e) {
     // Paid but not credited: the orderId is in payments, so this can be fixed by hand from 고객문의.
     console.error("crediting coins failed", orderId, e);

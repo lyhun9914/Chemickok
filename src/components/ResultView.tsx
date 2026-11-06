@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { nyang, productOf } from "@/lib/config";
+import {nyang } from "@/lib/config";
+import { liveProduct, useLive } from "@/lib/liveSettings";
 import { useBack } from "@/lib/back";
 import { usePayHint } from "./CoinShop";
 import { PairAnsweredCard, PairInviteCard } from "./PairSheet";
@@ -126,7 +127,8 @@ export function ResultView() {
 
   const me = input.me.name;
   const p = input.partner.name;
-  const cost = productOf(input.mode).coins;
+  const live = useLive();
+  const cost = liveProduct(live, input.mode).coins;
   const hint = usePayHint(cost);
 
   const beats = useMemo<Beat[]>(() => {
@@ -484,7 +486,7 @@ export function ResultView() {
               <span className="flex-1">
                 <span className="block font-bold">{teaser.solo ? "그 사람이랑 궁합도 볼래냥?" : "다른 사람이랑도 궁합 볼래냥?"}</span>
                 <span className="mt-0.5 block text-xs text-muted">
-                  내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 풀이 <Coin /> {nyang(productOf("couple").coins)}
+                  내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 풀이 <Coin /> {nyang(live.pricing.costs.couple)}
                 </span>
               </span>
               <span aria-hidden>→</span>

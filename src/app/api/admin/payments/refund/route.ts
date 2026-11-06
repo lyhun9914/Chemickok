@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, after, type NextRequest } from "next/server";
-import { packOf } from "@/lib/config";
 import { adminOnly } from "@/services/server/admin";
+import { audit } from "@/services/server/audit";
 import { getDb } from "@/services/server/db";
 import { reportError } from "@/services/server/errors";
 import { cancelTossPayment } from "@/services/server/tossConfirm";
@@ -18,9 +18,9 @@ interface Body {
 }
 
 /** The 냥 a payment put in the 복주머니: a 충전 (`charge:<pack>`), else none (a reading paid directly). */
-function coinsOf(p: { input_hash: string; order_id: string }): number {
+function coinsOf(p: { input_hash: string; order_id: string; coins?: number | null }): number {
   if (!p.input_hash.startsWith("charge:")) return 0;
-  return packOf(p.input_hash.slice(7))?.coins ?? Number(/(?:^|-)c(\d+)-/.exec(p.order_id)?.[1] ?? 0);
+  return p.coins ?? Number(/(?:^|-)c(\d+)-/.exec(p.order_id)?.[1] ?? 0);
 }
 
 /**
@@ -84,5 +84,6 @@ export async function POST(req: NextRequest) {
     await undo(); // a second click lost the race: its 냥 go back (Toss already ignored the repeat cancel)
     return NextResponse.json({ error: "방금 다른 곳에서 환불 처리됐어요." }, { status: 409 });
   }
+  after(() => audit("환불", p.order_id, `${amount.toLocaleString("ko-KR")}원 / 결제 ${p.amount.toLocaleString("ko-KR")}원 · 냥 ${coins} 회수 · ${p.method === "toss" ? (body.manual ? "토스에서 직접 취소(기록만)" : "토스 결제 취소") : p.method}${note ? ` · ${note}` : ""}`));
   return NextResponse.json({ ok: true, amount, coins, balance });
 }

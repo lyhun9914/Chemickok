@@ -181,6 +181,7 @@ export const coinApi = {
   wallet: () => get<Wallet>("/api/coins"),
   charge: (body: { packId: string; method: "test" | "toss"; paymentKey?: string; orderId?: string; amount?: number }) =>
     post<{ balance: number; added: number }>("/api/coins", body),
+  coupon: (code: string) => post<{ coins: number; balance: number }>("/api/coupons", { code }),
 };
 
 // ───────────── 맞궁합 초대장 ─────────────

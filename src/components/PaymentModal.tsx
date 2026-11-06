@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { track } from "@/lib/track";
-import { WELCOME_COINS, isFortune, nyang, productOf, won } from "@/lib/config";
+import {WELCOME_COINS, isFortune, nyang, won } from "@/lib/config";
+import { liveProduct, useLive } from "@/lib/liveSettings";
 import type { PaymentMethod, QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
 import { useAppStore } from "@/store/useAppStore";
@@ -42,7 +43,8 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked, onLo
   useBack(open, onClose);
 
   if (!open) return null;
-  const product = productOf(input.mode);
+  const live = useLive();
+  const product = liveProduct(live, input.mode);
   const cost = product.coins;
   const balance = me?.coins ?? 0;
 

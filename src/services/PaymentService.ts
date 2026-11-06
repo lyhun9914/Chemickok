@@ -1,4 +1,6 @@
-import { TOSS_CLIENT_KEY, type CoinPack, chargeTag, productOf, isTestMode as defaultTestMode } from "@/lib/config";
+import { TOSS_CLIENT_KEY, chargeTag, isTestMode as defaultTestMode } from "@/lib/config";
+import { getLive, liveProduct } from "@/lib/liveSettings";
+import type { SellPack } from "@/lib/pricing";
 import { loadScript } from "@/lib/loadScript";
 import type { PaymentMethod, QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { api, coinApi } from "./apiClient";
@@ -63,7 +65,7 @@ export class PaymentService {
         await new Promise((r) => setTimeout(r, 900)); // feels like a payment
         return { status: "unlocked", unlock: await api.unlock({ input, method: "test" }) };
       }
-      const product = productOf(input.mode);
+      const product = liveProduct(getLive(), input.mode);
       const payment = await tossPayment(ANONYMOUS);
       await payment.requestPayment({
         ...METHOD[method],
@@ -89,7 +91,7 @@ export class PaymentService {
   }
 
   /** 복주머니 채우기. With Toss the browser leaves and comes back to /payment/success?kind=charge. */
-  async charge(pack: CoinPack, method: PaymentMethod, userId: string): Promise<ChargeResult> {
+  async charge(pack: SellPack, method: PaymentMethod, userId: string): Promise<ChargeResult> {
     try {
       if (this.isTestMode) {
         await new Promise((r) => setTimeout(r, 700));
@@ -101,7 +103,7 @@ export class PaymentService {
         ...METHOD[method],
         amount: { currency: "KRW", value: pack.price },
         orderId: PaymentService.makeOrderId(`c${pack.coins}-${tag}`),
-        orderName: `냥신 점괘 · 복채 ${pack.coins}냥`,
+        orderName: `냥신 점괘 · 복채 ${pack.total}냥`,
         successUrl: `${window.location.origin}/payment/success?kind=charge&pack=${pack.id}`,
         failUrl: `${window.location.origin}/payment/fail?kind=charge`,
       });

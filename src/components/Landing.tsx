@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { streakNow } from "@/lib/daily";
-import { COIN_PACKS, PRODUCTS, WELCOME_COINS, isFortune, nyang } from "@/lib/config";
+import { PRODUCTS, WELCOME_COINS, isFortune, nyang } from "@/lib/config";
+import { liveProduct, sellPacks, useLive } from "@/lib/liveSettings";
+import { NoticeBanner } from "./NoticeBanner";
 import type { Mode } from "@/models/types";
 import { useAppStore } from "@/store/useAppStore";
 import { enterThroughDoors } from "./Backdrop";
@@ -25,8 +27,6 @@ const MENU: { title: string; sub: string; modes: Mode[] }[] = [
   { title: "📜 사주 · 운세 감정", sub: "만세력으로 원국을 세워 십성 · 용신 · 신살 · 대운까지 짚는 정통 감정서", modes: ["newyear", "saju", "daeun"] },
 ];
 
-// The best per-냥 discount among the packs, for the 복채 line (no 원 on the landing: prices live in the pay sheet).
-const MAX_SAVE = Math.max(...COIN_PACKS.map((p) => Math.round((1 - p.price / p.coins / COIN_PACKS[0].price) * 100)));
 
 const MINI: { id: MiniGame; emoji: string; name: string; sub: string; wide?: boolean }[] = [
   { id: "today", emoji: "📅", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번", wide: true },
@@ -72,8 +72,15 @@ export function Landing() {
     enterThroughDoors(() => startInterview({ mode, me: me?.profile }));
   };
 
+  const live = useLive();
+  const others = (Object.keys(live.pricing.costs) as Mode[]).filter((m) => m !== "couple").map((m) => live.pricing.costs[m]);
+  const oneCost = Math.min(...others);
+  const unit = live.pricing.packs[0].price / live.pricing.packs[0].coins;
+  const maxSave = Math.max(0, ...sellPacks({ ...live, sale: null }).map((p) => Math.round((1 - p.price / p.coins / unit) * 100)));
+
   return (
     <main className="enter-dark relative flex flex-1 flex-col px-5 pt-4">
+      <NoticeBanner />
       <Talisman className="absolute left-4 top-0" />
       <Talisman className="absolute right-6 top-24 opacity-70 [animation-delay:-2s]" />
       <div className="relative z-10 flex items-center justify-end gap-2">
@@ -174,8 +181,8 @@ export function Landing() {
       </button>
 
       <p className="fade-up mt-8 rounded-xl border border-violet/25 bg-white/[0.03] px-3.5 py-2.5 text-center text-[12.5px] leading-relaxed text-muted">
-        <Coin /> 복채는 <b className="text-peach">냥</b>(엽전)으로 낸다냥 · 점괘 하나 1냥, 궁합은 2냥
-        {MAX_SAVE > 0 && <> · 묶음으로 채우면 최대 {MAX_SAVE}% 싸다냥</>}
+        <Coin /> 복채는 <b className="text-peach">냥</b>(엽전)으로 낸다냥 · 점괘 하나 {nyang(oneCost)}, 궁합은 {nyang(live.pricing.costs.couple)}
+        {live.sale ? <> · 🎉 지금 충전 세일 중이다냥</> : maxSave > 0 && <> · 묶음으로 채우면 최대 {maxSave}% 싸다냥</>}
       </p>
 
       {MENU.map((group, gi) => (
@@ -192,7 +199,7 @@ export function Landing() {
             {(Object.keys(PRODUCTS) as Mode[])
               .filter((m) => group.modes.includes(m))
               .map((m) => {
-                const pr = PRODUCTS[m];
+                const pr = liveProduct(live, m);
                 return (
                   // A door, not a panel: lit edge, gradient, and a real "보기" button on the right.
                   <button

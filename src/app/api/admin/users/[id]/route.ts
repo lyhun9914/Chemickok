@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { adminOnly } from "@/services/server/admin";
+import { audit } from "@/services/server/audit";
 import { getDb } from "@/services/server/db";
 
 /** GET /api/admin/users/{id} — the member, their 냥 ledger and payments. */
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/admin/users/
   const { id } = await ctx.params;
   const user = await db.getUser(id);
   if (!user) return NextResponse.json({ error: "없는 회원이에요." }, { status: 404 });
-  const [balance, history, payments] = await Promise.all([db.coins(id), db.coinHistory(id), db.adminPayments(id)]);
+  const [balance, history, payments] = await Promise.all([db.coins(id), db.coinHistory(id), db.adminPayments({ userId: id })]);
   return NextResponse.json({
     user: { id: user.id, provider: user.provider, nickname: user.nickname, email: user.email, created_at: user.created_at },
     balance,
@@ -35,11 +36,13 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/admin/users
   const delta = Math.trunc(Number(body?.delta));
   const reason = body?.reason === "refund" ? "refund" : "admin";
   if (!delta || Math.abs(delta) > 1000) return NextResponse.json({ error: "1~1000냥 사이로 넣어 주세요." }, { status: 400 });
-  if (!(await db.getUser(id))) return NextResponse.json({ error: "없는 회원이에요." }, { status: 404 });
+  const user = await db.getUser(id);
+  if (!user) return NextResponse.json({ error: "없는 회원이에요." }, { status: 404 });
   const note = String(body?.note ?? "").trim().slice(0, 60);
   // the ref keeps a note for the ledger and is unique, so the same adjustment can't be applied twice by accident
   const ref = `${note || reason}#${randomBytes(4).toString("hex")}`;
   const r = await db.coinAdjust(id, delta, reason, ref);
   if (!r.ok) return NextResponse.json({ error: `잔액(${r.balance}냥)보다 많이 뺄 수 없어요.`, balance: r.balance }, { status: 409 });
+  after(() => audit(delta > 0 ? "냥 지급" : "냥 회수", `${user.nickname} (${user.email ?? user.provider})`, `${delta > 0 ? "+" : ""}${delta}냥 → 잔액 ${r.balance}냥${note ? ` · ${note}` : ""}`));
   return NextResponse.json(r);
 }

@@ -84,6 +84,33 @@ export interface PaymentRow {
   refund_amount?: number | null;
   refund_coins?: number | null;
   refund_note?: string | null;
+  /** 냥 a 충전 put in (with any 세일 bonus); null on older rows */
+  coins?: number | null;
+}
+
+/** A payment with who paid (관리자 lists). */
+export interface AdminPaymentRow extends PaymentRow {
+  user: { nickname: string; email: string | null; provider: string } | null;
+}
+
+export interface Coupon {
+  code: string;
+  coins: number;
+  max_uses: number | null;
+  used: number;
+  expires_at: string | null;
+  social_only: boolean;
+  active: boolean;
+  note: string | null;
+  created_at: string;
+}
+
+export interface AdminAction {
+  id: number;
+  created_at: string;
+  action: string;
+  target: string | null;
+  detail: string | null;
 }
 
 /** 이용 흐름: one step of an interview (or a mini game opened). */
@@ -150,7 +177,7 @@ export interface Db {
   getUser(id: string): Promise<DbUser | null>;
   updateProfile(id: string, profile: PersonInput): Promise<void>;
   deleteUser(id: string): Promise<void>;
-  recordPayment(p: { orderId: string; userId: string | null; inputHash: string; amount: number; method: string; paymentKey?: string }): Promise<void>;
+  recordPayment(p: { orderId: string; userId: string | null; inputHash: string; amount: number; method: string; paymentKey?: string; coins?: number }): Promise<void>;
   saveReading(r: Omit<ReadingRow, "id" | "created_at">): Promise<string>;
   listReadings(userId: string): Promise<ReadingSummary[]>;
   getReading(userId: string, id: string): Promise<ReadingRow | null>;
@@ -180,7 +207,8 @@ export interface Db {
   // 관리자
   adminStats(): Promise<Record<string, number | boolean>>;
   adminUsers(q: string): Promise<AdminUserRow[]>;
-  adminPayments(userId?: string): Promise<PaymentRow[]>;
+  /** newest first; by member, by order id or member name/email (q), and/or a time range */
+  adminPayments(o?: { userId?: string; q?: string; from?: string; to?: string; limit?: number }): Promise<AdminPaymentRow[]>;
   /** by hand (보상 · 환불 · 회수); never below zero */
   coinAdjust(userId: string, delta: number, reason: "admin" | "refund", ref: string): Promise<{ ok: boolean; balance: number }>;
   getPayment(orderId: string): Promise<PaymentRow | null>;
@@ -196,6 +224,20 @@ export interface Db {
   logError(e: ErrorLog): Promise<boolean>;
   adminErrors(since: string): Promise<ErrorGroup[]>;
   adminClearErrors(fingerprint: string): Promise<void>;
+
+  /** 설정 (pricing · sale · banner) */
+  getSettings(): Promise<Record<string, unknown>>;
+  setSetting(key: string, value: unknown): Promise<void>;
+  /** 관리 작업 기록 */
+  audit(action: string, target: string | null, detail: string | null): Promise<void>;
+  adminActions(limit: number): Promise<AdminAction[]>;
+  /** 쿠폰 */
+  couponCreate(c: Pick<Coupon, "code" | "coins" | "max_uses" | "expires_at" | "social_only" | "note">): Promise<boolean>;
+  couponList(): Promise<Coupon[]>;
+  couponSetActive(code: string, active: boolean): Promise<void>;
+  couponRedeem(code: string, userId: string): Promise<{ ok: boolean; reason?: string; coins?: number; balance?: number }>;
+  /** 하루 요약 (KST day yyyy-mm-dd) */
+  adminDay(day: string): Promise<Record<string, number | string>>;
 }
 
 // ───────────── Supabase (PostgREST over fetch) ─────────────
@@ -269,7 +311,7 @@ function supabase(url: string, key: string): Db {
       await rest("payments?on_conflict=order_id", {
         method: "POST",
         prefer: "resolution=ignore-duplicates",
-        body: JSON.stringify({ order_id: p.orderId, user_id: p.userId, input_hash: p.inputHash, amount: p.amount, method: p.method, payment_key: p.paymentKey ?? null }),
+        body: JSON.stringify({ order_id: p.orderId, user_id: p.userId, input_hash: p.inputHash, amount: p.amount, method: p.method, payment_key: p.paymentKey ?? null, coins: p.coins ?? null }),
       });
     },
     async saveReading(r) {
@@ -352,8 +394,21 @@ function supabase(url: string, key: string): Db {
       );
       return rows.map(({ wallets, ...u }) => ({ ...u, balance: (Array.isArray(wallets) ? wallets[0]?.balance : wallets?.balance) ?? 0 }));
     },
-    async adminPayments(userId) {
-      return rest<PaymentRow[]>(`payments?select=*${userId ? `&user_id=${eq(userId)}` : ""}&order=created_at.desc&limit=50`);
+    async adminPayments(o = {}) {
+      const f: string[] = [];
+      if (o.userId) f.push(`user_id=${eq(o.userId)}`);
+      if (o.from) f.push(`created_at=gte.${encodeURIComponent(o.from)}`);
+      if (o.to) f.push(`created_at=lt.${encodeURIComponent(o.to)}`);
+      const term = (o.q ?? "").replace(/[,()*%\\]/g, "").trim().slice(0, 60);
+      if (term) {
+        const ids = (await this.adminUsers(term)).map((u) => u.id);
+        const ors = [`order_id.ilike.*${term}*`, ...(ids.length ? [`user_id.in.(${ids.join(",")})`] : [])];
+        f.push(`or=${encodeURIComponent(`(${ors.join(",")})`)}`);
+      }
+      const rows = await rest<(PaymentRow & { users: AdminPaymentRow["user"] })[]>(
+        `payments?select=*,users(nickname,email,provider)${f.map((x) => `&${x}`).join("")}&order=created_at.desc&limit=${Math.min(o.limit ?? 50, 5000)}`,
+      );
+      return rows.map(({ users, ...p }) => ({ ...p, user: users ?? null }));
     },
     async coinAdjust(userId, delta, reason, ref) {
       return rest("rpc/coin_adjust", { method: "POST", body: JSON.stringify({ p_user: userId, p_delta: delta, p_reason: reason, p_ref: ref }) });
@@ -394,6 +449,44 @@ function supabase(url: string, key: string): Db {
     async adminClearErrors(fingerprint) {
       await rest(`error_logs?fingerprint=${eq(fingerprint)}`, { method: "DELETE" });
     },
+    async getSettings() {
+      const rows = await rest<{ key: string; value: unknown }[]>("app_settings?select=key,value");
+      return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    },
+    async setSetting(key, value) {
+      await rest("app_settings?on_conflict=key", {
+        method: "POST",
+        prefer: "resolution=merge-duplicates",
+        body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
+      });
+    },
+    async audit(action, target, detail) {
+      await rest("admin_actions", { method: "POST", body: JSON.stringify({ action, target, detail }) });
+    },
+    async adminActions(limit) {
+      return rest<AdminAction[]>(`admin_actions?select=*&order=id.desc&limit=${limit}`);
+    },
+    async couponCreate(c) {
+      try {
+        await rest("coupons", { method: "POST", body: JSON.stringify(c) });
+        return true;
+      } catch (e) {
+        if (/db 409/.test(String(e))) return false;
+        throw e;
+      }
+    },
+    async couponList() {
+      return rest<Coupon[]>("coupons?select=*&order=created_at.desc&limit=100");
+    },
+    async couponSetActive(code, active) {
+      await rest(`coupons?code=${eq(code)}`, { method: "PATCH", body: JSON.stringify({ active }) });
+    },
+    async couponRedeem(code, userId) {
+      return rest("rpc/coupon_redeem", { method: "POST", body: JSON.stringify({ p_code: code, p_user: userId }) });
+    },
+    async adminDay(day) {
+      return rest("rpc/admin_day", { method: "POST", body: JSON.stringify({ p_day: day }) });
+    },
   };
 }
 
@@ -414,9 +507,13 @@ function memory(): Db {
     visits: { id: string; day: string; source: string; device: string }[];
     runs: { id: string; visit_id: string | null; day: string; product: string; status: string | null; total_q: number; max_q: number; result_at: string | null; paysheet_at: string | null; paid_at: string | null }[];
     errors: (ErrorLog & { created_at: string })[];
+    settings: Record<string, unknown>;
+    actions: AdminAction[];
+    coupons: Coupon[];
+    redemptions: { code: string; user_id: string; created_at: string }[];
   };
   const g = globalThis as unknown as { __nyangDb?: Mem };
-  const m: Mem = (g.__nyangDb ??= { users: [], readings: [], payments: [], wallets: new Map(), ledger: [], attendance: new Set(), gifts: [], pairs: [], visits: [], runs: [], errors: [] });
+  const m: Mem = (g.__nyangDb ??= { users: [], readings: [], payments: [], wallets: new Map(), ledger: [], attendance: new Set(), gifts: [], pairs: [], visits: [], runs: [], errors: [], settings: {}, actions: [], coupons: [], redemptions: [] });
   const newUser = (u: { provider: string; providerId: string; nickname: string; email: string | null; passwordHash?: string }): DbUser => ({
     id: randomUUID(),
     provider: u.provider,
@@ -479,7 +576,7 @@ function memory(): Db {
     },
     async recordPayment(p) {
       if (!m.payments.some((x) => x.order_id === p.orderId))
-        m.payments.push({ order_id: p.orderId, user_id: p.userId, input_hash: p.inputHash, amount: p.amount, method: p.method, created_at: new Date().toISOString(), payment_key: p.paymentKey ?? null });
+        m.payments.push({ order_id: p.orderId, user_id: p.userId, input_hash: p.inputHash, amount: p.amount, method: p.method, created_at: new Date().toISOString(), payment_key: p.paymentKey ?? null, coins: p.coins ?? null });
     },
     async saveReading(r) {
       const row = { ...r, id: randomUUID(), created_at: new Date().toISOString() };
@@ -590,8 +687,18 @@ function memory(): Db {
         .slice(0, 30)
         .map((u) => ({ id: u.id, provider: u.provider, nickname: u.nickname, email: u.email, created_at: u.created_at, balance: m.wallets.get(u.id) ?? 0 }));
     },
-    async adminPayments(userId) {
-      return m.payments.filter((x) => !userId || x.user_id === userId).reverse().slice(0, 50);
+    async adminPayments(o = {}) {
+      const t = (o.q ?? "").trim().toLowerCase();
+      const ids = t ? new Set((await this.adminUsers(t)).map((u) => u.id)) : null;
+      return m.payments
+        .filter((x) => (!o.userId || x.user_id === o.userId) && (!o.from || x.created_at >= o.from) && (!o.to || x.created_at < o.to))
+        .filter((x) => !ids || x.order_id.toLowerCase().includes(t) || (x.user_id && ids.has(x.user_id)))
+        .reverse()
+        .slice(0, o.limit ?? 50)
+        .map((x) => {
+          const u = m.users.find((y) => y.id === x.user_id);
+          return { ...x, user: u ? { nickname: u.nickname, email: u.email, provider: u.provider } : null };
+        });
     },
     async coinAdjust(userId, delta, reason, ref) {
       const b = m.wallets.get(userId) ?? 0;
@@ -674,6 +781,66 @@ function memory(): Db {
     },
     async adminClearErrors(fingerprint) {
       m.errors = m.errors.filter((x) => x.fingerprint !== fingerprint);
+    },
+    async getSettings() {
+      return { ...m.settings };
+    },
+    async setSetting(key, value) {
+      m.settings[key] = value;
+    },
+    async audit(action, target, detail) {
+      m.actions.push({ id: m.actions.length + 1, created_at: new Date().toISOString(), action, target, detail });
+    },
+    async adminActions(limit) {
+      return [...m.actions].reverse().slice(0, limit);
+    },
+    async couponCreate(c) {
+      if (m.coupons.some((x) => x.code === c.code)) return false;
+      m.coupons.push({ ...c, used: 0, active: true, created_at: new Date().toISOString() });
+      return true;
+    },
+    async couponList() {
+      return [...m.coupons].reverse();
+    },
+    async couponSetActive(code, active) {
+      const c = m.coupons.find((x) => x.code === code);
+      if (c) c.active = active;
+    },
+    async couponRedeem(code, userId) {
+      const c = m.coupons.find((x) => x.code === code.trim().toUpperCase());
+      if (!c) return { ok: false, reason: "none" };
+      if (m.redemptions.some((x) => x.code === c.code && x.user_id === userId)) return { ok: false, reason: "used" };
+      if (!c.active) return { ok: false, reason: "off" };
+      if (c.expires_at && Date.parse(c.expires_at) < Date.now()) return { ok: false, reason: "expired" };
+      if (c.max_uses !== null && c.used >= c.max_uses) return { ok: false, reason: "full" };
+      const u = m.users.find((x) => x.id === userId);
+      if (c.social_only && (!u || u.provider === "email" || u.provider === "dev")) return { ok: false, reason: "social" };
+      m.redemptions.push({ code: c.code, user_id: userId, created_at: new Date().toISOString() });
+      c.used++;
+      return { ok: true, coins: c.coins, balance: log(userId, c.coins, "bonus", `coupon:${c.code}`) };
+    },
+    async adminDay(day) {
+      const a = new Date(`${day}T00:00:00+09:00`).toISOString();
+      const b = new Date(Date.parse(a) + 864e5).toISOString();
+      const inDay = (t?: string | null) => Boolean(t && t >= a && t < b);
+      const toss = m.payments.filter((x) => x.method === "toss");
+      const r = m.runs.filter((x) => x.day === day);
+      return {
+        day,
+        visits: m.visits.filter((x) => x.day === day).length,
+        started: r.filter((x) => !x.product.startsWith("game:")).length,
+        results: r.filter((x) => x.result_at).length,
+        games: r.filter((x) => x.product.startsWith("game:")).length,
+        paidCount: toss.filter((x) => inDay(x.created_at)).length,
+        sales: toss.filter((x) => inDay(x.created_at)).reduce((s, x) => s + x.amount, 0),
+        refunds: toss.filter((x) => inDay(x.refunded_at)).reduce((s, x) => s + (x.refund_amount ?? 0), 0),
+        refundCount: toss.filter((x) => inDay(x.refunded_at)).length,
+        newUsers: m.users.filter((x) => x.provider !== "dev" && inDay(x.created_at)).length,
+        coinsSpent: -m.ledger.filter((x) => x.reason === "spend" && inDay(x.created_at)).reduce((s, x) => s + x.delta, 0),
+        coupons: m.redemptions.filter((x) => inDay(x.created_at)).length,
+        errors: m.errors.filter((x) => inDay(x.created_at)).length,
+        errorKinds: new Set(m.errors.filter((x) => inDay(x.created_at)).map((x) => x.fingerprint)).size,
+      };
     },
   };
 }

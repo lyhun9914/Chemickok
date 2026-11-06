@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PRODUCTS, nyang, productOf } from "@/lib/config";
+import {PRODUCTS, nyang } from "@/lib/config";
+import { liveProduct, useLive } from "@/lib/liveSettings";
 import { useBack } from "@/lib/back";
 import { usePayHint } from "./CoinShop";
 import { sound } from "@/lib/sound";
@@ -110,7 +111,8 @@ export function FortuneResultView() {
   const [typing, setTyping] = useState(level === "none" && !resumeAtLoad);
   const [leaveAsked, setLeaveAsked] = useState(false);
   const toast = useToast();
-  const hint = usePayHint(fortune ? productOf(fortune.mode).coins : 1);
+  const live = useLive();
+  const hint = usePayHint(fortune ? liveProduct(live, fortune.mode).coins : 1);
 
   useEffect(() => {
     if (!payIntent) return;
@@ -154,7 +156,7 @@ export function FortuneResultView() {
   const me = input.me.name;
   const p = input.partner.name || "그 사람";
   const P = (s: string) => s.replaceAll("{p}", p);
-  const product = productOf(mode);
+  const product = liveProduct(live, mode);
   const cost = product.coins;
 
   const advance = () => {
@@ -307,7 +309,7 @@ export function FortuneResultView() {
                     <span className="text-3xl">{PRODUCTS[m].emoji}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-bold">{PRODUCTS[m].name}</span>
-                      <span className="mt-0.5 block text-xs text-muted">내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 <Coin /> {nyang(PRODUCTS[m].coins)}</span>
+                      <span className="mt-0.5 block text-xs text-muted">내 정보는 기억해 뒀다냥 · 기본 무료 · 전체 <Coin /> {nyang(live.pricing.costs[m])}</span>
                     </span>
                     <span aria-hidden>→</span>
                   </button>

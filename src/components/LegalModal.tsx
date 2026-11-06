@@ -2,9 +2,8 @@
 
 import { useEffect } from "react";
 import { useBack } from "@/lib/back";
-import { BUSINESS, COIN_PACKS, INVITE_COINS, INVITE_LIMIT, WELCOME_COINS } from "@/lib/config";
+import { BUSINESS, INVITE_COINS, INVITE_LIMIT, WELCOME_COINS } from "@/lib/config";
 
-const PACKS = COIN_PACKS.map((p) => `${p.coins}냥 ${p.price.toLocaleString("ko-KR")}원`).join(", ");
 
 export type LegalDoc = "terms" | "privacy";
 
@@ -16,7 +15,7 @@ const DOCS: Record<LegalDoc, { title: string; sections: [string, string][] }> = 
       ["제2조 (서비스의 성격)", "서비스는 이용자가 입력한 생년월일과 설문 응답을 정해진 해석 규칙에 따라 조합해 제공하는 엔터테인먼트 목적의 사주·연애 심리 콘텐츠입니다. 결과는 과학적·의학적·법률적 판단이나 전문 상담을 대체하지 않습니다."],
       [
         "제3조 (유료 콘텐츠와 냥)",
-        `① 전체 감정서는 디지털 콘텐츠로, "냥"(서비스 안에서만 쓰는 선불 이용권)으로 열거나, 비회원은 해당 감정서 한 건을 결제 화면에 표시된 가격(부가세 포함)으로 바로 결제해 열 수 있습니다. 감정서 한 건은 1냥이며 궁합은 2냥입니다. ② 냥은 회원만 충전할 수 있고 충전 상품은 ${PACKS}입니다. ③ 회사는 결제 전에 무료 기본 점괘(맛보기)를 제공해, 이용자가 감정서의 내용과 품질을 미리 확인할 수 있게 합니다. 오늘의 운세 등 일부 콘텐츠는 무료입니다.`,
+        `① 전체 감정서는 디지털 콘텐츠로, "냥"(서비스 안에서만 쓰는 선불 이용권)으로 열거나, 비회원은 해당 감정서 한 건을 결제 화면에 표시된 가격(부가세 포함)으로 바로 결제해 열 수 있습니다. 감정서 한 건에 드는 냥은 각 상품과 결제 화면에 표시됩니다. ② 냥은 회원만 충전할 수 있으며, 충전 상품의 냥 수와 가격(부가세 포함)은 충전 화면에 표시됩니다. ③ 회사는 결제 전에 무료 기본 점괘(맛보기)를 제공해, 이용자가 감정서의 내용과 품질을 미리 확인할 수 있게 합니다. 오늘의 운세 등 일부 콘텐츠는 무료입니다.`,
       ],
       [
         "제4조 (냥의 유효기간과 무료 냥)",

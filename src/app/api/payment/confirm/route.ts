@@ -2,9 +2,10 @@ import { NextResponse, after } from "next/server";
 import { reportError } from "@/services/server/errors";
 import { buildReport, buildTeaser, inputHash, validateInput } from "@/engine/analyze";
 import { buildFortuneReport, buildFortuneTeaser, fortuneHash, fortuneTitle, isFortuneMode, validateFortune } from "@/engine/fortune";
-import { productOf } from "@/lib/config";
+import { productIn } from "@/lib/pricing";
 import type { UnlockResponse } from "@/models/types";
 import { getDb } from "@/services/server/db";
+import { getSettings } from "@/services/server/settings";
 import { sessionUserId } from "@/services/server/session";
 import { confirmTossPayment, serverTestMode } from "@/services/server/tossConfirm";
 
@@ -35,11 +36,13 @@ export async function POST(req: Request) {
   const hash = hashOf(input);
   let coinsLeft: number | undefined;
   let spentBefore = false;
+  // 관리자가 바꾼 가격 (the live one); a guest whose page showed a just-changed price is checked against a fresh read
+  let product = productIn((await getSettings()).pricing, input.mode);
 
   switch (body.method) {
     case "coins": {
       if (!db || !uid) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
-      const cost = productOf(input.mode).coins;
+      const cost = product.coins;
       const r = await db.coinSpend(uid, cost, `${input.mode}:${hash}`);
       if (!r.ok) return NextResponse.json({ error: `냥이 ${cost - r.balance}냥 모자라다냥.`, need: cost - r.balance, coins: r.balance }, { status: 402 });
       coinsLeft = r.balance;
@@ -56,7 +59,8 @@ export async function POST(req: Request) {
       }
       break;
     case "toss": {
-      if (!body.paymentKey || !body.orderId || body.amount !== productOf(input.mode).price) {
+      if (body.amount !== product.price) product = productIn((await getSettings(true)).pricing, input.mode);
+      if (!body.paymentKey || !body.orderId || body.amount !== product.price) {
         return NextResponse.json({ error: "결제 정보가 올바르지 않습니다." }, { status: 400 });
       }
       if (!body.orderId.startsWith(hashOf(input))) {
@@ -87,7 +91,7 @@ export async function POST(req: Request) {
     try {
       if (orderId)
         await db
-          .recordPayment({ orderId, userId: uid, inputHash: hash, amount: productOf(input.mode).price, method: body.method, paymentKey: body.method === "toss" ? body.paymentKey : undefined })
+          .recordPayment({ orderId, userId: uid, inputHash: hash, amount: product.price, method: body.method, paymentKey: body.method === "toss" ? body.paymentKey : undefined })
           .catch((e) => {
             console.error("recording payment failed", e);
             after(() => reportError({ source: "server", message: "결제 기록 저장 실패", path: "/api/payment/confirm", detail: `${orderId}\n${String(e).slice(0, 500)}`, ua: null }));

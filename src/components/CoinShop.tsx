@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useBack } from "@/lib/back";
-import { COIN_PACKS, type CoinPack, WELCOME_COINS, nyang, packFor, won } from "@/lib/config";
+import { WELCOME_COINS, nyang, won } from "@/lib/config";
+import { livePackFor, sellPacks, useLive } from "@/lib/liveSettings";
+import type { SellPack } from "@/lib/pricing";
+import { coinApi } from "@/services/apiClient";
 import type { PaymentMethod } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
 import { useAppStore } from "@/store/useAppStore";
@@ -56,8 +59,74 @@ export function usePayHint(cost: number): string {
   return cost === 1 ? "천 원도 안 되는 복채다냥" : "☕ 커피 반 잔 값이다냥";
 }
 
-const perCoin = (p: CoinPack) => Math.round(p.price / p.coins);
-const save = (p: CoinPack) => Math.round((1 - perCoin(p) / COIN_PACKS[0].price) * 100);
+/** 냥 price in a pack (with the 세일 bonus), and how much less than buying 1냥 at a time. */
+const perCoin = (p: SellPack) => Math.round(p.price / p.total);
+const save = (p: SellPack, base: number) => Math.round((1 - perCoin(p) / base) * 100);
+
+/** 세일 안내: what's on and until when. */
+export function SaleNote() {
+  const live = useLive();
+  const s = live.sale;
+  if (!s) return null;
+  const until = s.to ? new Date(s.to).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "numeric" }) : "";
+  const what = [s.discountPct ? `${s.discountPct}% 할인` : "", s.bonusPct ? `냥 ${s.bonusPct}% 더` : ""].filter(Boolean).join(" · ");
+  return (
+    <p className="rounded-xl border border-pink/40 bg-pink/10 px-3 py-2 text-center text-[13px] font-semibold text-pink">
+      🎉 {s.label || "충전 세일"} · {what}
+      {until && <span className="block text-[11.5px] font-normal text-muted">{until}까지</span>}
+    </p>
+  );
+}
+
+/** 쿠폰 코드 입력 (로그인한 회원). */
+export function CouponBox({ onDone }: { onDone?: (balance: number) => void }) {
+  const setCoins = useAppStore((s) => s.setCoins);
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const redeem = async () => {
+    if (!code.trim()) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await coinApi.coupon(code.trim());
+      setCoins(r.balance);
+      onDone?.(r.balance);
+      setMsg({ ok: true, text: `🎁 ${nyang(r.coins)}이 들어왔다냥! 지금 ${nyang(r.balance)}` });
+      setCode("");
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    }
+    setBusy(false);
+  };
+  if (!open)
+    return (
+      <button onClick={() => setOpen(true)} className="w-full text-center text-[13px] text-muted underline underline-offset-2">
+        🎟️ 쿠폰 코드가 있나요?
+      </button>
+    );
+  return (
+    <div className="rounded-2xl border border-line p-3">
+      <p className="mb-2 text-[13px] font-semibold">🎟️ 쿠폰 코드</p>
+      <div className="flex gap-2">
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === "Enter" && redeem()}
+          placeholder="예: NYANG2027"
+          maxLength={24}
+          autoCapitalize="characters"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-black/30 px-3 py-2.5 text-[15px] tracking-wider outline-none focus:border-peach"
+        />
+        <button onClick={redeem} disabled={busy || !code.trim()} className="btn-primary shrink-0 px-4 text-[14px]">
+          {busy ? "확인 중" : "받기"}
+        </button>
+      </div>
+      {msg && <p className={`mt-2 text-[13px] ${msg.ok ? "text-peach" : "text-pink"}`}>{msg.text}</p>}
+    </div>
+  );
+}
 
 /**
  * 냥 충전: pick a pack (the one that covers `need` is preselected), a pay app, agree, pay.
@@ -67,12 +136,17 @@ export function CoinShop({ need = 0, forReading = false, onCharged }: { need?: n
   const me = useAppStore((s) => s.me);
   const setCoins = useAppStore((s) => s.setCoins);
   const setPendingSpend = useAppStore((s) => s.setPendingSpend);
-  const [packId, setPackId] = useState(() => (need > 0 ? packFor(need) : (COIN_PACKS.find((p) => p.tag === "인기") ?? COIN_PACKS[0])).id);
+  const live = useLive();
+  const packs = sellPacks(live);
+  const base = Math.round(live.pricing.packs[0].price / live.pricing.packs[0].coins);
+  const [picked, setPicked] = useState<string | null>(null);
+  const packId = picked && packs.some((p) => p.id === picked) ? picked : (need > 0 ? livePackFor(live, need) : (packs.find((p) => p.tag === "인기") ?? packs[0])).id;
+  const setPackId = setPicked;
   const [method, setMethod] = useState<PaymentMethod>("tosspay");
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const pack = COIN_PACKS.find((p) => p.id === packId)!;
+  const pack = packs.find((p) => p.id === packId)!;
 
   if (!me) return null;
   const charge = async () => {
@@ -93,9 +167,10 @@ export function CoinShop({ need = 0, forReading = false, onCharged }: { need?: n
 
   return (
     <div className="space-y-4">
+      <SaleNote />
       <div className="grid grid-cols-2 gap-2">
-        {COIN_PACKS.map((p) => {
-          const short = p.coins < need;
+        {packs.map((p) => {
+          const short = p.total < need;
           return (
             <button
               key={p.id}
@@ -105,9 +180,13 @@ export function CoinShop({ need = 0, forReading = false, onCharged }: { need?: n
               {p.tag && <span className="absolute -top-2 right-2 rounded-full bg-pink px-2 py-0.5 text-[10.5px] font-bold text-white">{p.tag}</span>}
               <span className="block text-[17px] font-extrabold">
                 <Coin /> {nyang(p.coins)}
+                {p.bonus > 0 && <span className="ml-1 text-[13px] font-bold text-pink">+{p.bonus}</span>}
               </span>
-              <span className="mt-0.5 block text-[14px] font-semibold">{won(p.price)}</span>
-              <span className="mt-0.5 block text-[11.5px] text-muted">{save(p) > 0 ? `냥당 ${won(perCoin(p))} · ${save(p)}% 할인` : "낱개"}</span>
+              <span className="mt-0.5 block text-[14px] font-semibold">
+                {p.price < p.basePrice && <span className="mr-1 text-[12px] font-normal text-muted line-through">{won(p.basePrice)}</span>}
+                {won(p.price)}
+              </span>
+              <span className="mt-0.5 block text-[11.5px] text-muted">{save(p, base) > 0 ? `냥당 ${won(perCoin(p))} · ${save(p, base)}% 할인` : "낱개"}</span>
               {short && <span className="block text-[11px] text-pink">이걸론 모자라다냥</span>}
             </button>
           );
@@ -122,11 +201,28 @@ export function CoinShop({ need = 0, forReading = false, onCharged }: { need?: n
         </span>
       </label>
       {error && <p className="text-sm text-pink">{error}</p>}
-      <button onClick={charge} disabled={!agree || busy || pack.coins < need} className="btn-primary w-full py-4 text-base">
-        {busy ? "냥신이 엽전 세는 중…" : `${nyang(pack.coins)} 충전하기 · ${won(pack.price)}`}
+      <button onClick={charge} disabled={!agree || busy || pack.total < need} className="btn-primary w-full py-4 text-base">
+        {busy ? "냥신이 엽전 세는 중…" : `${nyang(pack.total)} 충전하기 · ${won(pack.price)}`}
       </button>
       <TestModeNote />
+      <CouponBox onDone={(b) => onCharged(b)} />
     </div>
+  );
+}
+
+/** "점괘 하나 1냥 / 궁합은 2냥", from the live costs. */
+function CostNote() {
+  const { pricing } = useLive();
+  const c = pricing.costs;
+  const others = Object.entries(c).filter(([m]) => m !== "couple").map(([, n]) => n);
+  const one = Math.min(...others);
+  return (
+    <p className="text-right text-[12px] leading-relaxed text-muted">
+      점괘 하나 {nyang(one)}
+      {Math.max(...others) !== one ? "부터" : ""}
+      <br />
+      궁합은 {nyang(c.couple)}
+    </p>
   );
 }
 
@@ -161,11 +257,7 @@ export function WalletSheet({ open, onClose }: { open: boolean; onClose: () => v
               <Coin /> {nyang(coins)}
             </p>
           </div>
-          <p className="text-right text-[12px] leading-relaxed text-muted">
-            점괘 하나 1냥
-            <br />
-            궁합은 2냥
-          </p>
+          <CostNote />
         </div>
         {done !== null && <p className="fade-up mt-3 text-center text-sm font-semibold text-peach">충전 완료! 이제 {nyang(done)} 있다냥 🐾</p>}
         <div className="mt-5">
