@@ -11,5 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...allIlju().map((c) => ({ url: `${SITE}/ilju/${encodeURIComponent(c.ganji)}`, changeFrequency: "monthly" as const, priority: 0.6 })),
     { url: `${SITE}/tti`, changeFrequency: "daily", priority: 0.8 },
     ...allTti().map((t) => ({ url: `${SITE}/tti/${encodeURIComponent(t.animal)}`, changeFrequency: "daily" as const, priority: 0.6 })),
+    { url: `${SITE}/terms`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE}/privacy`, changeFrequency: "yearly", priority: 0.2 },
   ];
 }
