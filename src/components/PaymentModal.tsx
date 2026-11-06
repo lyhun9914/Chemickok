@@ -41,9 +41,10 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked, onLo
   const [error, setError] = useState<string | null>(null);
   const social = useSocialLabel();
   useBack(open, onClose);
+  // every hook above the early return: the sheet's hooks must be the same whether it's open or not
+  const live = useLive();
 
   if (!open) return null;
-  const live = useLive();
   const product = liveProduct(live, input.mode);
   const cost = product.coins;
   const balance = me?.coins ?? 0;
