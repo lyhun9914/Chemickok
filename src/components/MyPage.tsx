@@ -259,10 +259,27 @@ export function MyPage() {
     setMe(null);
     reset();
   };
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const withdraw = async () => {
-    await accountApi.withdraw().catch(() => null);
+    setWithdrawError(null);
+    try {
+      await accountApi.withdraw();
+    } catch (e) {
+      setWithdrawError((e as Error).message || "탈퇴하지 못했다냥. 잠시 뒤 다시 해 줘라냥.");
+      return;
+    }
+    const via = PROVIDER_LABEL[me.provider];
+    try {
+      sessionStorage.setItem(
+        "nyang-notice",
+        `탈퇴가 끝났다냥. 점괘함과 냥이 모두 지워졌다냥 🐾${me.provider === "email" ? "" : ` 같은 ${via} 계정으로 다시 로그인하면 새 회원으로 가입된다냥.`}`,
+      );
+    } catch {
+      /* storage unavailable */
+    }
     setMe(null);
     reset();
+    window.location.href = "/";
   };
 
   return (
@@ -378,6 +395,12 @@ export function MyPage() {
                 </b>
               )}
             </p>
+            {me.provider !== "email" && (
+              <p className="mt-3 text-[12.5px] leading-relaxed text-muted">
+                같은 {PROVIDER_LABEL[me.provider] ?? me.provider} 계정으로 다시 로그인하면 새 회원으로 가입돼요. 가입 선물은 처음 가입할 때 한 번만 드려요.
+              </p>
+            )}
+            {withdrawError && <p className="mt-3 text-sm text-pink">{withdrawError}</p>}
             <button onClick={withdraw} className="mt-5 w-full rounded-2xl bg-pink/90 py-3.5 font-bold text-white">
               탈퇴하기
             </button>

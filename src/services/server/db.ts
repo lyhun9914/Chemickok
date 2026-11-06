@@ -177,6 +177,9 @@ export interface Db {
   getUser(id: string): Promise<DbUser | null>;
   updateProfile(id: string, profile: PersonInput): Promise<void>;
   deleteUser(id: string): Promise<void>;
+  /** 탈퇴 기록 (HMAC of provider:provider_id): kept a year so a re-join doesn't get the 가입 선물 again */
+  markWithdrawn(key: string): Promise<void>;
+  wasWithdrawn(key: string): Promise<boolean>;
   recordPayment(p: { orderId: string; userId: string | null; inputHash: string; amount: number; method: string; paymentKey?: string; coins?: number }): Promise<void>;
   saveReading(r: Omit<ReadingRow, "id" | "created_at">): Promise<string>;
   listReadings(userId: string): Promise<ReadingSummary[]>;
@@ -306,6 +309,19 @@ function supabase(url: string, key: string): Db {
     },
     async deleteUser(id) {
       await rest(`users?id=${eq(id)}`, { method: "DELETE" });
+    },
+    async markWithdrawn(key) {
+      await rest("withdrawn_accounts?on_conflict=key", {
+        method: "POST",
+        prefer: "resolution=merge-duplicates",
+        body: JSON.stringify({ key, withdrawn_at: new Date().toISOString() }),
+      });
+      await rest(`withdrawn_accounts?withdrawn_at=lt.${encodeURIComponent(new Date(Date.now() - 365 * 864e5).toISOString())}`, { method: "DELETE" }).catch(() => null);
+    },
+    async wasWithdrawn(key) {
+      const since = new Date(Date.now() - 365 * 864e5).toISOString();
+      const rows = await rest<unknown[]>(`withdrawn_accounts?key=${eq(key)}&withdrawn_at=gt.${encodeURIComponent(since)}&select=key`);
+      return rows.length > 0;
     },
     async recordPayment(p) {
       await rest("payments?on_conflict=order_id", {
@@ -508,12 +524,13 @@ function memory(): Db {
     runs: { id: string; visit_id: string | null; day: string; product: string; status: string | null; total_q: number; max_q: number; result_at: string | null; paysheet_at: string | null; paid_at: string | null }[];
     errors: (ErrorLog & { created_at: string })[];
     settings: Record<string, unknown>;
+    withdrawn: Map<string, number>;
     actions: AdminAction[];
     coupons: Coupon[];
     redemptions: { code: string; user_id: string; created_at: string }[];
   };
   const g = globalThis as unknown as { __nyangDb?: Mem };
-  const m: Mem = (g.__nyangDb ??= { users: [], readings: [], payments: [], wallets: new Map(), ledger: [], attendance: new Set(), gifts: [], pairs: [], visits: [], runs: [], errors: [], settings: {}, actions: [], coupons: [], redemptions: [] });
+  const m: Mem = (g.__nyangDb ??= { users: [], readings: [], payments: [], wallets: new Map(), ledger: [], attendance: new Set(), gifts: [], pairs: [], visits: [], runs: [], errors: [], settings: {}, withdrawn: new Map(), actions: [], coupons: [], redemptions: [] });
   const newUser = (u: { provider: string; providerId: string; nickname: string; email: string | null; passwordHash?: string }): DbUser => ({
     id: randomUUID(),
     provider: u.provider,
@@ -567,6 +584,12 @@ function memory(): Db {
     async updateProfile(id, profile) {
       const u = m.users.find((x) => x.id === id);
       if (u) u.profile = profile;
+    },
+    async markWithdrawn(key) {
+      m.withdrawn.set(key, Date.now());
+    },
+    async wasWithdrawn(key) {
+      return Date.now() - (m.withdrawn.get(key) ?? 0) < 365 * 864e5;
     },
     async deleteUser(id) {
       m.users = m.users.filter((x) => x.id !== id);

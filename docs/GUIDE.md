@@ -198,4 +198,5 @@
 - `supabase/migrations/0004_pair_status.sql`: 맞궁합 초대장에 관계 상태(썸·연애 중·권태기·이별 후)를 저장. 받은 사람이 같은 질문에 답합니다.
 - `supabase/migrations/0005_analytics_errors_refunds.sql`: 이용 흐름(visits · runs), 오류 기록(error_logs), 결제 환불 칸(토스 결제 키 · 환불 금액 · 회수한 냥), 환불을 뺀 매출 통계.
 - `supabase/migrations/0006_settings_coupons_audit.sql`: 가격·세일·공지 설정(app_settings), 결제별 들어간 냥(payments.coins), 관리 작업 기록(admin_actions), 쿠폰(coupons · coupon_redemptions · coupon_redeem), 하루 요약(admin_day).
+- `supabase/migrations/0007_withdrawn_accounts.sql`: 탈퇴한 소셜 계정을 되돌릴 수 없는 값으로 1년 기억해, 같은 계정으로 다시 가입하면 가입 선물을 또 주지 않습니다.
 - 모두 Supabase 프로젝트에 이미 적용했습니다. 새 프로젝트로 옮길 때는 0001부터 순서대로 SQL Editor에서 실행하세요.

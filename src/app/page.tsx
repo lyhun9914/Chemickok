@@ -69,6 +69,7 @@ export default function Home() {
     if (login && LOGIN_NOTICE[login]) setNotice(LOGIN_NOTICE[login] + (reason ? ` (원인: ${reason.slice(0, 40)})` : ""));
     const gift = Number(q.get("gift"));
     if (login === "ok" && gift > 0) setNotice(`🎁 가입 선물 ${gift}냥이 복주머니에 들어왔다냥!${q.get("invited") ? " (친구 초대 선물 포함)" : ""}`);
+    else if (login === "ok" && q.get("rejoin")) setNotice("다시 왔구냥! 새 회원으로 가입됐다냥. 탈퇴 전 기록은 남아 있지 않고, 가입 선물은 처음 한 번만 준다냥 🐾");
     else if (login === "ok" && q.get("new")) setNotice("어서 와라냥! 가입 완료다냥 🐾");
     else if (login === "ok" && q.get("via") === "reset") setNotice("비밀번호를 바꿨다냥. 로그인됐다냥 🔑");
     // Came through a friend's 초대 link: remembered until this visitor makes an account (read by the server then).

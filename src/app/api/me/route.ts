@@ -3,6 +3,7 @@ import { normalizeMbti } from "@/engine/mbti";
 import { normalizeBlood } from "@/lib/blood";
 import type { Gender, PersonInput } from "@/models/types";
 import { devLoginEnabled, getDb } from "@/services/server/db";
+import { withdrawnKey } from "@/services/server/gifts";
 import { enabledProviders } from "@/services/server/oauth";
 import { authConfigured, clearSession, sessionUserId } from "@/services/server/session";
 
@@ -56,6 +57,9 @@ export async function DELETE(req: NextRequest) {
   const db = getDb();
   const uid = sessionUserId(req);
   if (!db || !uid) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+  const user = await db.getUser(uid);
+  // remembered (as a one-way key) so coming back with the same social account doesn't bring the 가입 선물 again
+  if (user && user.provider !== "email") await db.markWithdrawn(withdrawnKey(user)).catch((e) => console.error("withdrawn mark failed", e));
   await db.deleteUser(uid);
   const res = NextResponse.json({ ok: true });
   clearSession(res);

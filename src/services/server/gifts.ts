@@ -1,18 +1,25 @@
 import "server-only";
+import { createHmac } from "node:crypto";
 import { INVITE_COINS, INVITE_LIMIT, WELCOME_COINS } from "@/lib/config";
 import type { Db, DbUser } from "./db";
 
 /** Set in the browser when someone arrives through a friend's link (?ref=code); read when their account is made. */
 export const REF_COOKIE = "nyang_ref";
 
+/** The 탈퇴 기록 key of a login account: not reversible without AUTH_SECRET. */
+export const withdrawnKey = (u: Pick<DbUser, "provider" | "provider_id">) =>
+  createHmac("sha256", process.env.AUTH_SECRET ?? "nyang").update(`${u.provider}:${u.provider_id}`).digest("hex");
+
 /**
  * A brand-new account: the welcome coins, and — if a friend's link brought them — the 친구 초대 coins for both.
  * Gifts go only to Kakao / Naver / Google accounts (one per real person, more or less); an email account is free to make
  * a thousand of. Returns what was given, for the welcome notice. Never throws: a gift must not block a login.
  */
-export async function giftNewUser(db: Db, user: DbUser, refCode: string | undefined): Promise<{ welcome: number; invited: number }> {
-  const given = { welcome: 0, invited: 0 };
+export async function giftNewUser(db: Db, user: DbUser, refCode: string | undefined): Promise<{ welcome: number; invited: number; rejoined?: boolean }> {
+  const given: { welcome: number; invited: number; rejoined?: boolean } = { welcome: 0, invited: 0 };
   try {
+    // The same Kakao/Naver/Google account, back within a year of 탈퇴: a new account, but no gifts a second time.
+    if (user.provider !== "email" && (await db.wasWithdrawn(withdrawnKey(user)))) return { ...given, rejoined: true };
     const referrer = refCode && /^[\w-]{4,16}$/.test(refCode) ? await db.userByRef(refCode) : null;
     if (referrer && referrer.id !== user.id) await db.setReferredBy(user.id, referrer.id);
     if (user.provider === "email") return given;
@@ -28,4 +35,5 @@ export async function giftNewUser(db: Db, user: DbUser, refCode: string | undefi
 }
 
 /** ?gift=… on the redirect home, so the page can say what landed in the 복주머니. */
-export const giftQuery = (g: { welcome: number; invited: number }) => (g.welcome + g.invited ? `&gift=${g.welcome + g.invited}${g.invited ? "&invited=1" : ""}` : "");
+export const giftQuery = (g: { welcome: number; invited: number; rejoined?: boolean }) =>
+  (g.welcome + g.invited ? `&gift=${g.welcome + g.invited}${g.invited ? "&invited=1" : ""}` : "") + (g.rejoined ? "&rejoin=1" : "");
