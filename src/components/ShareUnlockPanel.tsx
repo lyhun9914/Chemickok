@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { QuestionnaireInput, UnlockResponse } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
-import { isMobile, shareService, shareUrl } from "@/services/shareService";
+import { shareService, shareUrl } from "@/services/shareService";
 
 interface Props {
   input: QuestionnaireInput;
@@ -13,7 +13,7 @@ interface Props {
   toast: (m: string) => void;
 }
 
-type Step = "idle" | "choose" | "away" | "ready";
+type Step = "idle" | "away" | "ready";
 
 const MESSAGE = {
   title: "냥신 점괘 🕯️ 골목 끝 점집",
@@ -21,21 +21,21 @@ const MESSAGE = {
 };
 
 /**
- * "친구에게 냥신 점집 알려 주고 무료로 보기": first the sharing (카카오톡 · 다른 앱 · 링크 복사), and only after
- * coming back from it the button that opens the section. Nothing opens on the first tap.
+ * "친구에게 냥신 점집 알려 주고 무료로 보기": KakaoTalk only. First the KakaoTalk share, and only after coming back
+ * from it the button that opens the section. Nothing opens on the first tap.
  */
 export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Props) {
   const [step, setStep] = useState<Step>("idle");
-  const [kakao, setKakao] = useState(false);
-  const [canShare, setCanShare] = useState(false);
+  const [kakao, setKakao] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    setCanShare(Boolean(navigator.share) && isMobile());
+  const loadKakao = () =>
     shareService
       .prepareKakao()
       .then(() => setKakao(Boolean(window.Kakao?.isInitialized())))
       .catch(() => setKakao(false));
+  useEffect(() => {
+    loadKakao();
   }, []);
 
   // Back from the KakaoTalk picker (another app on phones, a popup on PC): the unlock button appears.
@@ -64,23 +64,6 @@ export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Prop
     shareService.shareKakao({ ...MESSAGE, url: shareUrl() });
     setStep("away");
   };
-  const viaApps = async () => {
-    const r = await shareService.shareLink({ ...MESSAGE, url: shareUrl() });
-    if (r === "shared") setStep("ready");
-    else if (r === "copied") {
-      toast("링크 복사했다냥! 친구한테 붙여 넣어 보내라냥 💌");
-      setStep("ready");
-    }
-  };
-  const viaCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(`${MESSAGE.description}\n${shareUrl()}`);
-      toast("링크 복사했다냥! 친구한테 붙여 넣어 보내라냥 💌");
-      setStep("ready");
-    } catch {
-      toast("복사가 안 됐다냥… 다른 방법으로 보내 보라냥");
-    }
-  };
   const open = async () => {
     setBusy(true);
     try {
@@ -99,31 +82,22 @@ export function ShareUnlockPanel({ input, unlockTitle, onUnlocked, toast }: Prop
         친구한테 냥신 점집을 공유하면 &lsquo;{unlockTitle}&rsquo; 하나는 공짜로 알려 주겠다냥.
       </p>
 
-      {step === "idle" && (
-        <button onClick={() => setStep("choose")} className={`mt-3 border border-peach/50 text-peach ${choice}`}>
-          친구에게 냥신 점집 알려 주기
-        </button>
-      )}
-
-      {(step === "choose" || step === "away") && (
-        <div className="mt-3 space-y-2">
-          <p className="text-[12.5px] text-ink">어디로 알려 줄 거냥?</p>
-          {kakao && (
-            <button onClick={viaKakao} className={`bg-[#FEE500] text-[#191600] ${choice}`}>
-              💬 카카오톡으로 보내기
+      {(step === "idle" || step === "away") &&
+        (kakao === false ? (
+          <div className="mt-3 space-y-2">
+            <p className="text-[12.5px] leading-relaxed text-muted">카카오톡을 불러오지 못했다냥. 카카오톡이 열리는 브라우저에서 다시 해 보라냥.</p>
+            <button onClick={loadKakao} className={`border border-line text-muted ${choice}`}>
+              다시 불러오기
             </button>
-          )}
-          {canShare && (
-            <button onClick={viaApps} className={`border border-line text-ink ${choice}`}>
-              📤 다른 앱으로 보내기 (인스타 DM · 문자 등)
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <button onClick={viaKakao} disabled={!kakao} className={`bg-[#FEE500] text-[#191600] disabled:opacity-60 ${choice}`}>
+              {kakao ? "💬 카카오톡으로 친구에게 알려 주기" : "카카오톡 준비 중…"}
             </button>
-          )}
-          <button onClick={viaCopy} className={`border border-line text-muted ${choice}`}>
-            🔗 링크 복사해서 보내기
-          </button>
-          {step === "away" && <p className="text-center text-[12px] text-muted">보내고 돌아오면 바로 열어 준다냥 🐾</p>}
-        </div>
-      )}
+            {step === "away" && <p className="text-center text-[12px] text-muted">카톡으로 보내고 돌아오면 바로 열어 준다냥 🐾</p>}
+          </div>
+        ))}
 
       {step === "ready" && (
         <div className="mt-3 space-y-2">

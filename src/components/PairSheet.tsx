@@ -111,8 +111,15 @@ export function PairInviteCard({ input }: { input: QuestionnaireInput }) {
   const [id, setId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const account = useAppStore((s) => s.me);
+  const startInterview = useAppStore((s) => s.startInterview);
   const me = input.me.name;
   const p = input.partner.name || "그 사람";
+  // A reading reopened from 내 점괘함 keeps only the names, not the 면담 answers a 신청서 is made of.
+  const hasAnswers = input.mode === "couple" && Boolean(input.me.birthdate) && Object.keys(input.self).length > 0 && Object.keys(input.partnerObs).length > 0;
+  const [needInterview, setNeedInterview] = useState(!hasAnswers);
+  const goInterview = () =>
+    enterThroughDoors(() => startInterview({ mode: "couple", me: account?.profile ?? null, partner: input.partner.name ? { name: input.partner.name } : undefined }));
   const create = async () => {
     setBusy(true);
     setError(null);
@@ -121,7 +128,9 @@ export function PairInviteCard({ input }: { input: QuestionnaireInput }) {
       remember(r.id);
       setId(r.id);
     } catch (e) {
-      setError((e as Error).message);
+      const m = (e as Error).message;
+      if (/면담/.test(m)) setNeedInterview(true);
+      else setError(m);
     }
     setBusy(false);
   };
@@ -141,6 +150,16 @@ export function PairInviteCard({ input }: { input: QuestionnaireInput }) {
           />
           <p className="text-center text-[12px] text-muted">{josa(p, "이/가")} 답하면 이 링크에서 결과가 열린다냥. 링크는 30일 동안 살아 있다냥.</p>
         </div>
+      ) : needInterview ? (
+        <>
+          <p className="mt-3 rounded-xl bg-black/25 px-3 py-2.5 text-[12.5px] leading-relaxed text-muted">
+            내 점괘함에서 다시 연 점괘에는 면담 답이 남아 있지 않다냥. 신청서는 네 답으로 만들어지니까, {josa(p, "과/와")} 궁합 면담을 한 번 더 해 줘라냥. (3분 · 무료)
+          </p>
+          <button onClick={goInterview} className="btn-primary mt-3 w-full py-3.5 text-[15px]">
+            💞 {josa(p, "과/와")} 궁합 면담하러 가기
+          </button>
+          <p className="mt-2 text-center text-[11.5px] leading-relaxed text-muted/80">면담이 끝나면 결과 화면에서 바로 신청서를 만들 수 있다냥.</p>
+        </>
       ) : (
         <>
           <button onClick={create} disabled={busy} className="btn-primary mt-4 w-full py-3.5 text-[15px]">
