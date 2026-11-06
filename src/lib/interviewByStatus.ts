@@ -156,11 +156,11 @@ export const CRUSH_ONLY: InterviewQuestion[] = [
     short: "{p:을/를} 떠올리면 번지는 색은?",
     ask: ["생각하지 말고 바로 골라라냥.", "{p:을/를} 떠올리면 마음에 번지는 색은?"],
     options: [
-      { id: "wood", label: "🌿 초록", react: "초록이구냥… 흥미롭다냥.", mood: "wow" },
-      { id: "fire", label: "🔥 빨강", react: "빨강! 뜨겁구냥 😻", mood: "wow" },
-      { id: "earth", label: "🌼 노랑", react: "노랑… 따뜻하구냥.", mood: "wow" },
+      { id: "wood", label: "💚 초록", react: "초록이구냥… 흥미롭다냥.", mood: "wow" },
+      { id: "fire", label: "❤️ 빨강", react: "빨강! 뜨겁구냥 😻", mood: "wow" },
+      { id: "earth", label: "💛 노랑", react: "노랑… 따뜻하구냥.", mood: "wow" },
       { id: "metal", label: "🤍 흰색", react: "흰색. 조심스럽구냥.", mood: "wow" },
-      { id: "water", label: "🌊 남색", react: "깊은 색이구냥…", mood: "wow" },
+      { id: "water", label: "💙 남색", react: "깊은 색이구냥…", mood: "wow" },
     ],
   },
   {
@@ -328,11 +328,11 @@ export const SLUMP_ONLY: InterviewQuestion[] = [
     short: "지금 둘 사이에 칠하고 싶은 색은?",
     ask: ["생각하지 말고 바로 골라라냥.", "지금 너랑 {p} 사이에 칠하고 싶은 색은?"],
     options: [
-      { id: "wood", label: "🌿 초록", react: "초록이구냥… 흥미롭다냥.", mood: "wow" },
-      { id: "fire", label: "🔥 빨강", react: "빨강! 다시 뜨거워지고 싶구냥.", mood: "wow" },
-      { id: "earth", label: "🌼 노랑", react: "노랑… 그렇구냥.", mood: "wow" },
+      { id: "wood", label: "💚 초록", react: "초록이구냥… 흥미롭다냥.", mood: "wow" },
+      { id: "fire", label: "❤️ 빨강", react: "빨강! 다시 뜨거워지고 싶구냥.", mood: "wow" },
+      { id: "earth", label: "💛 노랑", react: "노랑… 그렇구냥.", mood: "wow" },
       { id: "metal", label: "🤍 흰색", react: "흰색. 깨끗이 칠하고 싶구냥.", mood: "wow" },
-      { id: "water", label: "🌊 남색", react: "깊은 색이구냥…", mood: "wow" },
+      { id: "water", label: "💙 남색", react: "깊은 색이구냥…", mood: "wow" },
     ],
   },
   {
@@ -539,11 +539,11 @@ export const BREAKUP_ONLY: InterviewQuestion[] = [
     short: "{p:과/와}의 시간을 한 가지 색으로 남긴다면?",
     ask: ["생각하지 말고 바로 골라라냥.", "{p:과/와}의 시간을 한 가지 색으로 남긴다면?"],
     options: [
-      { id: "wood", label: "🌿 초록", react: "초록이구냥… 흥미롭다냥.", mood: "wow" },
-      { id: "fire", label: "🔥 빨강", react: "빨강… 뜨거웠구냥.", mood: "wow" },
-      { id: "earth", label: "🌼 노랑", react: "노랑… 따뜻했구냥.", mood: "wow" },
+      { id: "wood", label: "💚 초록", react: "초록이구냥… 흥미롭다냥.", mood: "wow" },
+      { id: "fire", label: "❤️ 빨강", react: "빨강… 뜨거웠구냥.", mood: "wow" },
+      { id: "earth", label: "💛 노랑", react: "노랑… 따뜻했구냥.", mood: "wow" },
       { id: "metal", label: "🤍 흰색", react: "흰색… 그렇구냥.", mood: "wow" },
-      { id: "water", label: "🌊 남색", react: "깊은 색이구냥…", mood: "wow" },
+      { id: "water", label: "💙 남색", react: "깊은 색이구냥…", mood: "wow" },
     ],
   },
   {

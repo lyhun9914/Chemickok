@@ -109,11 +109,11 @@ const BASE: InterviewQuestion[] = [
     short: "지금 눈앞에 떠오르는 색은?",
     ask: ["생각하지 말고 바로 골라라냥.", "지금 눈앞에 떠오르는 색은?"],
     options: [
-      { id: "wood", label: "🌿 초록", react: "초록이구냥… 흥미롭다냥.", mood: "wow" },
-      { id: "fire", label: "🔥 빨강", react: "빨강! 뜨겁구냥.", mood: "wow" },
-      { id: "earth", label: "🌼 노랑", react: "노랑… 그렇구냥.", mood: "wow" },
+      { id: "wood", label: "💚 초록", react: "초록이구냥… 흥미롭다냥.", mood: "wow" },
+      { id: "fire", label: "❤️ 빨강", react: "빨강! 뜨겁구냥.", mood: "wow" },
+      { id: "earth", label: "💛 노랑", react: "노랑… 그렇구냥.", mood: "wow" },
       { id: "metal", label: "🤍 흰색", react: "흰색. 깔끔하구냥.", mood: "wow" },
-      { id: "water", label: "🌊 남색", react: "깊은 색이구냥…", mood: "wow" },
+      { id: "water", label: "💙 남색", react: "깊은 색이구냥…", mood: "wow" },
     ],
   },
   {
