@@ -254,7 +254,7 @@ export default function AdminPage() {
           </button>
           <div className="flex shrink-0 items-center gap-2.5 whitespace-nowrap">
             <AdminInstall />
-            <a href="/" target="_blank" rel="noreferrer" className="text-[12.5px] text-muted underline">
+            <a href={process.env.NEXT_PUBLIC_SITE_URL || "/"} target="_blank" rel="noreferrer" className="text-[12.5px] text-muted underline">
               사이트 보기
             </a>
             <button onClick={logout} className="text-[12.5px] text-muted underline">
