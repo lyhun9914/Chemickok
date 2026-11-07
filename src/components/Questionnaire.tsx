@@ -17,6 +17,7 @@ import { DateTimeSelects } from "./DateTimeSelects";
 import { flareCandles } from "./Backdrop";
 import { SoundToggle } from "./SoundToggle";
 import { Nyang, type Mood } from "./Nyang";
+import { Overlay } from "./Overlay";
 
 // ───────────── Script ─────────────
 
@@ -837,20 +838,22 @@ export function Questionnaire() {
       </div>
 
       {leaving && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => setLeaving(false)}>
-          <div className="chip-pop w-full max-w-[480px] rounded-t-3xl border border-line bg-surface p-6 text-center" onClick={(e) => e.stopPropagation()}>
-            <p className="font-ritual text-[19px]">면담을 그만두겠냥?</p>
-            <p className="mt-2 text-sm text-muted">지금 나가면 여기까지 답한 게 사라진다냥.</p>
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <button onClick={() => setScreen("landing")} className="rounded-2xl border border-line py-3 text-sm text-muted">
-                그만 나갈래
-              </button>
-              <button onClick={() => setLeaving(false)} className="btn-primary py-3 text-sm">
-                계속할래
-              </button>
+        <Overlay>
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => setLeaving(false)}>
+            <div className="chip-pop w-full max-w-[480px] rounded-t-3xl border border-line bg-surface p-6 text-center" onClick={(e) => e.stopPropagation()}>
+              <p className="font-ritual text-[19px]">면담을 그만두겠냥?</p>
+              <p className="mt-2 text-sm text-muted">지금 나가면 여기까지 답한 게 사라진다냥.</p>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button onClick={() => setScreen("landing")} className="rounded-2xl border border-line py-3 text-sm text-muted">
+                  그만 나갈래
+                </button>
+                <button onClick={() => setLeaving(false)} className="btn-primary py-3 text-sm">
+                  계속할래
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Overlay>
       )}
 
       {/* Dock */}

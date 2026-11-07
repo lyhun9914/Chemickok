@@ -579,3 +579,16 @@ html,
     animation: none;
   }
 }
+
+/* 현판 cords: two short strings from the top edge of the sign up into the eaves */
+.hyeonpan::before,
+.hyeonpan::after {
+  content: "";
+  position: absolute;
+  top: -18px;
+  width: 2px;
+  height: 18px;
+  background: linear-gradient(#5a3a22, #8a6a36);
+}
+.hyeonpan::before { left: 18px; }
+.hyeonpan::after { right: 18px; }

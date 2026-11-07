@@ -44,41 +44,56 @@ function seamless(d: Float32Array, fade: number) {
   }
 }
 
-function noise(ctx: Ctx): Noise {
-  const have = NOISE.get(ctx);
-  if (have) return have;
+/**
+ * The noise beds, as jobs of one buffer channel each (brown / pink × left / right): run them all now, or one per idle
+ * moment so filling 8 s of noise never stalls a scroll (see lib/sound).
+ */
+function noiseJobs(ctx: Ctx): (() => void)[] {
+  if (NOISE.has(ctx)) return [];
   const sr = ctx.sampleRate;
   const len = sr * NOISE_SEC;
   const fade = Math.floor(sr * SEAM_SEC);
   const brown = ctx.createBuffer(2, len, sr);
   const pink = ctx.createBuffer(2, len, sr);
+  const jobs: (() => void)[] = [];
   for (let ch = 0; ch < 2; ch++) {
-    const b = brown.getChannelData(ch);
-    let last = 0;
-    for (let i = 0; i < len; i++) {
-      last = (last + 0.02 * (R() * 2 - 1)) / 1.02;
-      b[i] = last;
-    }
-    normalize(b);
-    seamless(b, fade);
-    const p = pink.getChannelData(ch);
-    let b0 = 0;
-    let b1 = 0;
-    let b2 = 0;
-    for (let i = 0; i < len; i++) {
-      const w = R() * 2 - 1;
-      b0 = 0.99765 * b0 + w * 0.099046;
-      b1 = 0.963 * b1 + w * 0.2965164;
-      b2 = 0.57 * b2 + w * 1.0526913;
-      p[i] = b0 + b1 + b2 + w * 0.1848;
-    }
-    normalize(p);
-    seamless(p, fade);
+    jobs.push(() => {
+      const b = brown.getChannelData(ch);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        last = (last + 0.02 * (R() * 2 - 1)) / 1.02;
+        b[i] = last;
+      }
+      normalize(b);
+      seamless(b, fade);
+    });
+    jobs.push(() => {
+      const p = pink.getChannelData(ch);
+      let b0 = 0;
+      let b1 = 0;
+      let b2 = 0;
+      for (let i = 0; i < len; i++) {
+        const w = R() * 2 - 1;
+        b0 = 0.99765 * b0 + w * 0.099046;
+        b1 = 0.963 * b1 + w * 0.2965164;
+        b2 = 0.57 * b2 + w * 1.0526913;
+        p[i] = b0 + b1 + b2 + w * 0.1848;
+      }
+      normalize(p);
+      seamless(p, fade);
+    });
   }
-  const n = { brown, pink, loopEnd: NOISE_SEC - SEAM_SEC };
-  NOISE.set(ctx, n);
-  return n;
+  jobs.push(() => void NOISE.set(ctx, { brown, pink, loopEnd: NOISE_SEC - SEAM_SEC }));
+  return jobs;
 }
+
+function noise(ctx: Ctx): Noise {
+  if (!NOISE.has(ctx)) for (const job of noiseJobs(ctx)) job();
+  return NOISE.get(ctx)!;
+}
+
+/** The noise beds as one-channel jobs, to compute ahead of time (the heaviest step of starting the sound). */
+export const warmNoiseJobs = noiseJobs;
 
 function noiseSrc(ctx: Ctx, kind: "brown" | "pink", t: number, end: number) {
   const n = noise(ctx);
@@ -93,13 +108,17 @@ function noiseSrc(ctx: Ctx, kind: "brown" | "pink", t: number, end: number) {
 
 // ───────────── space ─────────────
 
-/** A generated impulse response: a short pre-delay, a few early reflections, then a tail that darkens as it fades. */
-export function makeReverb(ctx: Ctx, seconds: number, bright: number): ConvolverNode {
+/**
+ * A generated impulse response: a short pre-delay, a few early reflections, then a tail that darkens as it fades.
+ * With `later`, the channels are filled by jobs pushed there (the convolver gets its buffer in the last one).
+ */
+export function makeReverb(ctx: Ctx, seconds: number, bright: number, later?: (() => void)[]): ConvolverNode {
   const sr = ctx.sampleRate;
   const len = Math.floor(sr * seconds);
   const pre = Math.floor(sr * 0.014);
   const ir = ctx.createBuffer(2, len, sr);
-  for (let ch = 0; ch < 2; ch++) {
+  const c = ctx.createConvolver();
+  const fill = (ch: number) => {
     const d = ir.getChannelData(ch);
     let lp = 0;
     for (let i = pre; i < len; i++) {
@@ -109,9 +128,15 @@ export function makeReverb(ctx: Ctx, seconds: number, bright: number): Convolver
       d[i] = lp * Math.exp(-6.9 * x);
     }
     for (let k = 0; k < 6; k++) d[pre + Math.floor(sr * rr(0.004, 0.045))] += rr(-0.5, 0.5);
+  };
+  // A convolver copies its buffer when given it: hand it over once both channels are filled.
+  const done = () => void (c.buffer = ir);
+  if (later) later.push(() => fill(0), () => fill(1), done);
+  else {
+    fill(0);
+    fill(1);
+    done();
   }
-  const c = ctx.createConvolver();
-  c.buffer = ir;
   return c;
 }
 
@@ -126,9 +151,9 @@ export interface Bus {
 
 /**
  * The shared mix: master → gentle compressor → destination, with the two reverbs returning into master.
- * `level` is the master volume.
+ * `level` is the master volume; `later` collects the reverb-filling jobs instead of running them now.
  */
-export function createMix(ctx: Ctx, dest: AudioNode, level: number) {
+export function createMix(ctx: Ctx, dest: AudioNode, level: number, later?: (() => void)[]) {
   const master = ctx.createGain();
   master.gain.value = level;
   const comp = ctx.createDynamicsCompressor();
@@ -138,8 +163,8 @@ export function createMix(ctx: Ctx, dest: AudioNode, level: number) {
   comp.attack.value = 0.008;
   comp.release.value = 0.3;
   master.connect(comp).connect(dest);
-  const hall = makeReverb(ctx, 3.4, 0.45);
-  const room = makeReverb(ctx, 1.25, 0.6);
+  const hall = makeReverb(ctx, 3.4, 0.45, later);
+  const room = makeReverb(ctx, 1.25, 0.6, later);
   const hallRet = ctx.createGain();
   hallRet.gain.value = 0.9;
   const roomRet = ctx.createGain();

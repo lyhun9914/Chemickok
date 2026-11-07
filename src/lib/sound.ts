@@ -1,6 +1,6 @@
 "use client";
 
-import { type Bus, type Element, type Scene, type Sfx, createMix, playSfx, sceneElements } from "./soundKit";
+import { type Bus, type Element, type Scene, type Sfx, createMix, playSfx, sceneElements, warmNoiseJobs } from "./soundKit";
 
 /**
  * 점집 소리, live. The sounds themselves live in soundKit (also used for offline listening tests); this file runs them:
@@ -115,6 +115,8 @@ class SoundEngine {
   private sfx!: Bus;
   private scene: Scene = "gate";
   private layer: Layer | null = null;
+  /** the mix is built (reverbs, noise beds): until then nothing plays */
+  private built = false;
   enabled = true;
 
   constructor() {
@@ -149,19 +151,32 @@ class SoundEngine {
     }
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
+    // Only the context is made inside the touch (browsers want that). Filling the mix's buffers took ~0.1 s in one go,
+    // and the first touch on a page is usually the start of a scroll: on phones that froze the scroll as it began.
     const ctx = new Ctx();
     this.ctx = ctx;
-    const mix = createMix(ctx, ctx.destination, 0);
+    ctx.resume().catch(() => {});
+    // The nodes are cheap; the buffers they play (two reverbs, 8 s of noise) are filled one channel per idle moment.
+    const jobs: (() => void)[] = [];
+    const mix = createMix(ctx, ctx.destination, 0, jobs);
     this.master = mix.master;
     this.hall = mix.hall;
     this.room = mix.room;
     const sfxGain = ctx.createGain();
     sfxGain.connect(this.master);
     this.sfx = { ctx, dry: sfxGain, hall: this.hall, room: this.room };
-    this.master.gain.setValueAtTime(0, ctx.currentTime);
-    this.master.gain.linearRampToValueAtTime(LEVEL, ctx.currentTime + 1.5);
-    this.startLayer();
-    window.setInterval(() => this.ctx?.state === "running" && this.layer?.plan(), TICK_MS);
+    jobs.push(...warmNoiseJobs(ctx), () => {
+      this.built = true;
+      this.master.gain.setValueAtTime(0, ctx.currentTime);
+      this.master.gain.linearRampToValueAtTime(this.enabled ? LEVEL : 0, ctx.currentTime + 1.5);
+      this.startLayer();
+      window.setInterval(() => this.ctx?.state === "running" && this.layer?.plan(), TICK_MS);
+    });
+    const next = () => {
+      jobs.shift()?.();
+      if (jobs.length) idle(next);
+    };
+    idle(next);
   }
 
   /** On/off, remembered on this device. */
@@ -174,12 +189,12 @@ class SoundEngine {
     }
     if (this.enabled) {
       if (!this.ctx) this.unlock();
-      else {
+      else if (this.built) {
         this.ctx.resume().catch(() => {});
         this.master.gain.setTargetAtTime(LEVEL, this.ctx.currentTime, 0.3);
       }
       this.play("pung");
-    } else if (this.ctx) {
+    } else if (this.ctx && this.built) {
       const ctx = this.ctx;
       this.master.gain.setTargetAtTime(0, ctx.currentTime, 0.15);
       // Fully asleep once faded, so a muted page costs no battery.
@@ -192,7 +207,7 @@ class SoundEngine {
     if (scene === this.scene && this.layer) return;
     const from = this.scene;
     this.scene = scene;
-    if (!this.ctx) return;
+    if (!this.built) return;
     this.startLayer();
     // The reading has been drawn: mark the moment it lands.
     if (from === "loading" && scene === "result") this.play("reveal");
@@ -215,7 +230,7 @@ class SoundEngine {
   }
 
   private ready() {
-    if (!this.ctx || !this.enabled || document.hidden) return false;
+    if (!this.ctx || !this.built || !this.enabled || document.hidden) return false;
     // Safari may still be waking the context from the first tap; sounds scheduled now play as soon as it does.
     if (this.ctx.state !== "running") this.ctx.resume().catch(() => {});
     return true;
@@ -233,6 +248,12 @@ class SoundEngine {
     return () => window.removeEventListener(EVENT, fn);
   }
 }
+
+/** Runs `f` when the page is idle (a scroll or a tap in progress comes first). */
+const idle = (f: () => void) => {
+  if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(() => f(), { timeout: 1200 });
+  else setTimeout(f, 120); // Safari
+};
 
 let engine: SoundEngine | null = null;
 /** The one sound engine (client only). */

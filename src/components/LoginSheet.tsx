@@ -8,6 +8,7 @@ import { accountApi, type LoginProvider } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
 import { useSocialLabel } from "./CoinShop";
 import { Nyang } from "./Nyang";
+import { Overlay } from "./Overlay";
 
 const LAST_KEY = "nyang-last-login";
 
@@ -183,62 +184,64 @@ export function LoginSheet({ open, onClose, forPay, onGuest }: { open: boolean; 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="fade-up max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-surface p-6 pb-8"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label="로그인"
-      >
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
-        <div className="flex items-center gap-3">
-          <Nyang mood="smug" size={52} />
-          <div>
-            <p className="text-[17px] font-bold">{forPay ? "점괘를 보관하려면 3초 로그인" : "냥신 점집 로그인"}</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted">
-              {forPay ? "결제한 점괘는 내 점괘함에 보관된다냥. 다음엔 생년월일도 안 물어본다냥." : "기본 정보를 기억해 두고, 산 점괘는 언제든 다시 볼 수 있다냥."}
-            </p>
-            {WELCOME_COINS > 0 && providers.some((p) => p !== "email") && (
-              <p className="mt-1.5 inline-block rounded-full bg-peach/15 px-2.5 py-0.5 text-[12px] font-bold text-peach">🎁 처음 가입하면 복채 {nyang(WELCOME_COINS)} 선물</p>
-            )}
+    <Overlay>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+        <div
+          className="fade-up max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-surface p-6 pb-8"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label="로그인"
+        >
+          <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
+          <div className="flex items-center gap-3">
+            <Nyang mood="smug" size={52} />
+            <div>
+              <p className="text-[17px] font-bold">{forPay ? "점괘를 보관하려면 3초 로그인" : "냥신 점집 로그인"}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted">
+                {forPay ? "결제한 점괘는 내 점괘함에 보관된다냥. 다음엔 생년월일도 안 물어본다냥." : "기본 정보를 기억해 두고, 산 점괘는 언제든 다시 볼 수 있다냥."}
+              </p>
+              {WELCOME_COINS > 0 && providers.some((p) => p !== "email") && (
+                <p className="mt-1.5 inline-block rounded-full bg-peach/15 px-2.5 py-0.5 text-[12px] font-bold text-peach">🎁 처음 가입하면 복채 {nyang(WELCOME_COINS)} 선물</p>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="mt-6 space-y-2.5">
-          {providers
-            .filter((p) => !(p === "google" && webview))
-            .map((p) => (
-              <div key={p} className="relative">
-                {last === p && (
-                  <span className="absolute -top-2.5 left-4 z-10 rounded-full bg-ink px-2.5 py-0.5 text-[12px] font-semibold text-bg">최근에 이 방식으로 로그인했어요</span>
-                )}
-                <button
-                  onClick={() => (p === "email" ? setEmailOpen((v) => !v) : go(p))}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-[15px] font-bold active:scale-[0.98] ${BUTTONS[p].cls}`}
-                >
-                  <span className="flex w-6 justify-center">{BUTTONS[p].icon}</span>
-                  <span className="flex-1 text-left">{BUTTONS[p].label}</span>
-                  <span aria-hidden>{p === "email" ? (emailOpen ? "▴" : "▾") : "→"}</span>
-                </button>
-                {p === "email" && emailOpen && <EmailForm forPay={forPay} />}
-              </div>
-            ))}
-        </div>
-        {webview && providers.includes("google") && (
-          <p className="mt-3 text-center text-[12px] leading-relaxed text-muted">
-            카톡·인스타 안에서는 구글 로그인이 막혀 있다냥. 구글로 하려면 오른쪽 위 메뉴에서 <b className="text-ink">다른 브라우저로 열기</b>를 눌러 줘라냥.
-          </p>
-        )}
+          <div className="mt-6 space-y-2.5">
+            {providers
+              .filter((p) => !(p === "google" && webview))
+              .map((p) => (
+                <div key={p} className="relative">
+                  {last === p && (
+                    <span className="absolute -top-2.5 left-4 z-10 rounded-full bg-ink px-2.5 py-0.5 text-[12px] font-semibold text-bg">최근에 이 방식으로 로그인했어요</span>
+                  )}
+                  <button
+                    onClick={() => (p === "email" ? setEmailOpen((v) => !v) : go(p))}
+                    className={`flex w-full items-center gap-3 rounded-2xl px-5 py-4 text-[15px] font-bold active:scale-[0.98] ${BUTTONS[p].cls}`}
+                  >
+                    <span className="flex w-6 justify-center">{BUTTONS[p].icon}</span>
+                    <span className="flex-1 text-left">{BUTTONS[p].label}</span>
+                    <span aria-hidden>{p === "email" ? (emailOpen ? "▴" : "▾") : "→"}</span>
+                  </button>
+                  {p === "email" && emailOpen && <EmailForm forPay={forPay} />}
+                </div>
+              ))}
+          </div>
+          {webview && providers.includes("google") && (
+            <p className="mt-3 text-center text-[12px] leading-relaxed text-muted">
+              카톡·인스타 안에서는 구글 로그인이 막혀 있다냥. 구글로 하려면 오른쪽 위 메뉴에서 <b className="text-ink">다른 브라우저로 열기</b>를 눌러 줘라냥.
+            </p>
+          )}
 
-        {forPay && onGuest && (
-          <button onClick={onGuest} className="mt-4 w-full py-2 text-center text-xs text-muted underline underline-offset-2">
-            로그인 없이 이 점괘만 바로 결제할래 (보관되지 않아요)
-          </button>
-        )}
-        <p className="mt-4 text-center text-[12px] leading-relaxed text-muted/80">로그인하면 이용약관과 개인정보처리방침에 동의하는 것으로 봅니다.</p>
+          {forPay && onGuest && (
+            <button onClick={onGuest} className="mt-4 w-full py-2 text-center text-xs text-muted underline underline-offset-2">
+              로그인 없이 이 점괘만 바로 결제할래 (보관되지 않아요)
+            </button>
+          )}
+          <p className="mt-4 text-center text-[12px] leading-relaxed text-muted/80">로그인하면 이용약관과 개인정보처리방침에 동의하는 것으로 봅니다.</p>
+        </div>
       </div>
-    </div>
+    </Overlay>
   );
 }
 
@@ -263,28 +266,30 @@ export function ResetPasswordSheet({ token, onClose }: { token: string; onClose:
     setBusy(false);
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-label="비밀번호 재설정"
-        className="fade-up w-full max-w-[480px] space-y-3 rounded-t-3xl bg-surface p-6 pb-8"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (strong && password === password2 && !busy) submit();
-        }}
-      >
-        <p className="text-lg font-bold">🔑 새 비밀번호 정하기</p>
-        <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="새 비밀번호 (영문+숫자 8자 이상)" className={fieldCls} />
-        <input type="password" autoComplete="new-password" value={password2} onChange={(e) => setPassword2(e.target.value)} placeholder="한 번 더" className={fieldCls} />
-        {password && !strong && <p className="text-[12px] text-pink">영문과 숫자를 섞어 8자 이상으로 해 줘라냥.</p>}
-        {password2 && password !== password2 && <p className="text-[12px] text-pink">비밀번호가 서로 다르다냥.</p>}
-        {error && <p className="text-sm text-pink">{error}</p>}
-        <button type="submit" disabled={!strong || password !== password2 || busy} className="btn-primary w-full py-3.5">
-          {busy ? "바꾸는 중…" : "비밀번호 바꾸고 로그인"}
-        </button>
-      </form>
-    </div>
+    <Overlay>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+        <form
+          role="dialog"
+          aria-modal="true"
+          aria-label="비밀번호 재설정"
+          className="fade-up w-full max-w-[480px] space-y-3 rounded-t-3xl bg-surface p-6 pb-8"
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (strong && password === password2 && !busy) submit();
+          }}
+        >
+          <p className="text-lg font-bold">🔑 새 비밀번호 정하기</p>
+          <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="새 비밀번호 (영문+숫자 8자 이상)" className={fieldCls} />
+          <input type="password" autoComplete="new-password" value={password2} onChange={(e) => setPassword2(e.target.value)} placeholder="한 번 더" className={fieldCls} />
+          {password && !strong && <p className="text-[12px] text-pink">영문과 숫자를 섞어 8자 이상으로 해 줘라냥.</p>}
+          {password2 && password !== password2 && <p className="text-[12px] text-pink">비밀번호가 서로 다르다냥.</p>}
+          {error && <p className="text-sm text-pink">{error}</p>}
+          <button type="submit" disabled={!strong || password !== password2 || busy} className="btn-primary w-full py-3.5">
+            {busy ? "바꾸는 중…" : "비밀번호 바꾸고 로그인"}
+          </button>
+        </form>
+      </div>
+    </Overlay>
   );
 }

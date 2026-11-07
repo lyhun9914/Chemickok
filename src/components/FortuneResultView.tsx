@@ -17,6 +17,7 @@ import { ShareButtons } from "./ShareButtons";
 import { ShareUnlockPanel } from "./ShareUnlockPanel";
 import { useToast } from "./Toast";
 import { Coin } from "./Coin";
+import { Overlay } from "./Overlay";
 
 const TYPING_MS = 750;
 
@@ -322,23 +323,25 @@ export function FortuneResultView() {
             🔄 처음으로
           </button>
           {leaveAsked && level !== "full" && (
-            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setLeaveAsked(false)}>
-              <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
-                <Say mood="wow">{P(LEAVE_LINE[mode])}</Say>
-                <button
-                  onClick={() => {
-                    setLeaveAsked(false);
-                    setPayIntent(true);
-                  }}
-                  className="btn-primary mt-5 w-full py-4"
-                >
-                  {PAY_LABEL[mode]} · <Coin /> {nyang(cost)}
-                </button>
-                <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
-                  다음에 볼게요
-                </button>
+            <Overlay>
+              <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setLeaveAsked(false)}>
+                <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
+                  <Say mood="wow">{P(LEAVE_LINE[mode])}</Say>
+                  <button
+                    onClick={() => {
+                      setLeaveAsked(false);
+                      setPayIntent(true);
+                    }}
+                    className="btn-primary mt-5 w-full py-4"
+                  >
+                    {PAY_LABEL[mode]} · <Coin /> {nyang(cost)}
+                  </button>
+                  <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
+                    다음에 볼게요
+                  </button>
+                </div>
               </div>
-            </div>
+            </Overlay>
           )}
         </>
       )}

@@ -35,6 +35,7 @@ import { ShareButtons } from "./ShareButtons";
 import { ShareUnlockPanel } from "./ShareUnlockPanel";
 import { useToast } from "./Toast";
 import { Coin } from "./Coin";
+import { Overlay } from "./Overlay";
 
 interface Beat {
   say: string;
@@ -499,27 +500,29 @@ export function ResultView() {
             🔄 다른 사람 점괘도 보기
           </button>
           {leaveAsked && level !== "full" && (
-            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setLeaveAsked(false)}>
-              <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
-                <Say mood="wow">
-                  {teaser.solo
-                    ? "잠깐냥! 제일 중요한 얘기는 아직 안 했다냥. 이번 달 인연 오는 날짜, 그냥 두고 갈 거냥?"
-                    : `잠깐냥! ${josa(p, "이/가")} 끝내 말 못 한 속마음, 아직 안 봤다냥. 그래도 갈 거냥?`}
-                </Say>
-                <button
-                  onClick={() => {
-                    setLeaveAsked(false);
-                    setPayIntent(true);
-                  }}
-                  className="btn-primary mt-5 w-full py-4"
-                >
-                  {payLabel} · <Coin /> {nyang(cost)}
-                </button>
-                <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
-                  다음에 볼게요
-                </button>
+            <Overlay>
+              <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setLeaveAsked(false)}>
+                <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
+                  <Say mood="wow">
+                    {teaser.solo
+                      ? "잠깐냥! 제일 중요한 얘기는 아직 안 했다냥. 이번 달 인연 오는 날짜, 그냥 두고 갈 거냥?"
+                      : `잠깐냥! ${josa(p, "이/가")} 끝내 말 못 한 속마음, 아직 안 봤다냥. 그래도 갈 거냥?`}
+                  </Say>
+                  <button
+                    onClick={() => {
+                      setLeaveAsked(false);
+                      setPayIntent(true);
+                    }}
+                    className="btn-primary mt-5 w-full py-4"
+                  >
+                    {payLabel} · <Coin /> {nyang(cost)}
+                  </button>
+                  <button onClick={reset} className="mt-2 w-full py-3 text-sm text-muted">
+                    다음에 볼게요
+                  </button>
+                </div>
               </div>
-            </div>
+            </Overlay>
           )}
         </>
       )}

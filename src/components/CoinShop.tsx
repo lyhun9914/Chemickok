@@ -10,6 +10,7 @@ import type { PaymentMethod } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
 import { useAppStore } from "@/store/useAppStore";
 import { Coin } from "./Coin";
+import { Overlay } from "./Overlay";
 
 const METHODS: { id: PaymentMethod; label: string; on: string }[] = [
   { id: "tosspay", label: "토스페이", on: "border-[#3182f6] bg-[#3182f6]/15 text-[#7fb2ff]" },
@@ -237,34 +238,36 @@ export function WalletSheet({ open, onClose }: { open: boolean; onClose: () => v
   useBack(open, onClose);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="내 복주머니"
-        className="fade-up max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-surface p-6 pb-8"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold">👛 내 복주머니</h2>
-          <button onClick={onClose} className="rounded-full px-3 py-1 text-muted hover:bg-white/5" aria-label="닫기">
-            ✕
-          </button>
-        </div>
-        <div className="flex items-end justify-between rounded-2xl border border-violet/35 bg-gradient-to-b from-[#24130d] to-[#120a07] p-4">
-          <div>
-            <p className="text-[12px] text-muted">지금 들어 있는 냥</p>
-            <p className="mt-1 text-[30px] font-extrabold leading-none text-peach">
-              <Coin /> {nyang(coins)}
-            </p>
+    <Overlay>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="내 복주머니"
+          className="fade-up max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl bg-surface p-6 pb-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold">👛 내 복주머니</h2>
+            <button onClick={onClose} className="rounded-full px-3 py-1 text-muted hover:bg-white/5" aria-label="닫기">
+              ✕
+            </button>
           </div>
-          <CostNote />
-        </div>
-        {done !== null && <p className="fade-up mt-3 text-center text-sm font-semibold text-peach">충전 완료! 이제 {nyang(done)} 있다냥 🐾</p>}
-        <div className="mt-5">
-          <CoinShop onCharged={setDone} />
+          <div className="flex items-end justify-between rounded-2xl border border-violet/35 bg-gradient-to-b from-[#24130d] to-[#120a07] p-4">
+            <div>
+              <p className="text-[12px] text-muted">지금 들어 있는 냥</p>
+              <p className="mt-1 text-[30px] font-extrabold leading-none text-peach">
+                <Coin /> {nyang(coins)}
+              </p>
+            </div>
+            <CostNote />
+          </div>
+          {done !== null && <p className="fade-up mt-3 text-center text-sm font-semibold text-peach">충전 완료! 이제 {nyang(done)} 있다냥 🐾</p>}
+          <div className="mt-5">
+            <CoinShop onCharged={setDone} />
+          </div>
         </div>
       </div>
-    </div>
+    </Overlay>
   );
 }

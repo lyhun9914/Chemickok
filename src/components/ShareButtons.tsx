@@ -9,6 +9,7 @@ import { isFortuneCard, type ShareableCard } from "@/models/types";
 import { gameUrl, isMobile, shareRef, shareService, shareUrl, siteUrl, type ShareOutcome } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { ShareCard } from "./ShareCard";
+import { Overlay } from "./Overlay";
 
 const OUTCOME_MSG: Partial<Record<ShareOutcome, string>> = {
   copied: "링크를 복사했다냥! 붙여넣어서 보내라냥 📋",
@@ -169,30 +170,32 @@ export function ShareButtons({
       </div>
 
       {cover && (
-        <button
-          onClick={() => {
-            onInsta();
-            setCover(false);
-          }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/85 px-8 text-center"
-          aria-label="인스타 스토리에 점괘 걸기"
-        >
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview} alt="스토리에 올라갈 점괘" className="max-h-[58dvh] w-auto rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)]" />
-          ) : (
-            <span className="font-ritual text-lg text-muted">점괘 카드 그리는 중…</span>
-          )}
-          <span className="share-plaque share-insta glow w-full max-w-[320px] py-4">
-            <span className="share-icon bg-gradient-to-tr from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">📸</span>
-            톡 치면 인스타 스토리로
-          </span>
-          <span className="text-xs leading-relaxed text-muted">
-            화면 아무 데나 한 번 누르면 공유 창이 뜬다냥.
-            <br />
-            거기서 <b className="text-ink">Instagram → 스토리</b>를 고르면 끝이다냥.
-          </span>
-        </button>
+        <Overlay>
+          <button
+            onClick={() => {
+              onInsta();
+              setCover(false);
+            }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/85 px-8 text-center"
+            aria-label="인스타 스토리에 점괘 걸기"
+          >
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="스토리에 올라갈 점괘" className="max-h-[58dvh] w-auto rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.8)]" />
+            ) : (
+              <span className="font-ritual text-lg text-muted">점괘 카드 그리는 중…</span>
+            )}
+            <span className="share-plaque share-insta glow w-full max-w-[320px] py-4">
+              <span className="share-icon bg-gradient-to-tr from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white">📸</span>
+              톡 치면 인스타 스토리로
+            </span>
+            <span className="text-xs leading-relaxed text-muted">
+              화면 아무 데나 한 번 누르면 공유 창이 뜬다냥.
+              <br />
+              거기서 <b className="text-ink">Instagram → 스토리</b>를 고르면 끝이다냥.
+            </span>
+          </button>
+        </Overlay>
       )}
       {qr && (
         <Sheet onClose={() => setQr(null)}>
@@ -252,13 +255,15 @@ const isMobileSafe = () => typeof navigator !== "undefined" && isMobile();
 
 function Sheet({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center" onClick={onClose}>
-      <div className="chip-pop w-full max-w-[480px] rounded-t-3xl border border-line bg-surface p-6 text-center sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
-        {children}
-        <button onClick={onClose} className="mt-4 w-full text-sm text-muted">
-          닫기
-        </button>
+    <Overlay>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center" onClick={onClose}>
+        <div className="chip-pop w-full max-w-[480px] rounded-t-3xl border border-line bg-surface p-6 text-center sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+          {children}
+          <button onClick={onClose} className="mt-4 w-full text-sm text-muted">
+            닫기
+          </button>
+        </div>
       </div>
-    </div>
+    </Overlay>
   );
 }

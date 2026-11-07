@@ -81,38 +81,43 @@ export function Landing() {
   return (
     <main className="enter-dark relative flex flex-1 flex-col px-5 pt-4">
       <NoticeBanner />
-      <Talisman className="absolute left-4 top-0" />
-      <Talisman className="absolute right-6 top-24 opacity-70 [animation-delay:-2s]" />
-      <div className="relative z-10 flex items-center justify-end gap-2">
+      {/* clear of the top bar and the 현판: one by the corner, one down by 냥신 */}
+      <Talisman className="absolute left-3 top-14" />
+      <Talisman className="absolute right-4 top-40 opacity-70 [animation-delay:-2s]" />
+      <div className="relative z-10 flex h-9 items-center justify-end gap-2">
         <InstallHelp />
         <SoundToggle />
         {providers.length > 0 &&
           (me ? (
             <>
-              <button onClick={() => setWalletOpen(true)} className="rounded-full border border-peach/40 bg-surface px-3 py-1.5 text-xs font-bold text-peach" aria-label="내 복주머니">
+              <button onClick={() => setWalletOpen(true)} className="flex h-9 items-center gap-1 rounded-full border border-peach/40 bg-surface/90 px-3 text-[13px] font-bold text-peach" aria-label="내 복주머니">
                 <Coin /> {nyang(me.coins)}
               </button>
-              <button onClick={() => setScreen("my")} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold">
+              <button onClick={() => setScreen("my")} className="h-9 rounded-full border border-line bg-surface/90 px-3.5 text-[13px] font-semibold">
                 📜 내 점괘함
               </button>
             </>
           ) : (
-            <button onClick={() => setLoginOpen(true)} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted">
+            <button onClick={() => setLoginOpen(true)} className="h-9 rounded-full border border-line bg-surface/90 px-4 text-[13px] font-semibold text-ink/80">
               로그인
             </button>
           ))}
       </div>
       <div className="fade-up text-center">
-        <span className="font-ritual inline-block rounded-sm border border-violet/40 bg-[#1a0d0a] px-3 py-1 text-[13px] tracking-[0.2em] text-violet">
-          神 골목 끝 점집 · 냥신 점괘 神
-        </span>
-        <div className="float mx-auto mt-6 w-fit">
-          <Nyang mood="smug" size={150} />
+        {/* 현판: hung from two cords under the eaves, the shop's name big enough to read on a phone */}
+        <div className="hyeonpan relative mx-auto mt-7 w-fit rounded-md border-2 border-[#8a6a36] bg-gradient-to-b from-[#2e1b10] to-[#170d08] px-6 pb-2.5 pt-2 shadow-[inset_0_0_0_3px_#170d08,inset_0_0_0_4px_rgba(201,162,90,0.45),0_10px_24px_-10px_rgba(0,0,0,0.9)]">
+          <p className="text-[12px] tracking-[0.5em] text-violet">골목 끝 점집</p>
+          <p className="font-ritual mt-0.5 text-[25px] leading-tight tracking-[0.14em] text-peach">
+            <span className="text-[17px] text-violet">神</span> 냥신 점괘 <span className="text-[17px] text-violet">神</span>
+          </p>
+        </div>
+        <div className="float mx-auto mt-3 w-fit">
+          <Nyang mood="smug" size={132} />
         </div>
         <div className="relative mx-auto mt-2 w-fit max-w-[300px] rounded-2xl hanji px-4 py-3 text-[15px] font-medium text-[#2b1d16]">
           …들어왔으면 문부터 닫아라냥. 촛불 꺼진다냥. 네가 올 줄은 알고 있었다냥.
         </div>
-        <h1 className="mt-6 text-[27px] font-extrabold leading-tight tracking-tight">
+        <h1 className="mt-5 text-[23px] font-extrabold leading-tight tracking-tight min-[360px]:text-[27px]">
           네 인연, 네 팔자, 네 앞날까지
           <br />
           <span className="text-gradient">냥신은 이미 보고 있다냥</span>

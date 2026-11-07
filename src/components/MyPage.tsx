@@ -14,6 +14,7 @@ import { GiftSendSheet } from "./GiftSheet";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { Nyang } from "./Nyang";
 import { Coin } from "./Coin";
+import { Overlay } from "./Overlay";
 
 const fieldCls = "w-full rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-[15px] text-ink outline-none focus:border-pink/60";
 const PROVIDER_LABEL: Record<string, string> = { kakao: "카카오", naver: "네이버", google: "구글", email: "이메일", dev: "테스트" };
@@ -384,31 +385,33 @@ export function MyPage() {
       </section>
 
       {confirmLeave && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setConfirmLeave(false)}>
-          <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
-            <p className="text-lg font-bold">정말 탈퇴할 거냥?</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted">
-              기본 정보와 점괘함의 점괘, 복주머니가 모두 바로 삭제되고 되돌릴 수 없어요. 결제 기록은 전자상거래법에 따라 5년간 회원 정보 없이 보관돼요.
-              {me.coins > 0 && (
-                <b className="mt-2 block text-peach">
-                  복주머니에 남은 {nyang(me.coins)}도 함께 사라져요. 충전한 냥을 환불받으려면 탈퇴 전에 고객문의로 요청해 주세요.
-                </b>
-              )}
-            </p>
-            {me.provider !== "email" && (
-              <p className="mt-3 text-[12.5px] leading-relaxed text-muted">
-                같은 {PROVIDER_LABEL[me.provider] ?? me.provider} 계정으로 다시 로그인하면 새 회원으로 가입돼요. 가입 선물은 처음 가입할 때 한 번만 드려요.
+        <Overlay>
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setConfirmLeave(false)}>
+            <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
+              <p className="text-lg font-bold">정말 탈퇴할 거냥?</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
+                기본 정보와 점괘함의 점괘, 복주머니가 모두 바로 삭제되고 되돌릴 수 없어요. 결제 기록은 전자상거래법에 따라 5년간 회원 정보 없이 보관돼요.
+                {me.coins > 0 && (
+                  <b className="mt-2 block text-peach">
+                    복주머니에 남은 {nyang(me.coins)}도 함께 사라져요. 충전한 냥을 환불받으려면 탈퇴 전에 고객문의로 요청해 주세요.
+                  </b>
+                )}
               </p>
-            )}
-            {withdrawError && <p className="mt-3 text-sm text-pink">{withdrawError}</p>}
-            <button onClick={withdraw} className="mt-5 w-full rounded-2xl bg-pink/90 py-3.5 font-bold text-white">
-              탈퇴하기
-            </button>
-            <button onClick={() => setConfirmLeave(false)} className="mt-2 w-full py-3 text-sm text-muted">
-              취소
-            </button>
+              {me.provider !== "email" && (
+                <p className="mt-3 text-[12.5px] leading-relaxed text-muted">
+                  같은 {PROVIDER_LABEL[me.provider] ?? me.provider} 계정으로 다시 로그인하면 새 회원으로 가입돼요. 가입 선물은 처음 가입할 때 한 번만 드려요.
+                </p>
+              )}
+              {withdrawError && <p className="mt-3 text-sm text-pink">{withdrawError}</p>}
+              <button onClick={withdraw} className="mt-5 w-full rounded-2xl bg-pink/90 py-3.5 font-bold text-white">
+                탈퇴하기
+              </button>
+              <button onClick={() => setConfirmLeave(false)} className="mt-2 w-full py-3 text-sm text-muted">
+                취소
+              </button>
+            </div>
           </div>
-        </div>
+        </Overlay>
       )}
     </main>
   );
