@@ -18,6 +18,7 @@ import { trackVisit } from "@/lib/track";
 import { sound } from "@/lib/sound";
 import { accountApi } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
+import { scroller } from "@/lib/scroll";
 
 const LOGIN_NOTICE: Record<string, string> = {
   fail: "로그인에 실패했다냥. 잠시 후 다시 해 보라냥.",
@@ -97,7 +98,7 @@ export default function Home() {
   }, [loadMe]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0 });
+    scroller().scrollTo({ top: 0 });
     // Room tone follows the screen: wind at the gate, the drone inside, a heartbeat while the reading is drawn.
     sound().setScene(screen === "landing" ? "gate" : screen === "form" ? "inside" : screen === "loading" ? "loading" : "result");
     // The camera sits right at the altar while reading the result.

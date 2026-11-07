@@ -41,14 +41,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__nyangInstall=e;window.dispatchEvent(new Event("nyang-installable"))});',
+              'window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__nyangInstall=e;window.dispatchEvent(new Event("nyang-installable"))});' +
+              // In-app browsers (KakaoTalk, Instagram, Naver…): the page scrolls inside #app-scroll (see globals.css).
+              'if(/KAKAOTALK|Instagram|FBAN|FBAV|NAVER|Line\\/|DaumApps|everytimeApp|; wv\\)/i.test(navigator.userAgent))document.documentElement.classList.add("inapp-scroll");',
           }}
         />
       </head>
       <body className="min-h-full">
         {/* Mobile-first: everything lives in a 480px column centered on desktop. min-h-svh, not dvh: a dynamic height
             changes while the address bar slides during a scroll, and the whole page re-laid out with it. */}
-        <div className="relative z-10 mx-auto flex min-h-svh w-full max-w-[480px] flex-col">{children}</div>
+        <div id="app-scroll">
+          <div className="relative z-10 mx-auto flex min-h-svh w-full max-w-[480px] flex-col">{children}</div>
+        </div>
         <ErrorReporter />
       </body>
     </html>

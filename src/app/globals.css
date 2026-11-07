@@ -592,3 +592,22 @@ html,
 }
 .hyeonpan::before { left: 18px; }
 .hyeonpan::after { right: 18px; }
+
+/* In-app browsers (KakaoTalk, Instagram, Naver…) slide their own bars away as the page scrolls, and each slide resizes
+   the page: a white strip showed at the bottom until the page filled it, and the screen jolted. There the page scrolls
+   inside #app-scroll instead, so the app never sees the page scroll and its bars stay put (the class is set before the
+   first paint by the script in the layout). Elsewhere #app-scroll is a plain block and the page scrolls as usual. */
+html.inapp-scroll,
+html.inapp-scroll body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+html.inapp-scroll #app-scroll {
+  position: fixed;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}

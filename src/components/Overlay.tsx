@@ -34,9 +34,12 @@ const onTouchMove = (e: TouchEvent) => {
 
 /** While any overlay is up the page behind holds still, and so does the browser around it. */
 function lockScroll() {
+  // in-app browsers scroll the page inside #app-scroll (see globals.css): that is the one to hold still there
+  const box = document.documentElement.classList.contains("inapp-scroll") ? document.getElementById("app-scroll") : null;
   if (locks++ === 0) {
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+    if (box) box.style.overflowY = "hidden";
     document.addEventListener("touchstart", onTouchStart, { passive: true });
     document.addEventListener("touchmove", onTouchMove, { passive: false });
   }
@@ -44,6 +47,7 @@ function lockScroll() {
     if (--locks === 0) {
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
+      if (box) box.style.overflowY = "";
       document.removeEventListener("touchstart", onTouchStart);
       document.removeEventListener("touchmove", onTouchMove);
     }
