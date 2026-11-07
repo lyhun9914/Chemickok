@@ -10,7 +10,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { useBack } from "@/lib/back";
 import { useLive } from "@/lib/liveSettings";
 import { WalletSheet, useSocialLabel } from "./CoinShop";
-import { GiftSendSheet } from "./GiftSheet";
+import { GiftSendSheet, takeGiftDraft } from "./GiftSheet";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { Nyang } from "./Nyang";
 import { Coin } from "./Coin";
@@ -45,6 +45,9 @@ function WalletSection() {
   const [note, setNote] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
+  /** 충전 started from a gift that ran short: how many 냥 it needs; the gift sheet comes back after */
+  const [giftNeed, setGiftNeed] = useState(0);
+  const [giftNote, setGiftNote] = useState<string | null>(null);
   const social = useSocialLabel();
   const { costs } = useLive().pricing;
   const oneCost = Math.min(...(Object.keys(costs) as Mode[]).filter((m) => m !== "couple").map((m) => costs[m]));
@@ -52,6 +55,14 @@ function WalletSection() {
     if (!open) coinApi.wallet().then(setWallet).catch(() => null);
     shareService.prepareKakao().catch(() => null);
   }, [open, me.coins]);
+  // back from a Toss 충전 that a short gift started (the page was left): the gift sheet again, as it was written
+  useEffect(() => {
+    const d = takeGiftDraft(true);
+    if (!d) return;
+    if (me.coins >= d.coins) setGiftNote(`충전 완료! 복주머니에 ${nyang(me.coins)} 있다냥. 이제 보내기만 하면 된다냥 🐾`);
+    setGiftOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const link = `${window.location.origin}/?ref=${me.refCode}`;
   const invite = () =>
     shareService
@@ -125,12 +136,37 @@ function WalletSection() {
           {note && <p className="fade-up mt-2 break-all text-center text-xs text-peach">{note}</p>}
         </div>
       )}
-      <WalletSheet open={open} onClose={() => setOpen(false)} />
+      <WalletSheet
+        open={open}
+        need={giftNeed}
+        why={giftNeed > 0 ? `🎁 선물할 냥이 ${nyang(giftNeed)} 모자라다냥. 채우면 선물 창으로 바로 돌아간다냥` : undefined}
+        onClose={() => {
+          setOpen(false);
+          // back out of 충전 without paying: the gift as it was, to send a smaller one or close
+          if (giftNeed > 0) {
+            setGiftNeed(0);
+            setGiftOpen(true);
+          }
+        }}
+        onCharged={(b) => {
+          if (giftNeed <= 0) return;
+          setGiftNeed(0);
+          setOpen(false);
+          setGiftNote(`충전 완료! 복주머니에 ${nyang(b)} 있다냥. 이제 보내기만 하면 된다냥 🐾`);
+          setGiftOpen(true);
+        }}
+      />
       <GiftSendSheet
         open={giftOpen}
-        onClose={() => setGiftOpen(false)}
-        onCharge={() => {
+        note={giftNote}
+        onClose={() => {
           setGiftOpen(false);
+          setGiftNote(null);
+        }}
+        onCharge={(need) => {
+          setGiftOpen(false);
+          setGiftNote(null);
+          setGiftNeed(need);
           setOpen(true);
         }}
       />

@@ -36,8 +36,9 @@ export const INVITE_LIMIT = 20;
 /** 출석: every STREAK_EVERY-th day in a row (logged in) adds STREAK_COINS. */
 export const STREAK_EVERY = 7;
 export const STREAK_COINS = 1;
-/** 냥 선물: how many 냥 one gift can hold. */
-export const GIFT_CHOICES = [1, 2, 5];
+/** 냥 선물: one gift holds 1 to GIFT_MAX 냥; GIFT_QUICK are the one-tap picks. */
+export const GIFT_MAX = 10;
+export const GIFT_QUICK = [1, 2, 5, 10];
 
 /** 상품. `coins` is what one full reading costs; `price` is the same reading bought directly by a guest. */
 export interface Product {

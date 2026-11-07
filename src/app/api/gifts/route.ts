@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { GIFT_CHOICES } from "@/lib/config";
+import { GIFT_MAX } from "@/lib/config";
 import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (!db || !uid) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
   const body = (await req.json().catch(() => null)) as { coins?: number; message?: string; name?: string } | null;
   const coins = Number(body?.coins);
-  if (!GIFT_CHOICES.includes(coins)) return NextResponse.json({ error: "선물할 냥을 골라 주세요." }, { status: 400 });
+  if (!Number.isInteger(coins) || coins < 1 || coins > GIFT_MAX) return NextResponse.json({ error: "선물할 냥을 골라 주세요." }, { status: 400 });
   const user = await db.getUser(uid);
   const name = (String(body?.name ?? "").trim() || user?.profile?.name || user?.nickname || "냥신 손님").slice(0, 12);
   const message = String(body?.message ?? "").trim().slice(0, 40);

@@ -228,8 +228,23 @@ function CostNote() {
   );
 }
 
-/** 내 복주머니: balance and 충전, from the landing chip and 내 점괘함. */
-export function WalletSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+/**
+ * 내 복주머니: balance and 충전, from the landing chip and 내 점괘함. `need`: 냥 still missing for what sent the person
+ * here (a gift), with `why` saying so on top; `onCharged` hears each 충전.
+ */
+export function WalletSheet({
+  open,
+  onClose,
+  need = 0,
+  why,
+  onCharged,
+}: {
+  open: boolean;
+  onClose: () => void;
+  need?: number;
+  why?: string;
+  onCharged?: (balance: number) => void;
+}) {
   const coins = useAppStore((s) => s.me?.coins ?? 0);
   const [done, setDone] = useState<number | null>(null);
   useEffect(() => {
@@ -262,9 +277,16 @@ export function WalletSheet({ open, onClose }: { open: boolean; onClose: () => v
             </div>
             <CostNote />
           </div>
+          {why && done === null && <p className="mt-3 rounded-xl border border-pink/40 bg-pink/10 px-3 py-2 text-center text-[13px] font-semibold text-pink">{why}</p>}
           {done !== null && <p className="fade-up mt-3 text-center text-sm font-semibold text-peach">충전 완료! 이제 {nyang(done)} 있다냥 🐾</p>}
           <div className="mt-5">
-            <CoinShop onCharged={setDone} />
+            <CoinShop
+              need={need}
+              onCharged={(b) => {
+                setDone(b);
+                onCharged?.(b);
+              }}
+            />
           </div>
         </div>
       </div>

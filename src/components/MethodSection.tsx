@@ -1,4 +1,3 @@
-import { BUSINESS } from "@/lib/config";
 import { Coin } from "./Coin";
 
 /**
@@ -160,18 +159,6 @@ export function MethodSection() {
             </li>
           ))}
         </ul>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-t border-violet/25 bg-black/25 px-5 py-3.5 text-[11.5px] leading-relaxed">
-          <dt className="text-violet">운영</dt>
-          <dd className="text-muted">
-            {BUSINESS.company} · 대표 {BUSINESS.rep}
-          </dd>
-          <dt className="text-violet">사업자</dt>
-          <dd className="text-muted">{BUSINESS.bizId}</dd>
-          <dt className="text-violet">통신판매</dt>
-          <dd className="text-muted">{BUSINESS.ecommerceNo}</dd>
-          <dt className="text-violet">결제</dt>
-          <dd className="text-muted">토스페이먼츠 결제창 (토스페이 · 카카오페이 · 네이버페이 · 카드)</dd>
-        </dl>
       </div>
     </section>
   );
