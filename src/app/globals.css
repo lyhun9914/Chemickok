@@ -562,9 +562,20 @@ html,
   0%, 100% { opacity: 1; }
   50% { opacity: 0.15; }
 }
+/* 👇 pointing at Safari's share button under the sheet (transform only) */
+.bob {
+  display: inline-block;
+  will-change: transform;
+  animation: bob 0.9s ease-in-out infinite;
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
 @media (prefers-reduced-motion: reduce) {
   .beckon::after,
-  .blink {
+  .blink,
+  .bob {
     animation: none;
   }
 }
