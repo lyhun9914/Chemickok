@@ -157,8 +157,21 @@ export function inAppBrowser(): "kakao" | "android" | "ios" | null {
   return /Android/i.test(ua) ? "android" : "ios";
 }
 
+/**
+ * A friend's 초대 code lives in a cookie of the browser it arrived in (set from ?ref=, read when the account is made).
+ * The real browser has its own cookies, so the code rides along in the address, or the invite would be lost there.
+ */
+function withRef(url: string): string {
+  const ref = /(?:^|;\s*)nyang_ref=([\w-]{4,16})/.exec(document.cookie)?.[1];
+  if (!ref) return url;
+  const u = new URL(url);
+  if (!u.searchParams.has("ref")) u.searchParams.set("ref", ref);
+  return u.toString();
+}
+
 /** Reopen `url` in the phone's real browser. Returns false when only the user can do it (iOS in-app). */
-export function openExternally(url: string): boolean {
+export function openExternally(target: string): boolean {
+  const url = withRef(target);
   const kind = inAppBrowser();
   if (kind === "kakao") {
     window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`;
