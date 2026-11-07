@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
+import { IS_TEST } from "@/lib/stage";
 import "./globals.css";
 import { ErrorReporter } from "@/components/ErrorReporter";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: "냥신 점괘 | 골목 끝 고양이 점집 · 사주 · 궁합 · 연애 팔자",
+  title: `${IS_TEST ? "🧪 테스트 · " : ""}냥신 점괘 | 골목 끝 고양이 점집 · 사주 · 궁합 · 연애 팔자`,
   description: "고양이 도사 냥신과 1:1 면담으로 보는 사주 점괘. 내 연애 팔자와 찰떡 궁합, 그 사람 속마음, 이번 달 운세까지. 사주 × MBTI × 심리",
   openGraph: {
     title: "냥신 점괘 🕯️ 골목 끝 점집",
@@ -15,6 +16,10 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image" },
+  // the home-screen name and icon on iPhones; the 테스트용 site's are its own
+  appleWebApp: { capable: true, title: IS_TEST ? "냥신 테스트" : "냥신 점괘" },
+  icons: { apple: IS_TEST ? "/test-apple-icon.png" : "/apple-icon.png" },
+  ...(IS_TEST ? { robots: { index: false, follow: false } } : {}),
   // 네이버 서치어드바이저 · 구글 서치콘솔 소유 확인: the code each gives goes into a Vercel env var (then Redeploy).
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
@@ -53,6 +58,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full">
+        {IS_TEST && (
+          // so the 테스트용 site is never mistaken for the real one (taps go through it)
+          <div aria-hidden className="pointer-events-none fixed bottom-2 left-2 z-[90] rounded-full bg-[#2f7de1]/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-lg">
+            🧪 테스트용
+          </div>
+        )}
         {/* Mobile-first: everything lives in a 480px column centered on desktop. min-h-svh, not dvh: a dynamic height
             changes while the address bar slides during a scroll, and the whole page re-laid out with it. */}
         <div id="app-scroll">
