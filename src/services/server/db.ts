@@ -17,6 +17,9 @@ export interface DbUser {
   created_at: string;
 }
 
+/** What 전체 백업 takes, in the order a restore would put them back. */
+const BACKUP_TABLES = ["users", "wallets", "coin_ledger", "payments", "readings", "gifts", "pair_invites", "attendance", "coupons", "coupon_redemptions", "app_settings", "admin_actions", "withdrawn_accounts"];
+
 export type CoinReason = "charge" | "spend" | "bonus" | "refund" | "admin" | "gift";
 export interface LedgerRow {
   delta: number;
@@ -234,6 +237,8 @@ export interface Db {
   /** 관리 작업 기록 */
   audit(action: string, target: string | null, detail: string | null): Promise<void>;
   adminActions(limit: number): Promise<AdminAction[]>;
+  /** 전체 백업: every table that holds members, money and readings, row by row (not the anonymous 이용 흐름 or 오류 logs) */
+  backupTables(): Promise<Record<string, unknown[]>>;
   /** 쿠폰 */
   couponCreate(c: Pick<Coupon, "code" | "coins" | "max_uses" | "expires_at" | "social_only" | "note">): Promise<boolean>;
   couponList(): Promise<Coupon[]>;
@@ -481,6 +486,19 @@ function supabase(url: string, key: string): Db {
     },
     async adminActions(limit) {
       return rest<AdminAction[]>(`admin_actions?select=*&order=id.desc&limit=${limit}`);
+    },
+    async backupTables() {
+      const out: Record<string, unknown[]> = {};
+      for (const t of BACKUP_TABLES) {
+        const rows: unknown[] = [];
+        for (let from = 0; ; from += 1000) {
+          const page = await rest<unknown[]>(`${t}?select=*&limit=1000&offset=${from}`);
+          rows.push(...page);
+          if (page.length < 1000) break;
+        }
+        out[t] = rows;
+      }
+      return out;
     },
     async couponCreate(c) {
       try {
@@ -819,6 +837,23 @@ function memory(): Db {
     },
     async adminActions(limit) {
       return [...m.actions].reverse().slice(0, limit);
+    },
+    async backupTables() {
+      return {
+        users: m.users,
+        wallets: [...m.wallets].map(([user_id, balance]) => ({ user_id, balance })),
+        coin_ledger: m.ledger,
+        payments: m.payments,
+        readings: m.readings,
+        gifts: m.gifts,
+        pair_invites: m.pairs,
+        attendance: [...m.attendance],
+        coupons: m.coupons,
+        coupon_redemptions: m.redemptions,
+        app_settings: Object.entries(m.settings).map(([key, value]) => ({ key, value })),
+        admin_actions: m.actions,
+        withdrawn_accounts: [...m.withdrawn].map(([key, at]) => ({ key, at })),
+      };
     },
     async couponCreate(c) {
       if (m.coupons.some((x) => x.code === c.code)) return false;

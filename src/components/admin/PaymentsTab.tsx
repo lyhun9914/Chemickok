@@ -26,10 +26,33 @@ export const chargeCoins = (p: Payment) =>
 const whatOf = (p: Payment) => (chargeCoins(p) ? `${chargeCoins(p)}냥 충전` : "점괘 바로 결제");
 const who = (p: Payment) => (p.user ? `${p.user.nickname} · ${p.user.email ?? PROVIDER[p.user.provider] ?? p.user.provider}` : "비회원");
 
+/**
+ * 약관 제5조 계산기: the 냥 left from this charge × (amount ÷ 냥 it gave, bonus included); after 7 days 10% comes off.
+ * Fills the form's amount and 회수할 냥; the person still confirms.
+ */
+function RuleCalc({ p, coinsGiven, left, onLeft, onApply }: { p: Payment; coinsGiven: number; left: string; onLeft: (v: string) => void; onApply: (amount: number, coins: number) => void }) {
+  const late = Date.now() - Date.parse(p.created_at) > 7 * 864e5;
+  const n = Math.min(coinsGiven, Number(left || 0));
+  const fair = Math.floor(((n * p.amount) / coinsGiven) * (late ? 0.9 : 1));
+  return (
+    <div className="rounded-lg border border-line p-2.5 text-[12px] text-muted">
+      <p>
+        규정대로 계산 · 1냥당 {won(Math.round(p.amount / coinsGiven))} · {late ? <b className="text-pink">결제 7일 지남 → 수수료 10% 뺌</b> : "결제 7일 안 → 수수료 없음"}
+      </p>
+      <div className="mt-1.5 flex items-center gap-2">
+        <input value={left} onChange={(e) => onLeft(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder={`이 결제에서 남은 냥 (최대 ${coinsGiven})`} className={`${small} min-w-0 flex-1`} />
+        <button onClick={() => onApply(fair, n)} disabled={!n || !fair} className={`${ghost} shrink-0`}>
+          {n ? `${won(fair)} · ${n}냥 넣기` : "넣기"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** One payment: who, what, how much; its refund state, and the 환불 form with a second, spelled-out confirmation. */
 export function PaymentItem({ p, onDone, onOpenUser }: { p: Payment; onDone: () => void; onOpenUser?: (id: string) => void }) {
   const coinsGiven = chargeCoins(p);
-  const [form, setForm] = useState<{ amount: string; coins: string; note: string; manual: boolean } | null>(null);
+  const [form, setForm] = useState<{ amount: string; coins: string; note: string; manual: boolean; left: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [needManual, setNeedManual] = useState(false);
@@ -112,6 +135,7 @@ export function PaymentItem({ p, onDone, onOpenUser }: { p: Payment; onDone: () 
               <input value={form.coins} onChange={(e) => setForm({ ...form, coins: e.target.value.replace(/\D/g, "") })} inputMode="numeric" disabled={!coinsGiven} className={small} />
             </label>
           </div>
+          {coinsGiven > 0 && <RuleCalc p={p} coinsGiven={coinsGiven} left={form.left} onLeft={(left) => setForm({ ...form, left })} onApply={(amount, coins) => setForm({ ...form, amount: String(amount), coins: String(coins) })} />}
           <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="환불 사유 (토스에도 전달돼요)" className={small} />
           {(needManual || p.method === "toss") && (
             <label className="flex items-center gap-2 text-[12px] text-muted">
@@ -127,13 +151,15 @@ export function PaymentItem({ p, onDone, onOpenUser }: { p: Payment; onDone: () 
               닫기
             </button>
           </div>
-          <p className="text-[11.5px] leading-relaxed text-muted">회원이 냥을 이미 썼으면 남은 만큼만 회수하고, 금액도 줄여서 부분 환불하세요.</p>
+          <p className="text-[11.5px] leading-relaxed text-muted">
+            약관 제5조: 열람한 감정서는 환불 없음. 충전한 냥은 7일 안이면 남은 냥만큼, 7일이 지나면 남은 냥만큼에서 10%를 빼고 환불. 무료·선물로 받은 냥은 먼저 쓴 것으로 보고, 회사 잘못이면 전액.
+          </p>
         </div>
       ) : (
         <button
           onClick={() => {
             setMsg(null);
-            setForm({ amount: String(p.amount), coins: String(coinsGiven), note: "", manual: false });
+            setForm({ amount: String(p.amount), coins: String(coinsGiven), note: "", manual: false, left: "" });
           }}
           className="mt-1.5 rounded-lg border border-line px-2.5 py-1 text-[12px] text-muted"
         >

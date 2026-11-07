@@ -238,7 +238,7 @@ export function LoginSheet({ open, onClose, forPay, onGuest }: { open: boolean; 
               로그인 없이 이 점괘만 바로 결제할래 (보관되지 않아요)
             </button>
           )}
-          <p className="mt-4 text-center text-[12px] leading-relaxed text-muted/80">로그인하면 이용약관과 개인정보처리방침에 동의하는 것으로 봅니다.</p>
+          <p className="mt-4 text-center text-[12px] leading-relaxed text-muted/80">만 14세 이상만 가입할 수 있어요. 로그인하면 이용약관과 개인정보처리방침에 동의하는 것으로 봅니다.</p>
         </div>
       </div>
     </Overlay>

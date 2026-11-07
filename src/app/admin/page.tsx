@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AdminInstall } from "@/components/admin/AdminInstall";
 import { ErrorsPanel } from "@/components/admin/ErrorsPanel";
 import { FunnelPanel } from "@/components/admin/FunnelPanel";
 import { MembersTab } from "@/components/admin/MembersTab";
@@ -125,8 +126,45 @@ function HomeTab({ go }: { go: (t: Tab) => void }) {
           ))}
         </div>
       </Section>
+      <BackupSection />
       <p className="text-center text-[12px] text-muted">매일 아침 9시에 어제 요약이 관리자 메일로 와요.</p>
     </div>
+  );
+}
+
+const BACKUP_SEEN = "nyang-admin-backup-at";
+
+/** 전체 백업: the free database plan keeps no backups, so one file now and then; this device remembers when. */
+function BackupSection() {
+  const [last, setLast] = useState<number | null>(null);
+  useEffect(() => {
+    try {
+      const v = Number(localStorage.getItem(BACKUP_SEEN));
+      if (v) setLast(v);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  const mark = () => {
+    const now = Date.now();
+    setLast(now);
+    try {
+      localStorage.setItem(BACKUP_SEEN, String(now));
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const days = last ? Math.floor((Date.now() - last) / 864e5) : null;
+  return (
+    <Section title="💾 전체 백업" sub="회원·냥·결제·점괘 기록 전체를 파일 하나로 받아요. 무료 요금제는 자동 백업이 없으니 일주일에 한 번 받아 두세요.">
+      <a href="/api/admin/backup" download onClick={mark} className="btn-primary block w-full py-3 text-center text-[14px]">
+        백업 파일 내려받기
+      </a>
+      <p className={`mt-2 text-[12px] ${days === null || days >= 7 ? "text-pink" : "text-muted"}`}>
+        {days === null ? "이 기기에서 아직 백업을 받은 적이 없어요." : days === 0 ? "오늘 백업을 받았어요." : `마지막 백업: ${days}일 전${days >= 7 ? " — 새로 받아 두세요" : ""}`}
+      </p>
+      <p className="mt-1 text-[11.5px] leading-relaxed text-muted">회원 개인정보가 들어 있는 파일이에요. 다른 사람에게 보내지 말고 본인만 여는 곳(개인 클라우드 등)에 보관하세요.</p>
+    </Section>
   );
 }
 
@@ -187,7 +225,10 @@ export default function AdminPage() {
   if (!state.admin) {
     return (
       <main className="space-y-4 p-6">
-        <h1 className="text-[22px] font-bold">🔐 관리자</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-[22px] font-bold">🔐 관리자</h1>
+          <AdminInstall />
+        </div>
         {!state.configured ? (
           <p className="text-[14px] leading-relaxed text-muted">
             Vercel 환경 변수에 <b className="text-ink">ADMIN_KEY</b>(16자 이상)를 넣고 다시 배포하면 열립니다. 방법은 docs/GUIDE.md에 있어요.
@@ -217,10 +258,11 @@ export default function AdminPage() {
     <main className="pb-16">
       <header className="sticky top-0 z-40 border-b border-line bg-bg/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 pb-2 pt-3">
-          <button onClick={() => go("home")} className="text-[18px] font-bold">
-            🐾 냥신 점괘 관리자
+          <button onClick={() => go("home")} className="min-w-0 truncate whitespace-nowrap text-[17px] font-bold">
+            🐾 냥신 관리자
           </button>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2.5 whitespace-nowrap">
+            <AdminInstall />
             <a href="/" target="_blank" rel="noreferrer" className="text-[12.5px] text-muted underline">
               사이트 보기
             </a>
