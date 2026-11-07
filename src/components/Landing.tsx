@@ -20,7 +20,7 @@ import { sound } from "@/lib/sound";
 import { Talisman } from "./Talisman";
 import { TypeCarousel } from "./TypeCarousel";
 import { Coin } from "./Coin";
-import { InstallPrompt } from "./InstallPrompt";
+import { InstallHelp } from "./InstallPrompt";
 
 const MENU: { title: string; sub: string; modes: Mode[] }[] = [
   { title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
@@ -84,6 +84,7 @@ export function Landing() {
       <Talisman className="absolute left-4 top-0" />
       <Talisman className="absolute right-6 top-24 opacity-70 [animation-delay:-2s]" />
       <div className="relative z-10 flex items-center justify-end gap-2">
+        <InstallHelp />
         <SoundToggle />
         {providers.length > 0 &&
           (me ? (
@@ -266,7 +267,6 @@ export function Landing() {
             </button>
           ))}
         </div>
-        <InstallPrompt />
       </section>
 
       <section className="fade-up mt-10" style={{ animationDelay: "0.25s" }}>
