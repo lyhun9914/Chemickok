@@ -148,6 +148,6 @@ export const BUSINESS = {
   ecommerceNo: "제 2025-경북구미-0987 호",
   address: "경상북도 구미시 송원서로6길 43, 202호 (원평동)",
   phone: "010-2375-9914",
-  email: "chemickok@gmail.com",
+  email: "nyangsin.cs@gmail.com",
   hosting: "Vercel Inc.",
 } as const;
