@@ -26,6 +26,8 @@ export function MembersTab({ openId, onOpened }: { openId: string | null; onOpen
   const [adj, setAdj] = useState({ sign: 1 as 1 | -1, amount: "", note: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** a problem with the 냥 넣기 · 빼기 form, shown under its own button (the tab's error line is far below it) */
+  const [adjError, setAdjError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [ask, dialog] = useConfirm();
 
@@ -40,6 +42,7 @@ export function MembersTab({ openId, onOpened }: { openId: string | null; onOpen
 
   const open = useCallback(async (id: string) => {
     setError(null);
+    setAdjError(null);
     setDone(null);
     try {
       setDetail(await call<Detail>(`/api/admin/users/${id}`));
@@ -63,8 +66,11 @@ export function MembersTab({ openId, onOpened }: { openId: string | null; onOpen
   const adjust = async () => {
     if (!detail) return;
     const n = Math.trunc(Number(adj.amount));
-    if (!(n >= 1 && n <= 1000)) return setError("1~1000냥 사이로 넣어 주세요.");
-    if (!adj.note.trim()) return setError("사유를 적어 주세요. (작업 기록에 남아요)");
+    setDone(null);
+    if (!(n >= 1 && n <= 1000)) return setAdjError("1~1000냥 사이로 넣어 주세요.");
+    if (!adj.note.trim()) return setAdjError("사유를 적어 주세요. 작업 기록에 남아요.");
+    if (adj.sign < 0 && n > detail.balance) return setAdjError(`지금 ${detail.balance}냥이라 ${n}냥을 뺄 수 없어요.`);
+    setAdjError(null);
     const delta = adj.sign * n;
     const ok = await ask({
       title: delta > 0 ? "냥을 넣어 줄까요?" : "냥을 회수할까요?",
@@ -80,13 +86,12 @@ export function MembersTab({ openId, onOpened }: { openId: string | null; onOpen
     });
     if (!ok) return;
     setBusy(true);
-    setError(null);
     try {
       const r = await call<{ balance: number }>(`/api/admin/users/${detail.user.id}`, { method: "POST", body: JSON.stringify({ delta, reason: "admin", note: adj.note.trim() }) });
       await open(detail.user.id);
       setDone(`${delta > 0 ? "넣었어요" : "회수했어요"}: ${delta > 0 ? "+" : ""}${delta}냥 → ${r.balance}냥`);
     } catch (e) {
-      setError((e as Error).message);
+      setAdjError((e as Error).message);
     }
     setBusy(false);
   };
@@ -122,10 +127,20 @@ export function MembersTab({ openId, onOpened }: { openId: string | null; onOpen
               ))}
             </div>
             <input value={adj.amount} onChange={(e) => setAdj({ ...adj, amount: e.target.value.replace(/\D/g, "") })} inputMode="numeric" placeholder="몇 냥?" className={input} />
-            <input value={adj.note} onChange={(e) => setAdj({ ...adj, note: e.target.value })} placeholder="사유 (예: 결제 오류 보상, 문의 #12)" maxLength={60} className={input} />
+            <input
+              value={adj.note}
+              onChange={(e) => {
+                setAdj({ ...adj, note: e.target.value });
+                if (e.target.value.trim()) setAdjError(null);
+              }}
+              placeholder="사유 · 필수 (예: 결제 오류 보상, 문의 #12)"
+              maxLength={60}
+              className={`${input} ${adjError && !adj.note.trim() ? "border-pink" : ""}`}
+            />
             <button onClick={adjust} disabled={busy} className="btn-primary w-full py-2.5">
-              다음: 확인하기
+              {busy ? "처리 중…" : "다음: 확인하기"}
             </button>
+            {adjError && <p className="text-[13px] font-semibold text-pink">⚠️ {adjError}</p>}
             {done && <Note tone="ok">{done}</Note>}
             <p className="text-[11.5px] leading-relaxed text-muted">결제를 돌려주는 환불은 아래 결제의 ↩ 환불로 하세요. 토스 결제 취소와 냥 회수가 한 번에 돼요.</p>
           </div>
@@ -139,10 +154,10 @@ export function MembersTab({ openId, onOpened }: { openId: string | null; onOpen
           </ul>
 
           <h3 className="mt-4 text-[14px] font-bold">냥 기록 (최근 30)</h3>
-          <ul className="mt-1 max-h-80 divide-y divide-line overflow-y-auto text-[13px]">
+          <ul className="mt-1 max-h-80 divide-y divide-line overflow-y-auto pr-3 text-[13px] [scrollbar-gutter:stable]">
             {detail.history.map((h, i) => (
-              <li key={i} className="flex justify-between gap-2 py-1.5">
-                <span className="min-w-0 truncate">
+              <li key={i} className="flex items-start justify-between gap-3 py-1.5">
+                <span className="min-w-0 leading-snug">
                   <span className="text-muted">{when(h.created_at)}</span> · {REASON[h.reason] ?? h.reason} · {refLabel(h)}
                 </span>
                 <span className={`shrink-0 font-bold ${h.delta > 0 ? "text-peach" : "text-muted"}`}>
