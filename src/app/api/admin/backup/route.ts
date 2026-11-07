@@ -3,6 +3,7 @@ import { kstDay } from "@/lib/kst";
 import { adminOnly } from "@/services/server/admin";
 import { audit } from "@/services/server/audit";
 import { getDb } from "@/services/server/db";
+import { markTodo } from "@/services/server/todo";
 
 /**
  * GET /api/admin/backup — 전체 백업: members, 냥, payments, readings, gifts … as one JSON file. The free database plan
@@ -15,7 +16,10 @@ export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ error: "DB가 연결되지 않았어요." }, { status: 503 });
   const tables = await db.backupTables();
   const counts = Object.fromEntries(Object.entries(tables).map(([t, rows]) => [t, rows.length]));
-  after(() => audit("백업 내려받기", null, Object.entries(counts).map(([t, n]) => `${t} ${n}`).join(", ")));
+  after(async () => {
+    await audit("백업 내려받기", null, Object.entries(counts).map(([t, n]) => `${t} ${n}`).join(", "));
+    await markTodo("backup");
+  });
   const body = JSON.stringify({ app: "냥신 점괘", made_at: new Date().toISOString(), counts, tables });
   return new NextResponse(body, {
     headers: {

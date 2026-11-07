@@ -199,7 +199,7 @@ export function CoinShop({ need = 0, forReading = false, onCharged }: { need?: n
         <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-pink" />
         <span>
           냥으로 연 점괘는 바로 제공되는 디지털 콘텐츠라 <b className="text-ink">열람 후에는 환불되지 않아요.</b> 충전한 냥은 7일 안에 쓰지 않은 만큼만 청약철회할 수 있고,
-          7일이 지나면 남은 유료 냥에서 수수료 10%를 빼고 환불돼요. 쓴 냥과 무료·보너스·선물 냥은 환불되지 않아요. 유효기간은 충전일로부터 5년이에요.
+          7일이 지나면 남은 유료 냥에서 수수료 10%를 빼고 환불돼요. 쓴 냥과 무료·보너스·선물 냥은 환불되지 않고, 세일로 산 냥은 실제 결제 금액으로 계산해요. 유효기간은 충전일로부터 5년이에요.
         </span>
       </label>
       {error && <p className="text-sm text-pink">{error}</p>}

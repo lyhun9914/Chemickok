@@ -9,6 +9,8 @@ import { PaymentsTab } from "@/components/admin/PaymentsTab";
 import { PricesTab } from "@/components/admin/PricesTab";
 import { LogTab, PromoTab } from "@/components/admin/PromoTab";
 import { ShortsStudio } from "@/components/admin/ShortsStudio";
+import { TodoTab, dueCount, useTodo } from "@/components/admin/TodoTab";
+import { daysLeft, ADMIN_TODOS } from "@/lib/adminTodo";
 import { Note, Section, box, call, input, num, won } from "@/components/admin/ui";
 
 type Stats = Record<string, number | boolean>;
@@ -17,6 +19,7 @@ type Live = { sale: { on: boolean; label: string; to: string }; banner: { on: bo
 
 const TABS = [
   ["home", "🏠 홈"],
+  ["todo", "✅ 할 일"],
   ["pay", "💳 결제·환불"],
   ["members", "👥 회원"],
   ["prices", "🪙 가격·세일"],
@@ -42,7 +45,7 @@ function DayTile({ label, today, yesterday, money }: { label: string; today: unk
   );
 }
 
-function HomeTab({ go }: { go: (t: Tab) => void }) {
+function HomeTab({ go, todoCount }: { go: (t: Tab) => void; todoCount: number }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [day, setDay] = useState<{ today: Day; yesterday: Day } | null>(null);
   const [live, setLive] = useState<Live | null>(null);
@@ -58,6 +61,7 @@ function HomeTab({ go }: { go: (t: Tab) => void }) {
   const y = day.yesterday;
 
   const alerts: { tone: "warn" | "error" | "info"; text: string; tab?: Tab }[] = [];
+  if (todoCount > 0) alerts.push({ tone: "warn", text: `✅ 지금 할 일이 ${todoCount}개 있어요.`, tab: "todo" });
   if (stats.testMode) alerts.push({ tone: "warn", text: "최근 하루 안에 테스트 결제가 있었어요. 실제 결제 키로 바뀌었는지 확인하세요." });
   if (Number(stats.errors24h) > 0) alerts.push({ tone: "error", text: `최근 24시간 오류 ${num(stats.errors24h)}건이 있어요.`, tab: "errors" });
   if (live?.sale.on) alerts.push({ tone: "info", text: `🎉 세일 켜짐: ${live.sale.label || "충전 세일"}${live.sale.to ? ` (${new Date(live.sale.to).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}까지)` : ""}`, tab: "prices" });
@@ -132,36 +136,20 @@ function HomeTab({ go }: { go: (t: Tab) => void }) {
   );
 }
 
-const BACKUP_SEEN = "nyang-admin-backup-at";
-
-/** 전체 백업: the free database plan keeps no backups, so one file now and then; this device remembers when. */
+/** 전체 백업: the free database plan keeps no backups, so one file now and then; the 할 일 list remembers when. */
 function BackupSection() {
-  const [last, setLast] = useState<number | null>(null);
-  useEffect(() => {
-    try {
-      const v = Number(localStorage.getItem(BACKUP_SEEN));
-      if (v) setLast(v);
-    } catch {
-      /* storage unavailable */
-    }
-  }, []);
-  const mark = () => {
-    const now = Date.now();
-    setLast(now);
-    try {
-      localStorage.setItem(BACKUP_SEEN, String(now));
-    } catch {
-      /* storage unavailable */
-    }
-  };
-  const days = last ? Math.floor((Date.now() - last) / 864e5) : null;
+  const { done, load } = useTodo();
+  const def = ADMIN_TODOS.find((t) => t.id === "backup")!;
+  const left = done ? daysLeft(def, done.backup) : undefined;
+  const days = left === undefined || left === null ? null : def.every - left;
+  const mark = () => setTimeout(load, 2500);
   return (
     <Section title="💾 전체 백업" sub="회원·냥·결제·점괘 기록 전체를 파일 하나로 받아요. 무료 요금제는 자동 백업이 없으니 일주일에 한 번 받아 두세요.">
       <a href="/api/admin/backup" download onClick={mark} className="btn-primary block w-full py-3 text-center text-[14px]">
         백업 파일 내려받기
       </a>
       <p className={`mt-2 text-[12px] ${days === null || days >= 7 ? "text-pink" : "text-muted"}`}>
-        {days === null ? "이 기기에서 아직 백업을 받은 적이 없어요." : days === 0 ? "오늘 백업을 받았어요." : `마지막 백업: ${days}일 전${days >= 7 ? " — 새로 받아 두세요" : ""}`}
+        {done === null ? "\u00a0" : days === null ? "아직 백업을 받은 적이 없어요." : days === 0 ? "오늘 백업을 받았어요." : `마지막 백업: ${days}일 전${days >= 7 ? " — 새로 받아 두세요" : ""}`}
       </p>
       <p className="mt-1 text-[11.5px] leading-relaxed text-muted">회원 개인정보가 들어 있는 파일이에요. 다른 사람에게 보내지 말고 본인만 여는 곳(개인 클라우드 등)에 보관하세요.</p>
     </Section>
@@ -177,6 +165,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("home");
   const [openUser, setOpenUser] = useState<string | null>(null);
   const [errCount, setErrCount] = useState(0);
+  const [todoCount, setTodoCount] = useState(0);
 
   const go = useCallback((t: Tab) => {
     setTab(t);
@@ -192,7 +181,9 @@ export default function AdminPage() {
       .catch((e: Error) => setError(e.message));
   }, []);
   useEffect(() => {
-    if (state?.admin) call<{ errors: { count: number }[] }>("/api/admin/errors?hours=24").then((r) => setErrCount(r.errors.reduce((n, e) => n + e.count, 0))).catch(() => null);
+    if (!state?.admin) return;
+    call<{ errors: { count: number }[] }>("/api/admin/errors?hours=24").then((r) => setErrCount(r.errors.reduce((n, e) => n + e.count, 0))).catch(() => null);
+    call<{ done: Record<string, string> }>("/api/admin/todo").then((r) => setTodoCount(dueCount(r.done))).catch(() => null);
   }, [state?.admin]);
 
   const login = async () => {
@@ -281,13 +272,15 @@ export default function AdminPage() {
             >
               {label}
               {k === "errors" && errCount > 0 && <span className="ml-1 rounded-full bg-pink px-1.5 text-[10.5px] text-white">{errCount}</span>}
+              {k === "todo" && todoCount > 0 && <span className="ml-1 rounded-full bg-pink px-1.5 text-[10.5px] text-white">{todoCount}</span>}
             </button>
           ))}
         </nav>
       </header>
 
       <div className="space-y-4 p-4">
-        {tab === "home" && <HomeTab go={go} />}
+        {tab === "home" && <HomeTab go={go} todoCount={todoCount} />}
+        {tab === "todo" && <TodoTab go={(t) => go(t as Tab)} onCount={setTodoCount} />}
         {tab === "pay" && <PaymentsTab onOpenUser={openMember} />}
         {tab === "members" && <MembersTab openId={openUser} onOpened={clearOpen} />}
         {tab === "prices" && <PricesTab />}

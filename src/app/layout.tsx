@@ -15,6 +15,11 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image" },
+  // 네이버 서치어드바이저 · 구글 서치콘솔 소유 확인: the code each gives goes into a Vercel env var (then Redeploy).
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.NAVER_SITE_VERIFICATION ? { other: { "naver-site-verification": process.env.NAVER_SITE_VERIFICATION } } : {}),
+  },
   // Phones turn numbers and addresses into call / mail links on their own; the 사업자 정보 should stay plain text.
   formatDetection: { telephone: false, email: false, address: false },
 };
