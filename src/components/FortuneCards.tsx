@@ -58,7 +58,7 @@ function BasisCard({ rows, note }: { rows: [string, string][]; note?: string }) 
 }
 
 /** 대운 bars: one column per 10 years, the current one lit. */
-function TimelineCard({ title, items, unit = "세", icon = "🌊", note = "● 빛나는 칸이 지금 네 대운이다냥" }: Extract<FortuneCard, { kind: "timeline" }>) {
+function TimelineCard({ title, items, unit = "세", icon = "🌊", note = "● 빛나는 칸이 지금 네 대운이다냥", legend }: Extract<FortuneCard, { kind: "timeline" }>) {
   const gap = items.length > 9 ? "gap-1" : "gap-1.5"; // 12 months need the room
   // Months sit close together (a year's months share its 세운), so their bars use the year's own range to show the shape.
   const lo = Math.min(...items.map((it) => it.score));
@@ -72,6 +72,7 @@ function TimelineCard({ title, items, unit = "세", icon = "🌊", note = "● �
       <div className={`mt-4 flex h-40 items-end ${gap}`}>
         {items.map((it) => (
           <div key={it.age} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
+            {it.marks?.length ? <span className="mb-0.5 flex flex-wrap justify-center text-[11px] leading-none">{it.marks.join("")}</span> : null}
             <span className={`mb-1 text-[11px] font-bold ${it.current ? "text-peach" : "text-muted"}`}>{it.score}</span>
             <div
               className={`bar-rise w-full rounded-t-md ${it.current ? "bg-gradient-to-t from-pink to-peach shadow-[0_0_12px_var(--pink)]" : "bg-white/15"}`}
@@ -96,6 +97,7 @@ function TimelineCard({ title, items, unit = "세", icon = "🌊", note = "● �
         ))}
       </div>
       {items.some((it) => it.current) && <p className="mt-3 text-center text-[12px] text-peach">{note}</p>}
+      {legend?.length ? <p className="mt-1.5 text-center text-[11.5px] leading-relaxed text-muted">{legend.join(" · ")}</p> : null}
     </Card>
   );
 }

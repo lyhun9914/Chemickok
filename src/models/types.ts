@@ -190,12 +190,15 @@ export type FortuneCard =
   | {
       kind: "timeline";
       title: string;
-      items: { age: string; ganji: string; hanja: string; score: number; current: boolean; god: string }[];
+      /** marks: emojis over a bar for what the reader said about that time (⛈️ 힘든 때 · 🌸 좋은 때 · 🔀 전환점) */
+      items: { age: string; ganji: string; hanja: string; score: number; current: boolean; god: string; marks?: string[] }[];
       /** label under each bar after the number: "세" for 대운 (default), "월" for 12달 */
       unit?: string;
       icon?: string;
       /** line under the graph explaining the lit bar */
       note?: string;
+      /** what each mark means, shown under the note */
+      legend?: string[];
     }
   | { kind: "keywords"; title: string; items: string[]; body?: string };
 

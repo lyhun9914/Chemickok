@@ -804,13 +804,30 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
       .filter(Boolean)
       .join(" ");
   const markedAny = shownDaeun.some((d) => marks(d));
+  // How many of the times the reader named does the 대운표 confirm? (same test as the 맛보기's 맞다냥)
+  const lived = c.daeun.filter((d) => d.age <= c.age);
+  const memories = [
+    hardAt ? [...lived].sort((x, y) => x.score - y.score).indexOf(hardAt.d) <= 1 && hardAt.d.score < 62 : null,
+    bestAt ? [...lived].sort((x, y) => y.score - x.score).indexOf(bestAt.d) <= 1 && bestAt.d.score >= 60 : null,
+    turn && a("du7") !== "none" ? turn.hit : null,
+  ].filter((x): x is boolean => x !== null);
+  const confirmed = memories.filter(Boolean).length;
   const allSec = sec(
     "대운 전체 흐름",
-    "10년마다 바뀌는 네 인생 물줄기다냥",
+    memories.length === 0
+      ? "10년마다 바뀌는 네 인생 물줄기다냥"
+      : confirmed === 0
+        ? `네가 꼽은 때 ${memories.length}곳, 대운보다 네 힘이 셌다냥`
+        : `네가 꼽은 때 ${memories.length}곳 중 ${confirmed}곳이 대운표와 맞는다냥`,
     lines(
       `대운수 ${c.daeunSu}, ${c.forward ? "순행" : "역행"}이다냥. ${c.daeunSu}세부터 10년마다 운의 옷이 바뀐다냥.`,
       `용신은 ${daNyang(elementLabel(c.yongsin))}. 이 기운이 들어오는 대운이 네 전성기다냥.`,
       markedAny ? "면담에서 네가 꼽은 때를 표에 같이 찍어 뒀다냥. 네 기억과 대운이 어디서 겹치는지 봐라냥." : null,
+      want
+        ? wantHit && shownDaeun.includes(wantHit)
+          ? `네가 원한 ${josa(want.label, "을/를")} 주는 대운은 🎯로 표시했다냥.`
+          : `네가 원한 ${josa(want.label, "을/를")} 대놓고 주는 대운은 이 표 안엔 없다냥. 해마다 오는 기회를 잡는 쪽이 답이다냥.`
+        : null,
       hardAt && bestAt && hardAt.d !== bestAt.d
         ? hardAt.d.score > bestAt.d.score
           ? `재밌는 건, 대운 점수로는 힘들었다던 ${josa(hardAt.label, "이/가")} 좋았다던 ${bestAt.label}보다 높다냥. 운이 좋을 때 오히려 크게 부딪친 거다냥. 그게 네 팔자의 버릇이다냥.`
@@ -847,6 +864,26 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
 
   const livedTurns = c.daeun.filter((d) => d.age <= c.age && d.age > 1).slice(-2);
   const nextTurns = c.daeun.filter((d) => d.age > c.age && d.age <= Math.max(80, c.age + 20)).slice(0, 2);
+  // Each 교운기 carries what the reader said about that time (past) or what is waiting at it (future).
+  const decAt = (d: Daeun): string | null => {
+    if (!dec || !cur || d !== nextTurns[0]) return null;
+    if (d.age - c.age <= 2) return dec.gods.includes(d.god) && d.score >= 55 ? `${josa(dec.label, "은/는")} 넘어가서` : `${josa(dec.label, "은/는")} 넘어가기 전에`;
+    if (dec.gods.includes(cur.god) && cur.score >= 55) return `${josa(dec.label, "은/는")} 이 전에 끝내기`;
+    if (dec.gods.includes(d.god) && d.score >= 55) return `${josa(dec.label, "은/는")} 이 뒤에`;
+    return null;
+  };
+  const turnNote = (d: Daeun, past: boolean): string => {
+    const n = past
+      ? [
+          turn?.hit && turn.age === d.age && "판이 바뀌었다던 그때",
+          hardAt?.d === d && `힘들었다던 ${hardAt.label}의 시작`,
+          bestAt?.d === d && `잘 풀렸다던 ${bestAt.label}의 시작`,
+          a("du3") === "turn" && c.age - d.age <= 3 && "최근 판갈이의 정체",
+        ]
+      : [decAt(d), wantHit === d && want && `${josa(want.label, "이/가")} 들어오는 문`, d === peak && "황금기의 입구", d === trough && "몸을 낮출 10년의 입구"];
+    const shown = n.filter(Boolean);
+    return shown.length ? ` ← ${shown.join(" · ")}` : "";
+  };
   const turnSec = sec(
     "인생의 전환점 · 교운기",
     turn?.hit ? "판이 바뀐 해, 대운표에 그대로 있다냥" : "다음 판갈이를 미리 알아 둬라냥",
@@ -858,8 +895,10 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
         : "남은 길에 큰 판갈이는 없다냥. 이제는 해마다의 흐름이 판을 바꾼다냥.",
     ),
     [
-      ...livedTurns.map((d) => `✔️ 지나온 교운기: ${d.age - 1}~${d.age}세 (${ageYear(d.age - 1)}~${ageYear(d.age)}년)`),
-      ...nextTurns.map((d) => `🔄 다가올 교운기: ${d.age - 1}~${d.age}세 (${ageYear(d.age - 1)}~${ageYear(d.age)}년)`),
+      ...livedTurns.map((d) => `✔️ 지나온 교운기: ${d.age - 1}~${d.age}세 (${ageYear(d.age - 1)}~${ageYear(d.age)}년)${turnNote(d, true)}`),
+      ...nextTurns.map((d) => `🔄 다가올 교운기: ${d.age - 1}~${d.age}세 (${ageYear(d.age - 1)}~${ageYear(d.age)}년)${turnNote(d, false)}`),
+      // a 충 year the reader named, not on a 교운기
+      ...(turn?.hit && turn.age && !c.daeun.some((d) => d.age === turn.age) ? [`🔀 네가 꼽은 전환점: ${turn.age}세 (${ageYear(turn.age)}년) · 일지 충이 든 해`] : []),
     ],
   );
 
@@ -953,6 +992,14 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
   };
 
   // ── 무료 맛보기 ──
+  // The graph carries the reader's own past (the future stays in the 감정서).
+  const graphMarks = (d: Daeun) =>
+    [hardAt?.d === d && "⛈️", bestAt?.d === d && "🌸", turn?.hit && turn.age && d.age <= turn.age && turn.age <= d.age + 9 && "🔀"].filter(Boolean) as string[];
+  const graphLegend = [
+    shownDaeun.some((d) => hardAt?.d === d) && "⛈️ 힘들었다던 때",
+    shownDaeun.some((d) => bestAt?.d === d) && "🌸 잘 풀렸다던 때",
+    shownDaeun.some((d) => graphMarks(d).includes("🔀")) && "🔀 판이 바뀌었다던 때",
+  ].filter(Boolean) as string[];
   const hard = pastCheck(c, a("du1"), "hard");
   const best = pastCheck(c, a("du2"), "best");
   const beats: FortuneBeat[] = [
@@ -970,7 +1017,7 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
     },
     {
       say: cur
-        ? `${name}의 인생 그래프다냥. 막대가 높을수록 운이 센 10년이고, 올해 ${c.age}세는 ${range(cur)} 칸에 서 있다냥.`
+        ? `${name}의 인생 그래프다냥. 막대가 높을수록 운이 센 10년이고, 올해 ${c.age}세는 ${range(cur)} 칸에 서 있다냥.${graphLegend.length ? " 네가 꼽은 때도 찍어 뒀다냥." : ""}`
         : `${name}의 인생 그래프다냥. 막대가 높을수록 운이 센 10년이다냥. 첫 칸은 ${c.daeun[0].age}세에 열린다냥.`,
       mood: "wow",
       card: {
@@ -983,7 +1030,9 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
           score: d.score,
           current: d === cur,
           god: d.god,
+          marks: graphMarks(d),
         })),
+        legend: graphLegend,
       },
       next: "지나온 건 맞아?",
     },
