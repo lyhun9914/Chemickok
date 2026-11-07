@@ -43,7 +43,7 @@
 1. https://console.cloud.google.com → 새 프로젝트 만들기 (이름: `nyangsin`)
 2. **API 및 서비스 → OAuth 동의 화면**(또는 "Google 인증 플랫폼")
    - 사용자 유형: **외부**
-   - 앱 이름 `냥신 점괘`, 지원 이메일 `chemickok@gmail.com`
+   - 앱 이름 `냥신 점괘`, 지원 이메일 `nyangsin.cs@gmail.com`
    - 범위(scope)는 기본인 `openid`, `email`, `profile`만 씁니다. 민감한 범위가 아니어서 별도 심사 없이 게시할 수 있습니다.
 3. **사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID**
    - 애플리케이션 유형: **웹 애플리케이션**
@@ -58,12 +58,12 @@
 
 - 가입과 로그인은 따로 설정할 것이 없습니다. 비밀번호는 복원할 수 없는 방식(scrypt)으로 저장됩니다.
 - **비밀번호 찾기**를 쓰려면 메일 발송 계정이 필요합니다. 설정하지 않으면 "고객문의로 알려 달라"는 안내가 나갑니다. Gmail로 설정하는 방법:
-  1. chemickok@gmail.com 구글 계정 → **보안 → 2단계 인증 켜기**
+  1. nyangsin.cs@gmail.com 구글 계정 → **보안 → 2단계 인증 켜기**
   2. **보안 → 앱 비밀번호** → 이름 `nyangsin` → 16자리 비밀번호 생성
-  3. Vercel에 넣기: `SMTP_USER` = `chemickok@gmail.com`, `SMTP_PASS` = 16자리(공백 없이)
+  3. Vercel에 넣기: `SMTP_USER` = `nyangsin.cs@gmail.com`, `SMTP_PASS` = 16자리(공백 없이)
   4. Gmail은 하루 약 500통까지 보낼 수 있습니다.
   - `SMTP_USER`와 앱 비밀번호는 **반드시 같은 계정**이어야 합니다. 다르면 "메일 계정 로그인 실패"가 뜹니다.
-  - 보내는 계정이 chemickok이 아니어도 됩니다. 손님이 메일에 **답장**하면 고객문의 주소(chemickok@gmail.com)로 갑니다. 다른 주소로 받으려면 `MAIL_REPLY_TO`를 넣습니다.
+  - 보내는 계정이 고객문의 주소와 달라도 됩니다. 손님이 메일에 **답장**하면 고객문의 주소(nyangsin.cs@gmail.com)로 갑니다. 다른 주소로 받으려면 `MAIL_REPLY_TO`를 넣습니다.
 - 가입 선물 냥은 **카카오·네이버·구글 가입에만** 지급됩니다. 이메일은 무제한으로 만들 수 있어 선물을 받으면 악용될 수 있기 때문입니다.
 
 ---
