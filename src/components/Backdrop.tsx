@@ -36,6 +36,28 @@ export function Backdrop({ scene, still = false }: { scene: Scene; still?: boole
   useEffect(() => setPhone(Boolean(window.matchMedia?.("(max-width: 760px), (pointer: coarse)").matches)), []);
   const calm = still && phone;
 
+  // --vh, the scenery's height unit (scene.css): the tallest the page has been at this width. In KakaoTalk's browser
+  // the page itself gets shorter and taller as its bars slide in and out while scrolling, and scenery measured in vh
+  // was laid out and drawn again on every slide. Now it changes once (the first slide) and on turning the phone.
+  useEffect(() => {
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+    const set = () => document.documentElement.style.setProperty("--vh", `${h / 100}px`);
+    set();
+    const onResize = () => {
+      if (window.innerWidth !== w) {
+        w = window.innerWidth;
+        h = window.innerHeight;
+        set();
+      } else if (window.innerHeight > h) {
+        h = window.innerHeight;
+        set();
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   useEffect(() => {
     let raf = 0;
     const onScroll = () => {

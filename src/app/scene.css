@@ -16,8 +16,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 100vh;
-  height: 100lvh;
+  height: calc(var(--vh, 1vh) * 100);
+  height: calc(var(--vh, 1lvh) * 100);
   /* its repaints stay inside it, and it rides on its own layer while the page scrolls over it */
   contain: strict;
   transform: translateZ(0);
@@ -30,7 +30,7 @@
 .backdrop .layer-far { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.04px), 0); }
 .backdrop .layer-mid { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.1px), 0); }
 .backdrop .layer-near { position: absolute; inset: 0; transform: translate3d(0, calc(var(--sy) * -0.22px), 0); }
-.particles { position: absolute; left: 0; top: 0; width: 100%; height: 100lvh; mix-blend-mode: screen; }
+.particles { position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--vh, 1lvh) * 100); mix-blend-mode: screen; }
 
 /* 화면 전체에 촛불이 숨 쉬듯 */
 .atmos-layer::before { animation: candle 6s ease-in-out infinite; }
@@ -77,7 +77,7 @@
 .cloud-1 { top: 60px; animation: cloudDrift 90s linear infinite; }
 .cloud-2 { top: 190px; opacity: 0.22; animation: cloudDrift 140s linear infinite reverse; }
 @keyframes cloudDrift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(900px, 0, 0); } }
-.far-roofs { position: absolute; left: 0; right: 0; top: 18vh; width: 100%; height: 300px; filter: blur(1.5px); opacity: 0.9; }
+.far-roofs { position: absolute; left: 0; right: 0; top: calc(var(--vh, 1vh) * 18); width: 100%; height: 300px; filter: blur(1.5px); opacity: 0.9; }
 
 .facade { position: absolute; top: 150px; bottom: 0; }
 .facade-l { left: 0; right: calc(50% + var(--half) + 34px); }
@@ -155,7 +155,7 @@
   left: 50%;
   width: calc(var(--half) * 2 + 120px);
   margin-left: calc(var(--half) * -1 - 60px);
-  height: 18vh;
+  height: calc(var(--vh, 1vh) * 18);
   background: radial-gradient(ellipse 50% 70% at 50% 0%, rgba(255, 150, 60, 0.18), transparent 70%);
 }
 .lantern-cast {
@@ -216,9 +216,9 @@
 .sign-text { font-size: 23px; }
 .sign-small { font-size: 13px; color: #9a8a76; }
 .branch { position: absolute; left: -30px; top: 120px; transform-origin: 0 20%; animation: sway 11s ease-in-out infinite; opacity: 0.95; filter: blur(0.6px); }
-.fog { position: absolute; left: -1100px; width: calc(100vw + 1100px); bottom: -4vh; height: 38vh; background: var(--tex-cloud); background-size: 1100px 380px; will-change: transform; }
+.fog { position: absolute; left: -1100px; width: calc(100vw + 1100px); bottom: calc(var(--vh, 1vh) * -4); height: calc(var(--vh, 1vh) * 38); background: var(--tex-cloud); background-size: 1100px 380px; will-change: transform; }
 .fog-1 { opacity: 0.4; animation: fogDrift 60s linear infinite; }
-.fog-2 { opacity: 0.26; bottom: -10vh; animation: fogDrift 85s linear infinite reverse; }
+.fog-2 { opacity: 0.26; bottom: calc(var(--vh, 1vh) * -10); animation: fogDrift 85s linear infinite reverse; }
 @keyframes fogDrift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(1100px, 0, 0); } }
 
 /* ═════════ 점집 안 ═════════ */
@@ -227,7 +227,7 @@
   position: absolute;
   inset: 0;
   transform-origin: 50% 80%;
-  transform: scale(calc(1 + var(--progress, 0) * 0.14)) translateY(calc(var(--progress, 0) * 2vh));
+  transform: scale(calc(1 + var(--progress, 0) * 0.14)) translateY(calc(var(--progress, 0) * calc(var(--vh, 1vh) * 2)));
   transition: transform 1.8s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .room-wall {
@@ -243,7 +243,7 @@
   background:
     linear-gradient(90deg, transparent calc(50% - var(--half) - 380px), #1f130b calc(50% - var(--half) - 380px), #1f130b calc(50% - var(--half) - 352px), transparent calc(50% - var(--half) - 352px)),
     linear-gradient(90deg, transparent calc(50% + var(--half) + 352px), #1f130b calc(50% + var(--half) + 352px), #1f130b calc(50% + var(--half) + 380px), transparent calc(50% + var(--half) + 380px)),
-    linear-gradient(180deg, transparent 54vh, #1c1109 54vh, #1c1109 calc(54vh + 14px), transparent calc(54vh + 14px));
+    linear-gradient(180deg, transparent calc(var(--vh, 1vh) * 54), #1c1109 calc(var(--vh, 1vh) * 54), #1c1109 calc(calc(var(--vh, 1vh) * 54) + 14px), transparent calc(calc(var(--vh, 1vh) * 54) + 14px));
   box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.85);
 }
 .ceiling {
@@ -251,7 +251,7 @@
   left: 0;
   right: 0;
   top: 0;
-  height: 13vh;
+  height: calc(var(--vh, 1vh) * 13);
   background:
     repeating-linear-gradient(90deg, #120a06 0 22px, #2a190e 22px 30px, #120a06 30px 52px),
     #120a06;
@@ -270,25 +270,25 @@
 }
 .moonbeam {
   position: absolute;
-  top: 18vh;
+  top: calc(var(--vh, 1vh) * 18);
   left: calc(50% - var(--half) - 380px);
   width: 260px;
-  height: 90vh;
+  height: calc(var(--vh, 1vh) * 90);
   background: linear-gradient(180deg, rgba(170, 190, 230, 0.12), transparent 80%);
   clip-path: polygon(0 0, 100% 0, 190% 100%, 60% 100%);
   filter: blur(8px);
   mix-blend-mode: screen;
 }
-.lattice { position: absolute; top: 18vh; left: calc(50% - var(--half) - 370px); filter: drop-shadow(0 0 30px rgba(140, 160, 200, 0.15)); }
-.scroll-painting { position: absolute; top: 15vh; left: calc(50% + var(--half) + 160px); transform-origin: 50% 0; animation: sway 12s ease-in-out infinite; filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.8)); }
-.screen-fold { position: absolute; top: 19vh; left: 50%; width: min(1120px, 170vw); margin-left: max(-560px, -85vw); filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.9)) saturate(0.6) brightness(calc(0.62 + var(--progress, 0) * 0.22)); transition: filter 1.8s ease; }
+.lattice { position: absolute; top: calc(var(--vh, 1vh) * 18); left: calc(50% - var(--half) - 370px); filter: drop-shadow(0 0 30px rgba(140, 160, 200, 0.15)); }
+.scroll-painting { position: absolute; top: calc(var(--vh, 1vh) * 15); left: calc(50% + var(--half) + 160px); transform-origin: 50% 0; animation: sway 12s ease-in-out infinite; filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.8)); }
+.screen-fold { position: absolute; top: calc(var(--vh, 1vh) * 19); left: 50%; width: min(1120px, 170vw); margin-left: max(-560px, -85vw); filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.9)) saturate(0.6) brightness(calc(0.62 + var(--progress, 0) * 0.22)); transition: filter 1.8s ease; }
 .screen-fold svg { width: 100%; height: auto; display: block; }
 .passing-shadow {
   position: absolute;
-  top: 22vh;
+  top: calc(var(--vh, 1vh) * 22);
   left: -30vw;
   width: 26vw;
-  height: 60vh;
+  height: calc(var(--vh, 1vh) * 60);
   background: radial-gradient(ellipse 40% 50% at 50% 40%, rgba(0, 0, 0, 0.55), transparent 70%);
   filter: blur(18px);
   animation: passBy 31s ease-in-out infinite;
@@ -299,7 +299,7 @@
   92% { transform: translateX(160vw); opacity: 1; }
   100% { transform: translateX(160vw); opacity: 0; }
 }
-.obang { position: absolute; top: 13vh; display: flex; gap: 3px; }
+.obang { position: absolute; top: calc(var(--vh, 1vh) * 13); display: flex; gap: 3px; }
 .obang span {
   width: 18px;
   border-radius: 0 0 3px 3px;
@@ -319,7 +319,7 @@
   mix-blend-mode: screen;
   animation: castFlicker 2.8s ease-in-out infinite, dimout 23s ease-in-out infinite;
 }
-.altar { position: absolute; left: 0; right: 0; bottom: 0; height: 16vh; }
+.altar { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--vh, 1vh) * 16); }
 .altar-cloth {
   position: absolute;
   inset: 0;
@@ -339,7 +339,7 @@
   opacity: 0.55;
   mask-image: linear-gradient(180deg, #000, transparent);
 }
-.candle { position: absolute; bottom: calc(16vh - 6px); width: 20px; }
+.candle { position: absolute; bottom: calc(calc(var(--vh, 1vh) * 16) - 6px); width: 20px; }
 .candle .wax {
   position: relative;
   display: block;
@@ -409,13 +409,13 @@
 .cd-2 { left: calc(50% - var(--half) - 115px); }
 .cd-3 { left: calc(50% + var(--half) + 95px); }
 .cd-4 { left: calc(50% + var(--half) + 160px); }
-.offer { position: absolute; bottom: calc(16vh - 8px); }
+.offer { position: absolute; bottom: calc(calc(var(--vh, 1vh) * 16) - 8px); }
 .offer-l { left: calc(50% - var(--half) - 420px); }
 .offer-r { left: calc(50% + var(--half) + 250px); }
-.censer { position: absolute; bottom: calc(16vh - 8px); left: calc(50% - var(--half) - 290px); }
+.censer { position: absolute; bottom: calc(calc(var(--vh, 1vh) * 16) - 8px); left: calc(50% - var(--half) - 290px); }
 .censer .smoke { bottom: 74px; }
 .censer .ember { animation: lanternGlow 1.8s ease-in-out infinite; }
-.bells { position: absolute; bottom: calc(16vh - 8px); left: calc(50% + var(--half) + 420px); transform-origin: 50% 0; animation: sway 4s ease-in-out infinite; }
+.bells { position: absolute; bottom: calc(calc(var(--vh, 1vh) * 16) - 8px); left: calc(50% + var(--half) + 420px); transform-origin: 50% 0; animation: sway 4s ease-in-out infinite; }
 
 /* ═════════ 폰 ═════════ */
 @media (max-width: 760px) {
@@ -429,7 +429,7 @@
   .lantern-r { left: auto; right: -10px; }
   .branch { top: 100px; left: -20px; }
   .branch svg { width: 250px; height: 155px; }
-  .screen-fold { top: 15vh; }
+  .screen-fold { top: calc(var(--vh, 1vh) * 15); }
   .obang-l { left: 2px; }
   .obang-r { left: auto; right: 2px; }
   .obang span { width: 10px; }
@@ -437,8 +437,8 @@
   .cd-2 { left: 34px; }
   .cd-3 { left: auto; right: 34px; }
   .cd-4 { left: auto; right: 8px; }
-  .altar { height: 9vh; }
-  .candle { bottom: calc(9vh - 6px); }
+  .altar { height: calc(var(--vh, 1vh) * 9); }
+  .candle { bottom: calc(calc(var(--vh, 1vh) * 9) - 6px); }
   .candle .halo { width: 150px; height: 150px; margin-left: -75px; }
 }
 
