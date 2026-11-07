@@ -1,14 +1,16 @@
 import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
+import { IS_TEST } from "@/lib/stage";
 import { authConfigured, seal, unseal } from "./session";
 
 // 관리자: one shared key (ADMIN_KEY, 16+ chars) opens /admin; a signed cookie keeps it open for 12 hours.
+// The 테스트용 site holds no real data, so there a short key (4+) will do and the login lasts 30 days.
 export const ADMIN_COOKIE = "nyang_admin";
-const HOURS = 12;
+const HOURS = IS_TEST ? 24 * 30 : 12;
 
 const adminKey = () => process.env.ADMIN_KEY ?? "";
-export const adminConfigured = () => adminKey().length >= 16 && authConfigured();
+export const adminConfigured = () => adminKey().length >= (IS_TEST ? 4 : 16) && authConfigured();
 
 /** Constant-time compare of the typed key with ADMIN_KEY. */
 export function adminKeyMatches(given: string): boolean {
