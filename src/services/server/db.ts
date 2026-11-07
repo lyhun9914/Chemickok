@@ -787,9 +787,12 @@ function memory(): Db {
     },
     async logError(e) {
       const now = Date.now();
+      const recent = (ms: number) => m.errors.filter((x) => now - Date.parse(x.created_at) < ms);
+      if (recent(600e3).length >= 300) return false;
       const same = m.errors.filter((x) => x.fingerprint === e.fingerprint);
       if (same.filter((x) => now - Date.parse(x.created_at) < 600e3).length >= 50) return false;
-      const fresh = !same.some((x) => now - Date.parse(x.created_at) < 864e5);
+      // at most 20 new kinds mail the 관리자 in a day (same caps as log_error in 0008)
+      const fresh = !same.some((x) => now - Date.parse(x.created_at) < 864e5) && new Set(recent(864e5).map((x) => x.fingerprint)).size < 20;
       m.errors.push({ ...e, created_at: new Date().toISOString() });
       return fresh;
     },

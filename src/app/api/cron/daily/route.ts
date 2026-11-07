@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { won } from "@/lib/config";
 import { kstDay } from "@/lib/kst";
 import { getDb } from "@/services/server/db";
+import { SITE } from "@/lib/site";
 import { mailConfigured, sendMail } from "@/services/server/mailer";
 
 const n = (v: unknown) => Number(v ?? 0);
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
     `🙋 새 회원 ${n(y.newUsers)}${diff(y.newUsers, b.newUsers)} · 쓴 냥 ${n(y.coinsSpent)}냥`,
     `🚨 오류 ${n(y.errors)}건 (${n(y.errorKinds)}종류)${n(y.errors) ? " — 관리자 화면 '오류'에서 확인하세요" : ""}`,
     "",
-    "관리자 화면: https://chemickok.vercel.app/admin",
+    `관리자 화면: ${SITE}/admin`,
   ];
   await sendMail(to, `[냥신 점괘] ${y.day} 요약 · 매출 ${won(n(y.sales))} · 방문 ${n(y.visits)}`, lines.join("\n"));
   return NextResponse.json({ ok: true, day: y.day });
