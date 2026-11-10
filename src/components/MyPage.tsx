@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { INVITE_COINS, PRODUCTS, nyang } from "@/lib/config";
+import { GIFTS_ON, INVITE_COINS, PRODUCTS, nyang } from "@/lib/config";
 import { MBTI_TYPES } from "@/lib/questions";
 import type { Gender, Mode, PersonInput } from "@/models/types";
 import { accountApi, coinApi, type CoinHistoryRow, type ReadingSummary, type Wallet } from "@/services/apiClient";
@@ -57,6 +57,7 @@ function WalletSection() {
   }, [open, me.coins]);
   // back from a Toss 충전 that a short gift started (the page was left): the gift sheet again, as it was written
   useEffect(() => {
+    if (!GIFTS_ON) return;
     const d = takeGiftDraft(true);
     if (!d) return;
     if (me.coins >= d.coins) setGiftNote(`충전 완료! 복주머니에 ${nyang(me.coins)} 있다냥. 이제 보내기만 하면 된다냥 🐾`);
@@ -86,9 +87,11 @@ function WalletSection() {
           <p className="text-[12px] text-muted">
             점괘 하나 {nyang(oneCost)} · 궁합 {nyang(costs.couple)}
           </p>
-          <button onClick={() => setGiftOpen(true)} className="rounded-full border border-peach/40 px-3 py-1 text-[12px] font-semibold text-peach">
-            🎁 냥 선물하기
-          </button>
+          {GIFTS_ON && (
+            <button onClick={() => setGiftOpen(true)} className="rounded-full border border-peach/40 px-3 py-1 text-[12px] font-semibold text-peach">
+              🎁 냥 선물하기
+            </button>
+          )}
         </div>
         {history.length > 0 && (
           <ul className="mt-3 divide-y divide-violet/15 border-t border-violet/15 text-[13px]">
@@ -157,7 +160,7 @@ function WalletSection() {
         }}
       />
       <GiftSendSheet
-        open={giftOpen}
+        open={GIFTS_ON && giftOpen}
         note={giftNote}
         onClose={() => {
           setGiftOpen(false);

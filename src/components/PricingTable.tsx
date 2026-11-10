@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BUSINESS, PRODUCTS, WELCOME_COINS, nyang, won } from "@/lib/config";
+import { BUSINESS, COIN_VALID_TEXT, PRODUCTS, WELCOME_COINS, nyang, won } from "@/lib/config";
 import { sellPacks, useLive } from "@/lib/liveSettings";
 import { MODES } from "@/lib/pricing";
 import { Nyang } from "./Nyang";
@@ -72,18 +72,38 @@ export function PricingTable() {
         </tbody>
       </table>
 
+      <h2 className="mt-7 text-[16px] font-bold">🧭 냥은 어디에, 어떻게 쓰나요</h2>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
+        냥은 <b className="text-ink">냥신 점괘의 감정서(전체 풀이)를 여는 데에만</b> 쓰는 이용권이에요. 현금으로 바꾸거나 다른 회원에게 넘길(선물할) 수 없어요.
+      </p>
+      <ol className="mt-3 space-y-2 rounded-2xl border border-line p-4 text-[13.5px] leading-relaxed">
+        <li>
+          <b className="text-peach">1.</b> 카카오·네이버·구글 또는 이메일로 <b>로그인</b>해요.
+        </li>
+        <li>
+          <b className="text-peach">2.</b> 화면 위 <b>👛 복주머니</b>(또는 결제 화면)에서 원하는 만큼 <b>냥을 충전</b>해요. 결제가 끝나면 냥이 바로 들어와요.
+        </li>
+        <li>
+          <b className="text-peach">3.</b> 점괘 면담을 마치고 결과 화면에서 <b>&quot;감정서 전부 열기&quot;</b>를 누른 뒤 <b>&quot;○냥 내고 전부 듣기&quot;</b>를 누르면, 그 점괘의 냥만큼
+          빠지고 감정서가 바로 열려요.
+        </li>
+        <li>
+          <b className="text-peach">4.</b> 연 감정서는 <b>📜 내 점괘함</b>에서 언제든 다시 볼 수 있어요. 남은 냥과 사용 내역은 복주머니에서 확인할 수 있어요.
+        </li>
+      </ol>
+
       <ul className="mt-6 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-muted">
         <li>카카오·네이버·구글로 처음 가입하면 {nyang(WELCOME_COINS)}을 선물로 드려요.</li>
         <li>결제 수단: 토스페이, 카카오페이, 네이버페이, 신용·체크카드 (토스페이먼츠 결제창)</li>
         <li>제공 방법: 결제가 끝나면 그 자리에서 화면으로 바로 열려요. 실물 배송은 없어요. 회원이 연 감정서는 내 점괘함에서 언제든 다시 볼 수 있어요.</li>
         <li>
-          열람한 감정서는 디지털 콘텐츠라 환불되지 않아요. 충전한 냥은 7일 안에 쓰지 않은 만큼만 청약철회할 수 있고, 7일이 지나면 남은 유료 냥에서 수수료 10%를 빼고 환불돼요. 무료·보너스·선물 냥은 환불되지 않아요. 자세한 내용은{" "}
+          열람한 감정서는 디지털 콘텐츠라 환불되지 않아요. 충전한 냥은 7일 안에 쓰지 않은 만큼만 청약철회할 수 있고, 7일이 지나면 결제일로부터 {COIN_VALID_TEXT} 안에 남은 유료 냥에서 수수료 10%를 빼고 환불돼요. 무료·보너스 냥은 환불되지 않고, 환불은 결제한 수단(카드·간편결제)으로 돌려드려요. 자세한 내용은{" "}
           <Link href="/terms" className="text-ink underline underline-offset-2">
             이용약관
           </Link>
           을 확인해 주세요.
         </li>
-        <li>냥의 유효기간은 충전일로부터 5년이에요.</li>
+        <li>충전한 냥의 유효기간은 충전일(결제일)로부터 {COIN_VALID_TEXT}이에요. 유효기간이 지난 냥은 사라져요.</li>
         <li>
           문의: {BUSINESS.email} · {BUSINESS.phone}
         </li>

@@ -27,17 +27,27 @@ const whatOf = (p: Payment) => (chargeCoins(p) ? `${chargeCoins(p)}냥 충전` :
 const who = (p: Payment) => (p.user ? `${p.user.nickname} · ${p.user.email ?? PROVIDER[p.user.provider] ?? p.user.provider}` : "비회원");
 
 /**
- * 약관 제5조 계산기: the 냥 left from this charge × (amount ÷ 냥 it gave, bonus included); after 7 days 10% comes off.
+ * 약관 제5조 계산기: the 냥 left from this charge × (amount ÷ 냥 it gave, bonus included); after 7 days 10% comes off,
+ * and after a year (the 냥's 유효기간) nothing is due unless 회사 잘못.
  * Fills the form's amount and 회수할 냥; the person still confirms.
  */
 function RuleCalc({ p, coinsGiven, left, onLeft, onApply }: { p: Payment; coinsGiven: number; left: string; onLeft: (v: string) => void; onApply: (amount: number, coins: number) => void }) {
-  const late = Date.now() - Date.parse(p.created_at) > 7 * 864e5;
+  const age = Date.now() - Date.parse(p.created_at);
+  const late = age > 7 * 864e5;
+  const expired = age > 365 * 864e5;
   const n = Math.min(coinsGiven, Number(left || 0));
-  const fair = Math.floor(((n * p.amount) / coinsGiven) * (late ? 0.9 : 1));
+  const fair = expired ? 0 : Math.floor(((n * p.amount) / coinsGiven) * (late ? 0.9 : 1));
   return (
     <div className="rounded-lg border border-line p-2.5 text-[12px] text-muted">
       <p>
-        규정대로 계산 · 1냥당 {won(Math.round(p.amount / coinsGiven))} · {late ? <b className="text-pink">결제 7일 지남 → 수수료 10% 뺌</b> : "결제 7일 안 → 수수료 없음"}
+        규정대로 계산 · 1냥당 {won(Math.round(p.amount / coinsGiven))} ·{" "}
+        {expired ? (
+          <b className="text-pink">결제 1년 지남 → 유효기간 끝, 환불 없음 (회사 잘못이면 따로 판단)</b>
+        ) : late ? (
+          <b className="text-pink">결제 7일 지남 → 수수료 10% 뺌</b>
+        ) : (
+          "결제 7일 안 → 수수료 없음"
+        )}
       </p>
       <div className="mt-1.5 flex items-center gap-2">
         <input value={left} onChange={(e) => onLeft(e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder={`이 결제에서 남은 냥 (최대 ${coinsGiven})`} className={`${small} min-w-0 flex-1`} />
@@ -152,7 +162,7 @@ export function PaymentItem({ p, onDone, onOpenUser }: { p: Payment; onDone: () 
             </button>
           </div>
           <p className="text-[11.5px] leading-relaxed text-muted">
-            약관 제5조: 열람한 감정서는 환불 없음. 충전한 냥은 7일 안이면 남은 냥만큼, 7일이 지나면 남은 냥만큼에서 10%를 빼고 환불. 무료·선물로 받은 냥은 먼저 쓴 것으로 보고, 회사 잘못이면 전액.
+            약관 제5조: 열람한 감정서는 환불 없음. 충전한 냥은 7일 안이면 남은 냥만큼, 7일이 지나면 1년 안까지 남은 냥만큼에서 10%를 빼고 환불(1년이 지나면 유효기간 끝). 무료로 받은 냥은 먼저 쓴 것으로 보고, 회사 잘못이면 전액.
           </p>
         </div>
       ) : (

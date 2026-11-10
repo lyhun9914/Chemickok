@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { GIFTS_ON } from "@/lib/config";
 import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
 
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/gifts/[id]"
     const r = await db.giftCancel(id, uid);
     return r.ok ? NextResponse.json(r) : NextResponse.json({ error: "이미 받았거나 취소된 선물이에요." }, { status: 409 });
   }
+  // With 선물하기 off nothing moves between members; a sender can still take an unclaimed gift back (above).
+  if (!GIFTS_ON) return NextResponse.json({ error: "지금은 냥 선물을 받을 수 없어요." }, { status: 403 });
   const r = await db.giftClaim(id, uid);
   if (r.ok) return NextResponse.json(r);
   const why: Record<string, string> = {

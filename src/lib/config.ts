@@ -36,6 +36,13 @@ export const INVITE_LIMIT = 20;
 /** 출석: every STREAK_EVERY-th day in a row (logged in) adds STREAK_COINS. */
 export const STREAK_EVERY = 7;
 export const STREAK_COINS = 1;
+/**
+ * 냥 선물 (회원끼리 냥 보내기) — off. 토스페이먼츠 포인트충전 업종은 충전한 포인트의 회원 간 양도를 허용하지 않아요.
+ * The code stays; turn it back on only in a form the PG has approved (e.g. a reading bought as a gift, no 냥 moving).
+ */
+export const GIFTS_ON = false;
+/** 충전한 냥의 유효기간 · 환불 가능 기간 (결제일부터). 포인트충전 업종 조건: 1년 이내. */
+export const COIN_VALID_TEXT = "1년";
 /** 냥 선물: one gift holds 1 to GIFT_MAX 냥; GIFT_QUICK are the one-tap picks. */
 export const GIFT_MAX = 10;
 export const GIFT_QUICK = [1, 2, 5, 10];
