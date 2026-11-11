@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PRODUCTS } from "@/lib/config";
 import { MODES, sellPack, type Pricing, type Sale } from "@/lib/pricing";
+import type { FollowUp } from "@/lib/priceFollowUps";
 import type { Mode } from "@/models/types";
 import { Note, Section, call, ghost, small, useConfirm, won } from "./ui";
 
@@ -29,6 +30,9 @@ export function PricesTab() {
   const [sale, setSale] = useState<Sale | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  /** 가격을 바꾼 뒤 사이트 밖에서 같이 고칠 곳 (인스타 DM 답변, 릴스 캡션, 토스) */
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [copied, setCopied] = useState<number | null>(null);
   const [ask, dialog] = useConfirm();
 
   const load = async () => {
@@ -47,7 +51,8 @@ export function PricesTab() {
     setBusy(true);
     setMsg(null);
     try {
-      const r = await call<Settings>("/api/admin/settings", { method: "POST", body: JSON.stringify({ key, value }) });
+      const r = await call<Settings & { followUps?: FollowUp[] }>("/api/admin/settings", { method: "POST", body: JSON.stringify({ key, value }) });
+      if (key === "pricing") setFollowUps(r.followUps ?? []);
       setS({ ...r, defaults: s.defaults });
       setForm(toForm(r.pricing));
       setSale(r.sale);
@@ -107,6 +112,44 @@ export function PricesTab() {
     <div className="space-y-4">
       {dialog}
       {msg && <Note tone={msg.ok ? "ok" : "error"}>{msg.text}</Note>}
+      {followUps.length > 0 && (
+        <Section
+          title={`📌 같이 고칠 곳 ${followUps.length}개`}
+          sub="사이트 화면은 저절로 바뀌었어요. 사이트 밖에 적어 둔 가격은 직접 고쳐야 해요. 같은 내용을 관리자 메일로도 보냈어요."
+          right={
+            <button onClick={() => setFollowUps([])} className={ghost}>
+              다 고쳤어요
+            </button>
+          }
+        >
+          <ol className="space-y-3">
+            {followUps.map((f, i) => (
+              <li key={i} className="rounded-xl border border-line p-3">
+                <p className="text-[14px] font-semibold">
+                  {i + 1}. {f.where}
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted">{f.why}</p>
+                {f.text && (
+                  <div className="mt-2 rounded-lg bg-black/30 p-2.5">
+                    <p className="select-all text-[13px] leading-relaxed">{f.text}</p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard?.writeText(f.text!).then(
+                          () => setCopied(i),
+                          () => setCopied(null),
+                        );
+                      }}
+                      className={`${ghost} mt-2 w-full`}
+                    >
+                      {copied === i ? "✓ 복사했어요" : "새 문구 복사"}
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ol>
+        </Section>
+      )}
 
       <Section title="🪙 충전 묶음" sub="손님이 사는 냥 묶음과 가격이에요. 가격은 10원 단위예요. 할인율은 첫 묶음(낱개) 가격 기준이에요.">
         <div className="space-y-2">
