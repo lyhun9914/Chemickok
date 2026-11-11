@@ -14,7 +14,7 @@ import { checkinApi, dailyApi, todayApi, type DailyFortuneResponse, type ExamDay
 import { useBack } from "@/lib/back";
 import { inAppBrowser } from "@/lib/handoff";
 import { newId, track } from "@/lib/track";
-import { isMobile, shareService, siteUrl } from "@/services/shareService";
+import { isIOS, isMobile, shareService, siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
 import { type BasicInfo, InfoGate, useSavedInfo } from "./InfoGate";
@@ -1036,23 +1036,26 @@ function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
       setBusy(false);
     }
   };
-  // PC: straight to a download (the OS share sheet there opened nothing useful). Phone: the share sheet, whose
-  // "이미지 저장" puts it in the photos; an in-app browser can't do either, so long-press the picture instead.
+  // PC and Android (Chrome, 삼성 인터넷): straight to a download — on a phone it lands in the Download folder, which the
+  // 갤러리 shows. iPhone: a download only reaches the Files app, so the share sheet stays (its "이미지 저장" puts it in
+  // Photos). An in-app browser can do neither, so long-press the picture instead.
   const save = () => {
     if (!img) return;
-    const download = () => {
+    const download = (msg: string) => {
       const a = document.createElement("a");
       a.href = img.url;
-      a.download = "nyang-bujeok.png"; // ASCII: some browsers drop a Korean download name
+      a.download = `nyang-bujeok-${Date.now()}.png`; // ASCII: some browsers drop a Korean download name
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setNote("부적을 저장했다냥! 배경화면으로 써라냥 🧧");
+      setNote(msg);
     };
-    if (!isMobile()) return download();
+    if (!isMobile()) return download("부적을 저장했다냥! 배경화면으로 써라냥 🧧");
     if (inAppBrowser()) return setNote("이 앱 안에서는 저장 버튼이 막혀 있다냥. 위 부적을 꾹 눌러서 '이미지 저장'을 골라라냥 📌");
+    if (!isIOS()) return download("갤러리에 저장했다냥! (Download 앨범) 배경화면으로 써라냥 🧧");
+    setNote("뜨는 창에서 '이미지 저장'을 누르면 사진첩에 들어간다냥 📸");
     shareService.shareStory(img.blob).then((o) => {
-      if (o === "unsupported") download();
+      if (o === "unsupported") download("부적을 저장했다냥! '파일' 앱에서 찾을 수 있다냥 🧧");
     });
   };
 

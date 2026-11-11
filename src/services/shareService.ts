@@ -22,6 +22,12 @@ export function isMobile(): boolean {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
 }
 
+/** iPhone · iPad (iPadOS reports itself as a Mac with touch). There a download lands in Files, not Photos. */
+export function isIOS(): boolean {
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
 export function siteUrl(): string {
   return window.location.origin + "/";
 }
