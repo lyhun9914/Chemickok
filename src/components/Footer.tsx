@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BUSINESS } from "@/lib/config";
+import { BUSINESS, FOOTER_FOLDED } from "@/lib/config";
 import { InquirySheet } from "./InquirySheet";
 import { LegalModal, type LegalDoc } from "./LegalModal";
 
@@ -29,10 +29,12 @@ export function Footer() {
         </button>
       </div>
 
-      {/* 전자상거래법 제10조 표시사항 — folded by default; "사업자 정보 ▾" on every page opens it */}
-      <details className="group">
-        <summary className="flex cursor-pointer list-none items-center gap-1 text-xs text-muted [&::-webkit-details-marker]:hidden">
+      {/* 전자상거래법 제10조 표시사항. Open until launch (PG·card review checks it); folded once
+          NEXT_PUBLIC_FOOTER_FOLDED=1, with the toggle on every page. The text stays in the page either way. */}
+      <details className="group" open={!FOOTER_FOLDED}>
+        <summary className="-my-1 flex cursor-pointer list-none items-center gap-1 py-1 text-xs text-muted [&::-webkit-details-marker]:hidden">
           {BUSINESS.company} 사업자 정보
+          <span className="text-muted/70 group-open:hidden">(상호·사업자번호·주소·연락처) 보기</span>
           <span className="transition group-open:rotate-180" aria-hidden>
             ▾
           </span>

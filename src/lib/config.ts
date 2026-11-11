@@ -141,6 +141,12 @@ export const isFortune = (mode: Mode): mode is FortuneMode => mode !== "solo" &&
 export const productOf = (mode: Mode) => PRODUCTS[mode];
 export const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
+/**
+ * 하단 사업자 정보를 접어 둘지. 정식 배포(모든 심사가 끝난 뒤)에 Vercel production에 NEXT_PUBLIC_FOOTER_FOLDED=1을 넣고 재배포.
+ * 그 전에는 펼친 채로 둔다: 카드사·PG 심사가 하단 사업자 정보를 본다.
+ */
+export const FOOTER_FOLDED = process.env.NEXT_PUBLIC_FOOTER_FOLDED === "1";
+
 /** Client-side flag. When true, the payment modal bypasses the PG and unlocks instantly. */
 export const isTestMode = process.env.NEXT_PUBLIC_PAYMENT_TEST_MODE !== "false";
 
