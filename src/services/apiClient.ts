@@ -125,10 +125,18 @@ export interface Me {
 
 export interface CoinHistoryRow {
   delta: number;
-  reason: "charge" | "spend" | "bonus" | "refund" | "admin" | "gift";
+  reason: "charge" | "spend" | "bonus" | "refund" | "admin" | "gift" | "expire";
   ref: string;
   balance_after: number;
   created_at: string;
+}
+
+/** What is left of one 충전, and when it lapses (충전일부터 1년). */
+export interface PaidLeft {
+  coins: number;
+  left: number;
+  at: string;
+  expiresAt: string;
 }
 
 export interface Wallet {
@@ -136,6 +144,10 @@ export interface Wallet {
   history: CoinHistoryRow[];
   invites: number;
   inviteLimit: number;
+  /** 무료로 받은 냥 (기한 없음) */
+  free?: number;
+  /** 충전한 냥 still left, oldest first */
+  paid?: PaidLeft[];
 }
 
 export interface ReadingSummary {

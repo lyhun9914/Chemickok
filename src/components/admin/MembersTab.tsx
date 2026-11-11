@@ -8,7 +8,7 @@ type UserRow = { id: string; provider: string; nickname: string; email: string |
 type Ledger = { delta: number; reason: string; ref: string; balance_after: number; created_at: string };
 type Detail = { user: Omit<UserRow, "balance">; balance: number; history: Ledger[]; payments: Payment[] };
 
-const REASON: Record<string, string> = { charge: "충전", spend: "점괘", bonus: "선물·출석·초대·쿠폰", refund: "환불", admin: "관리자", gift: "냥 선물" };
+const REASON: Record<string, string> = { charge: "충전", spend: "점괘", bonus: "선물·출석·초대·쿠폰", refund: "환불", admin: "관리자", gift: "냥 선물", expire: "유효기간 지남" };
 /** "coupon:ABC" → "쿠폰 ABC", "streak:2026-11-06" → "출석" … so the ledger reads like plain Korean. */
 function refLabel(h: Ledger): string {
   const [k, v] = h.ref.split(":");

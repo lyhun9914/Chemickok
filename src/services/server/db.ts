@@ -20,7 +20,7 @@ export interface DbUser {
 /** What 전체 백업 takes, in the order a restore would put them back. */
 const BACKUP_TABLES = ["users", "wallets", "coin_ledger", "payments", "readings", "gifts", "pair_invites", "attendance", "coupons", "coupon_redemptions", "app_settings", "admin_actions", "withdrawn_accounts"];
 
-export type CoinReason = "charge" | "spend" | "bonus" | "refund" | "admin" | "gift";
+export type CoinReason = "charge" | "spend" | "bonus" | "refund" | "admin" | "gift" | "expire";
 export interface LedgerRow {
   delta: number;
   reason: CoinReason;
@@ -195,6 +195,12 @@ export interface Db {
   /** the same ref spent before is free; ok=false when the balance is short */
   coinSpend(userId: string, cost: number, ref: string): Promise<{ ok: boolean; balance: number; already: boolean }>;
   coinHistory(userId: string): Promise<LedgerRow[]>;
+  /** the whole ledger, oldest first (유효기간 계산) */
+  coinLedgerAll(userId: string): Promise<LedgerRow[]>;
+  /** members with a 충전 made at or before `iso` (whose year may be over) */
+  chargeUsersBefore(iso: string): Promise<string[]>;
+  /** 유효기간이 지난 충전 냥: takes up to `coins`, once per ref, never below zero */
+  coinExpire(userId: string, coins: number, ref: string): Promise<{ applied: boolean; taken: number; balance: number }>;
   /** friends who joined through this user's link (rewards given) */
   inviteCount(userId: string): Promise<number>;
   /** stamps `day` (KST yyyy-mm-dd); every `every`-th day in a row pays `coins` */
@@ -361,6 +367,16 @@ function supabase(url: string, key: string): Db {
     },
     async coinHistory(userId) {
       return rest<LedgerRow[]>(`coin_ledger?user_id=${eq(userId)}&select=delta,reason,ref,balance_after,created_at&order=id.desc&limit=30`);
+    },
+    async coinLedgerAll(userId) {
+      return rest<LedgerRow[]>(`coin_ledger?user_id=${eq(userId)}&select=delta,reason,ref,balance_after,created_at&order=id.asc&limit=10000`);
+    },
+    async chargeUsersBefore(iso) {
+      const rows = await rest<{ user_id: string }[]>(`coin_ledger?reason=eq.charge&created_at=lte.${encodeURIComponent(iso)}&select=user_id&limit=10000`);
+      return [...new Set(rows.map((r) => r.user_id))];
+    },
+    async coinExpire(userId, coins, ref) {
+      return rest("rpc/coin_expire", { method: "POST", body: JSON.stringify({ p_user: userId, p_coins: coins, p_ref: ref }) });
     },
     async inviteCount(userId) {
       const rows = await rest<unknown[]>(`coin_ledger?user_id=${eq(userId)}&reason=eq.bonus&ref=like.invite:*&select=id`);
@@ -655,6 +671,18 @@ function memory(): Db {
         .reverse()
         .slice(0, 30)
         .map(({ delta, reason, ref, balance_after, created_at }) => ({ delta, reason, ref, balance_after, created_at }));
+    },
+    async coinLedgerAll(userId) {
+      return m.ledger.filter((x) => x.user_id === userId).map(({ delta, reason, ref, balance_after, created_at }) => ({ delta, reason, ref, balance_after, created_at }));
+    },
+    async chargeUsersBefore(iso) {
+      return [...new Set(m.ledger.filter((x) => x.reason === "charge" && x.created_at <= iso).map((x) => x.user_id))];
+    },
+    async coinExpire(userId, coins, ref) {
+      const b = m.wallets.get(userId) ?? 0;
+      const k = Math.min(coins, b);
+      if (logged(userId, "expire", ref) || k <= 0) return { applied: false, taken: 0, balance: b };
+      return { applied: true, taken: k, balance: log(userId, -k, "expire", ref) };
     },
     async inviteCount(userId) {
       return m.ledger.filter((x) => x.user_id === userId && x.reason === "bonus" && x.ref.startsWith("invite:")).length;

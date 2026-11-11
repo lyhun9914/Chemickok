@@ -5,10 +5,19 @@ import type { NextConfig } from "next";
 const ADMIN_HOST =
   process.env.VERCEL_ENV === "production" ? "nyangsin-admin.vercel.app" : process.env.VERCEL_ENV === "preview" ? "nyangsin-test-admin.vercel.app" : null;
 
+// 예전 이름(chemickok)의 주소. 같은 사이트가 뜨지만 주소창과 공유 링크에 옛 이름이 남지 않게 냥신 주소로 넘긴다.
+// 로그인·결제는 모두 nyangsin 주소에서 일어나므로 넘겨도 깨지는 것이 없다.
+const OLD_HOSTS = ["chemickok.vercel.app"];
+const MAIN_HOST = "nyangsin.vercel.app";
+
 const nextConfig: NextConfig = {
   async redirects() {
     if (!ADMIN_HOST) return [];
     return [
+      // the old name's address → the same page on the 냥신 address (permanent, so search engines move it over too)
+      ...(process.env.VERCEL_ENV === "production"
+        ? OLD_HOSTS.map((value) => ({ source: "/:path*", has: [{ type: "host" as const, value }], destination: `https://${MAIN_HOST}/:path*`, permanent: true }))
+        : []),
       // the admin address opens straight onto the 관리자 화면
       { source: "/", has: [{ type: "host", value: ADMIN_HOST }], destination: "/admin", permanent: false },
       // /admin on any other address of this deployment moves to the admin address

@@ -32,6 +32,8 @@ function ledgerLabel(r: CoinHistoryRow): string {
       return r.ref.startsWith("send:") ? "🎁 선물 보냄" : r.ref.startsWith("recv:") ? "🎁 선물 받음" : "🎁 선물 취소 (돌려받음)";
     case "refund":
       return "↩️ 환불";
+    case "expire":
+      return "⏳ 유효기간 지남 (충전 1년)";
     default:
       return "🛠 조정";
   }
@@ -70,6 +72,9 @@ function WalletSection() {
       .shareKakao({ title: "냥신 점괘 초대장 🐾", description: `골목 끝 고양이 점집이다냥. 이 링크로 가입하면 복채 ${nyang(INVITE_COINS)}을 더 얹어 준다냥 🎁`, url: link })
       .then((o) => o === "copied" && setNote("링크를 복사했다냥 📋"));
   const history = wallet?.history ?? [];
+  const paid = wallet?.paid ?? [];
+  // 충전 냥 lapsing within 30 days
+  const soon = paid.filter((l) => Date.parse(l.expiresAt) - Date.now() < 30 * 86400000);
 
   return (
     <section className="mt-6">
@@ -93,6 +98,22 @@ function WalletSection() {
             </button>
           )}
         </div>
+        {paid.length > 0 && (
+          <div className="mt-3 rounded-xl bg-white/[0.04] px-3 py-2 text-[12px] leading-relaxed text-muted">
+            {soon.length > 0 && (
+              <p className="mb-1 font-semibold text-peach">
+                ⏳ 충전한 냥 {nyang(soon.reduce((a, l) => a + l.left, 0))}이 {fmt(soon[0].expiresAt)}에 사라진다냥. 그 전에 써라냥
+              </p>
+            )}
+            <p className="font-semibold text-ink/80">충전한 냥 유효기간 (충전일부터 1년)</p>
+            {paid.map((l, i) => (
+              <p key={i}>
+                · {fmt(l.at)} 충전 {nyang(l.coins)} 중 {nyang(l.left)} 남음 → {fmt(l.expiresAt)}까지
+              </p>
+            ))}
+            {(wallet?.free ?? 0) > 0 && <p>· 무료로 받은 냥 {nyang(wallet!.free!)} → 기한 없음</p>}
+          </div>
+        )}
         {history.length > 0 && (
           <ul className="mt-3 divide-y divide-violet/15 border-t border-violet/15 text-[13px]">
             {history.slice(0, more ? 30 : 4).map((r, i) => (

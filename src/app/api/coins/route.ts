@@ -1,4 +1,5 @@
 import { NextResponse, after, type NextRequest } from "next/server";
+import { coinLots } from "@/lib/coinLots";
 import { reportError } from "@/services/server/errors";
 import { INVITE_LIMIT, chargeTag } from "@/lib/config";
 import { sellPack, type SellPack } from "@/lib/pricing";
@@ -7,13 +8,18 @@ import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
 import { confirmTossPayment, serverTestMode } from "@/services/server/tossConfirm";
 
-/** GET /api/coins — 복주머니: balance, recent history, how many friends joined through my link. */
+/**
+ * GET /api/coins — 복주머니: balance, recent history, how many friends joined through my link, and what is left of
+ * each 충전 with the day it lapses (충전일부터 1년; 무료 냥은 기한 없음).
+ */
 export async function GET(req: NextRequest) {
   const db = getDb();
   const uid = sessionUserId(req);
   if (!db || !uid) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
-  const [balance, history, invites] = await Promise.all([db.coins(uid), db.coinHistory(uid), db.inviteCount(uid)]);
-  return NextResponse.json({ balance, history, invites, inviteLimit: INVITE_LIMIT });
+  const [balance, history, invites, ledger] = await Promise.all([db.coins(uid), db.coinHistory(uid), db.inviteCount(uid), db.coinLedgerAll(uid)]);
+  const { free, lots } = coinLots(ledger);
+  const paid = lots.filter((l) => l.left > 0).map(({ coins, left, at, expiresAt }) => ({ coins, left, at, expiresAt }));
+  return NextResponse.json({ balance, history, invites, inviteLimit: INVITE_LIMIT, free, paid });
 }
 
 interface ChargeBody {
