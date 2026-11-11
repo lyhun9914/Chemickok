@@ -29,8 +29,8 @@ export function Footer() {
         </button>
       </div>
 
-      {/* 전자상거래법 제10조 표시사항 — open, so it's seen without a tap (결제대행 심사도 이걸 봐요) */}
-      <details className="group" open>
+      {/* 전자상거래법 제10조 표시사항 — folded by default; "사업자 정보 ▾" on every page opens it */}
+      <details className="group">
         <summary className="flex cursor-pointer list-none items-center gap-1 text-xs text-muted [&::-webkit-details-marker]:hidden">
           {BUSINESS.company} 사업자 정보
           <span className="transition group-open:rotate-180" aria-hidden>
