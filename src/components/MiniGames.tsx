@@ -1052,7 +1052,7 @@ function ExamCharm({ onStart }: { onStart: (mode?: Mode) => void }) {
     };
     if (!isMobile()) return download("부적을 저장했다냥! 배경화면으로 써라냥 🧧");
     if (inAppBrowser()) return setNote("이 앱 안에서는 저장 버튼이 막혀 있다냥. 위 부적을 꾹 눌러서 '이미지 저장'을 골라라냥 📌");
-    if (!isIOS()) return download("갤러리에 저장했다냥! (Download 앨범) 배경화면으로 써라냥 🧧");
+    if (!isIOS()) return download("저장했다냥! 갤러리 → 앨범 → Download에 있다냥 🧧");
     setNote("뜨는 창에서 '이미지 저장'을 누르면 사진첩에 들어간다냥 📸");
     shareService.shareStory(img.blob).then((o) => {
       if (o === "unsupported") download("부적을 저장했다냥! '파일' 앱에서 찾을 수 있다냥 🧧");
