@@ -13,7 +13,7 @@ import { MiniGameSheet, type MiniGame } from "./MiniGames";
 type Ask = { kind: "quiz" | "room"; id: string };
 
 /**
- * 내 점괘함 · 친구와 나눈 점괘: the quizzes this member made and the 케미표 they made or joined — open the results, copy
+ * 내 점괘함 · 냥신 사랑방: the quizzes this member made and the 케미표 they made or joined — open the results, copy
  * the link, delete / leave — on any device. Guest-made ones on this browser join the account here too.
  */
 export function FunSection() {
@@ -141,7 +141,8 @@ export function FunSection() {
 
   return (
     <section className="mt-8">
-      <h2 className="mb-2 text-sm font-semibold text-muted">💌 친구와 나눈 점괘</h2>
+      <h2 className="text-sm font-semibold text-muted">🏮 냥신 사랑방</h2>
+      <p className="mb-2 mt-0.5 text-[12px] text-muted/80">친구들과 만든 퀴즈 · 케미표가 모이는 방이다냥</p>
       {error && (
         <p className="mb-2 text-sm text-pink">
           {error}{" "}

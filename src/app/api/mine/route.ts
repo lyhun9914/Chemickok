@@ -4,7 +4,7 @@ import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
 
 /**
- * GET /api/mine — 내 점괘함의 '친구와 나눈 점괘': the quizzes this account made and the 케미표 it is in, each with what the
+ * GET /api/mine — 내 점괘함의 '냥신 사랑방': the quizzes this account made and the 케미표 it is in, each with what the
  * list needs (who leads, how many played or joined, when it lapses). Any device, once logged in.
  */
 export async function GET(req: NextRequest) {
