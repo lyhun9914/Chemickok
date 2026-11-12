@@ -14,10 +14,45 @@ import { Say } from "./Nyang";
 
 const inputCls = "w-full rounded-xl border border-line bg-surface-2 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-muted/60 focus:border-pink/60";
 
-/** 내 점괘함 → 📮 내 건의함 (scrolls down to it once the page is drawn) */
+/** set by openMySuggestions: the next 내 건의함 drawn brings itself into view */
+let focusMine = false;
+
+/** 내 점괘함 → 📮 내 건의함 */
 export function openMySuggestions() {
+  focusMine = true;
   useAppStore.getState().setScreen("my");
-  setTimeout(() => document.getElementById("my-suggestions")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400);
+}
+
+/**
+ * Keeps 내 건의함 at the top while the sections above it (복주머니, 점괘, 도감…) finish loading and push it down —
+ * for 3 seconds, or until the person scrolls themself.
+ */
+function useFocusMine() {
+  useEffect(() => {
+    if (!focusMine) return;
+    focusMine = false;
+    const el = document.getElementById("my-suggestions");
+    const page = el?.closest("main");
+    if (!el || !page) return;
+    let done = false;
+    const align = () => !done && el.scrollIntoView({ block: "start" });
+    const ro = new ResizeObserver(align);
+    const stop = () => {
+      done = true;
+      ro.disconnect();
+      window.removeEventListener("touchstart", stop);
+      window.removeEventListener("wheel", stop);
+    };
+    ro.observe(page);
+    align();
+    const t = setTimeout(stop, 3000);
+    window.addEventListener("touchstart", stop, { passive: true });
+    window.addEventListener("wheel", stop, { passive: true });
+    return () => {
+      clearTimeout(t);
+      stop();
+    };
+  }, []);
 }
 
 // ───────────── 점괘 평가 (유료 점괘 결과 맨 아래) ─────────────
@@ -333,6 +368,7 @@ export function MyFeedbackSection() {
   const [error, setError] = useState<string | null>(null);
   const [fresh, setFresh] = useState<Set<number>>(new Set());
   const [open, setOpen] = useState(false);
+  useFocusMine();
 
   const load = useCallback(async () => {
     try {
