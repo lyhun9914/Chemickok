@@ -7,7 +7,9 @@ const ADMIN_HOST =
 
 // 예전 이름(chemickok)의 주소. 같은 사이트가 뜨지만 주소창과 공유 링크에 옛 이름이 남지 않게 냥신 주소로 넘긴다.
 // 로그인·결제는 모두 nyangsin 주소에서 일어나므로 넘겨도 깨지는 것이 없다.
+// 카드사 심사가 끝날 때까지는 꺼 둔다: Vercel production에 REDIRECT_OLD_HOSTS=1을 넣고 다시 배포하면 켜진다.
 const OLD_HOSTS = ["chemickok.vercel.app"];
+const MOVE_OLD_HOSTS = process.env.VERCEL_ENV === "production" && process.env.REDIRECT_OLD_HOSTS === "1";
 const MAIN_HOST = "nyangsin.vercel.app";
 
 const nextConfig: NextConfig = {
@@ -19,7 +21,7 @@ const nextConfig: NextConfig = {
     if (!ADMIN_HOST) return [];
     return [
       // the old name's address → the same page on the 냥신 address (permanent, so search engines move it over too)
-      ...(process.env.VERCEL_ENV === "production"
+      ...(MOVE_OLD_HOSTS
         ? OLD_HOSTS.map((value) => ({ source: "/:path*", has: [{ type: "host" as const, value }], destination: `https://${MAIN_HOST}/:path*`, permanent: true }))
         : []),
       // the admin address opens straight onto the 관리자 화면
