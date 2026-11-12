@@ -92,6 +92,12 @@
         "source": "github",
         "repo": "supabase/agent-skills"
       }
+    },
+    "knowledge-work-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/knowledge-work-plugins"
+      }
     }
   },
   "enabledPlugins": {
@@ -108,6 +114,10 @@
     "claude-md-management@claude-plugins-official": true,
     "session-report@claude-plugins-official": true,
     "supabase@supabase-agent-skills": true,
-    "postgres-best-practices@supabase-agent-skills": true
+    "postgres-best-practices@supabase-agent-skills": true,
+    "marketing@knowledge-work-plugins": true,
+    "design@knowledge-work-plugins": true,
+    "brand-voice@knowledge-work-plugins": true,
+    "customer-support@knowledge-work-plugins": true
   }
 }
