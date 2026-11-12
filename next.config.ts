@@ -11,6 +11,10 @@ const OLD_HOSTS = ["chemickok.vercel.app"];
 const MAIN_HOST = "nyangsin.vercel.app";
 
 const nextConfig: NextConfig = {
+  // Link-preview crawlers that read <head> only get the metadata before the page (not streamed after it). Next's
+  // default list, plus KakaoTalk's scraper (퀴즈 · 케미표 links are mostly shared in 카톡) and Telegram.
+  htmlLimitedBots:
+    /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|kakaotalk-scrap|TelegramBot/i,
   async redirects() {
     if (!ADMIN_HOST) return [];
     return [

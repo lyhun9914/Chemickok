@@ -12,6 +12,8 @@ import { Say } from "./Nyang";
 
 const inputCls = "w-full rounded-xl border border-line bg-surface-2 px-4 py-3.5 text-[15px] text-ink outline-none placeholder:text-muted/60 focus:border-pink/60";
 const OWN = "nyang-quiz-own";
+/** a quiz this browser made: kept so the maker can come back to its 순위표 (and see their own answers) */
+type OwnQuiz = { id: string; name?: string; at?: string; items?: { q: string; a: number }[] };
 const PLAYED = (id: string) => `nyang-quiz-played-${id}`;
 const store = {
   get<T>(k: string): T | null {
@@ -30,6 +32,10 @@ const store = {
     }
   },
 };
+/** older entries were plain ids */
+const readOwn = (): OwnQuiz[] => (store.get<(OwnQuiz | string)[]>(OWN) ?? []).map((x) => (typeof x === "string" ? { id: x } : x));
+const ownOf = (id: string) => readOwn().find((x) => x.id === id) ?? null;
+const linkOf = (id: string) => `${window.location.origin}/quiz/${id}`;
 const shuffle = <T,>(a: T[]) => {
   const x = [...a];
   for (let i = x.length - 1; i > 0; i--) {
@@ -55,12 +61,12 @@ export function FriendQuiz({ quizId }: { quizId?: string | null }) {
         }}
       />
     );
-  const own = (store.get<string[]>(OWN) ?? []).includes(id);
+  const own = Boolean(ownOf(id));
   return own ? <QuizOwner id={id} onNew={() => setMaking(true)} /> : <QuizPlay id={id} onMake={() => setMaking(true)} />;
 }
 
 function shareQuiz(id: string, owner: string, note: (s: string) => void) {
-  const url = `${window.location.origin}/?quiz=${id}`;
+  const url = linkOf(id);
   return shareService
     .shareKakao({
       title: `🐾 ${josa(owner, "을/를")} 얼마나 아냥?`,
@@ -103,7 +109,8 @@ function QuizMake({ onMade }: { onMade: (id: string) => void }) {
     setError(null);
     try {
       const r = await quizApi.create(name.trim(), qs.map((q, k) => ({ q: q.id, a: next[k] })));
-      store.set(OWN, [...(store.get<string[]>(OWN) ?? []), r.id].slice(-20));
+      const items = qs.map((q, k) => ({ q: q.id, a: next[k] }));
+      store.set(OWN, [...readOwn(), { id: r.id, name: name.trim(), at: new Date().toISOString(), items }].slice(-20));
       sound().play("stamp");
       onMade(r.id);
     } catch (e) {
@@ -125,6 +132,7 @@ function QuizMake({ onMade }: { onMade: (id: string) => void }) {
         <button onClick={start} disabled={!name.trim()} className="btn-primary w-full py-4">
           문제 고르러 가기 →
         </button>
+        <MyQuizzes onOpen={onMade} />
       </div>
     );
   const q = qs[Math.min(i, QUIZ_LEN - 1)];
@@ -195,7 +203,8 @@ function QuizOwner({ id, onNew }: { id: string; onNew: () => void }) {
       </div>
     );
   if (!v) return <p className="animate-pulse py-10 text-center text-[14px] text-muted">순위표 펼치는 중…</p>;
-  const link = `${window.location.origin}/?quiz=${id}`;
+  const link = linkOf(id);
+  const mine = ownOf(id);
   return (
     <div className="space-y-4">
       <Say mood="happy">
@@ -230,6 +239,25 @@ function QuizOwner({ id, onNew }: { id: string; onNew: () => void }) {
           </p>
         </div>
       )}
+      <div className="rounded-2xl border border-line bg-surface p-4">
+        <p className="mb-2 text-[14px] font-bold">📝 문제별 결과</p>
+        <ol className="space-y-2">
+          {v.questions.map((q, k) => {
+            const a = mine?.items?.[k]?.a;
+            return (
+              <li key={k} className="text-[13.5px] leading-snug">
+                <span className="font-semibold">
+                  Q{k + 1}. {q.q}
+                </span>
+                <span className="mt-0.5 block text-[12.5px] text-muted">
+                  {a !== undefined ? `내 답: ${q.options[a]} · ` : ""}
+                  {v.plays ? `맞힌 친구 ${v.correct[k]}/${v.plays}명` : "아직 푼 친구 없음"}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
       <p className="text-center text-[12px] text-muted">퀴즈는 만든 날부터 30일 뒤 사라진다냥</p>
       <button onClick={onNew} className="w-full py-1 text-[13px] text-muted underline underline-offset-4">
         퀴즈 새로 만들기
@@ -359,6 +387,46 @@ function QuizPlay({ id, onMake }: { id: string; onMake: () => void }) {
         ))}
       </div>
       {busy && <p className="animate-pulse text-center text-[13px] text-peach">채점하는 중…</p>}
+    </div>
+  );
+}
+
+/** 내가 만든 퀴즈: the quizzes this browser made, with how many friends played and who leads. */
+function MyQuizzes({ onOpen }: { onOpen: (id: string) => void }) {
+  const [rows, setRows] = useState<{ id: string; v: QuizView }[] | null>(null);
+  useEffect(() => {
+    const own = readOwn().slice(-5).reverse();
+    if (!own.length) return setRows([]);
+    Promise.all(own.map((o) => quizApi.get(o.id).then((v) => ({ id: o.id, v })).catch(() => null))).then((all) => {
+      const live = all.filter((x): x is { id: string; v: QuizView } => Boolean(x));
+      // forget quizzes that are gone (30일이 지났거나 지워짐)
+      const keep = new Set(live.map((x) => x.id));
+      const rest = readOwn().filter((o) => keep.has(o.id) || !own.some((x) => x.id === o.id));
+      store.set(OWN, rest);
+      setRows(live);
+    });
+  }, []);
+  if (!rows?.length) return null;
+  return (
+    <div className="rounded-2xl border border-violet/35 bg-white/[0.03] p-4">
+      <p className="text-[14px] font-bold">📋 내가 만든 퀴즈 · 결과 보기</p>
+      <ul className="mt-1 divide-y divide-line">
+        {rows.map(({ id, v }) => (
+          <li key={id}>
+            <button onClick={() => onOpen(id)} className="flex w-full items-center gap-3 py-2.5 text-left">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-semibold">{v.owner}의 퀴즈</span>
+                <span className="block text-[12.5px] text-muted">
+                  {v.plays ? `${v.plays}명이 풀었다냥 · 1등 ${v.ranking[0].name} ${v.ranking[0].score}/${v.total}` : "아직 푼 친구 없음"}
+                </span>
+              </span>
+              <span className="text-peach" aria-hidden>
+                ›
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

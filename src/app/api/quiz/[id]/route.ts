@@ -23,6 +23,7 @@ function view(r: { quiz: QuizRow; plays: QuizPlayRow[] }) {
     ranking: plays.slice(0, 30).map((p) => ({ name: p.name, score: p.score })),
     plays: plays.length,
     hardest: hardest >= 0 ? { index: hardest, q: questions[hardest].q, missed: miss[hardest] } : null,
+    correct: quiz.items.map((_, i) => plays.length - miss[i]),
     expiresAt: quiz.expires_at,
   };
 }

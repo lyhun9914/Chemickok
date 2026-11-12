@@ -62,6 +62,55 @@ export function ChemRoom({ roomId }: { roomId?: string | null }) {
   return id ? <RoomScreen id={id} onNew={() => setId(null)} /> : <RoomCreate onMade={setId} />;
 }
 
+/** rooms this browser is in (it holds their keys) */
+function myRoomIds(): string[] {
+  try {
+    const out: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith("nyang-room-")) out.push(k.slice("nyang-room-".length));
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/** 내가 들어간 케미표: back to a room without the link. */
+function MyRooms({ onOpen }: { onOpen: (id: string) => void }) {
+  const [rows, setRows] = useState<{ id: string; v: RoomView }[] | null>(null);
+  useEffect(() => {
+    const ids = myRoomIds().slice(0, 8);
+    Promise.all(ids.map((id) => roomApi.get(id, readKey(id)).then((v) => ({ id, v })).catch(() => ({ id, v: null as RoomView | null })))).then((all) => {
+      for (const x of all) if (!x.v || x.v.me < 0) saveKey(x.id, null); // gone, or taken out
+      setRows(all.filter((x): x is { id: string; v: RoomView } => Boolean(x.v && x.v.me >= 0)));
+    });
+  }, []);
+  if (!rows?.length) return null;
+  return (
+    <div className="rounded-2xl border border-violet/35 bg-white/[0.03] p-4">
+      <p className="text-[14px] font-bold">💬 내가 들어간 케미표</p>
+      <ul className="mt-1 divide-y divide-line">
+        {rows.map(({ id, v }) => (
+          <li key={id}>
+            <button onClick={() => onOpen(id)} className="flex w-full items-center gap-3 py-2.5 text-left">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-semibold">{v.title}</span>
+                <span className="block text-[12.5px] text-muted">
+                  {v.members.length}명{v.best ? ` · 최고의 짝꿍 ${v.members[v.best.a].name} & ${v.members[v.best.b].name}` : " · 친구를 기다리는 중"}
+                </span>
+              </span>
+              <span className="text-peach" aria-hidden>
+                ›
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function RoomCreate({ onMade }: { onMade: (id: string) => void }) {
   const p = usePerson();
   const [title, setTitle] = useState("");
@@ -99,6 +148,7 @@ function RoomCreate({ onMade }: { onMade: (id: string) => void }) {
         <br />
         케미표는 만든 날부터 30일 뒤 지워진다냥.
       </p>
+      <MyRooms onOpen={onMade} />
     </div>
   );
 }
@@ -206,7 +256,7 @@ function RoomScreen({ id, onNew }: { id: string; onNew: () => void }) {
     );
   if (!v) return <p className="animate-pulse py-10 text-center text-[14px] text-muted">케미표 펼치는 중…</p>;
 
-  const link = `${window.location.origin}/?room=${id}`;
+  const link = `${window.location.origin}/room/${id}`;
   const n = v.members.length;
   const share = () =>
     shareService

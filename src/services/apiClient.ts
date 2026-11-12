@@ -289,6 +289,8 @@ export interface QuizView {
   ranking: { name: string; score: number }[];
   plays: number;
   hardest: { index: number; q: string; missed: number } | null;
+  /** how many friends got each question right */
+  correct: number[];
   expiresAt: string;
 }
 export interface QuizResult extends QuizView {
