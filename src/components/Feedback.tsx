@@ -355,7 +355,7 @@ export function MyFeedbackSection() {
 
   const gifts = items?.filter((i) => fresh.has(i.id) && i.adopted && i.reward > 0).reduce((n, i) => n + i.reward, 0) ?? 0;
   return (
-    <section id="my-suggestions" className="mt-8 scroll-mt-4">
+    <section id="my-suggestions" className="mt-8 scroll-mt-16">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-muted">📮 내 건의함</h2>
         <button onClick={() => setOpen(true)} className="text-[12.5px] font-semibold text-peach">
