@@ -259,6 +259,8 @@ export function FeedbackTab({ onCount, onOpenUser }: { onCount?: (n: number) => 
   const [data, setData] = useState<Data | null>(null);
   const [filter, setFilter] = useState<Filter>("todo");
   const [error, setError] = useState<string | null>(null);
+  /** worked on in this visit: stays in its list (e.g. 할 일 after 채택 → 반영 예정) until the list is left */
+  const [touched, setTouched] = useState<Set<number>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -281,7 +283,7 @@ export function FeedbackTab({ onCount, onOpenUser }: { onCount?: (n: number) => 
   const ideas = data.items.filter((i) => i.kind !== "rating");
   const comments = data.items.filter((i) => i.kind === "rating" && (i.body || i.tags.length));
   const FILTERS: [Filter, string, Item[]][] = [
-    ["todo", "할 일", ideas.filter(isTodo)],
+    ["todo", "할 일", ideas.filter((i) => isTodo(i) || touched.has(i.id))],
     ["all", "건의 전체", ideas],
     ["idea", "💡", ideas.filter((i) => i.kind === "idea")],
     ["sad", "😿", ideas.filter((i) => i.kind === "sad")],
@@ -290,7 +292,10 @@ export function FeedbackTab({ onCount, onOpenUser }: { onCount?: (n: number) => 
     ["comments", "⭐ 평가 이유·한마디", comments],
   ];
   const list = FILTERS.find(([k]) => k === filter)![2];
-  const patch = (id: number, p: Partial<Item>) => setData((d) => (d ? { ...d, items: d.items.map((x) => (x.id === id ? { ...x, ...p } : x)) } : d));
+  const patch = (id: number, p: Partial<Item>) => {
+    setTouched((t) => (t.has(id) ? t : new Set(t).add(id)));
+    setData((d) => (d ? { ...d, items: d.items.map((x) => (x.id === id ? { ...x, ...p } : x)) } : d));
+  };
 
   return (
     <div className="space-y-4">
@@ -314,7 +319,10 @@ export function FeedbackTab({ onCount, onOpenUser }: { onCount?: (n: number) => 
           {FILTERS.map(([k, label, l]) => (
             <button
               key={k}
-              onClick={() => setFilter(k)}
+              onClick={() => {
+                setFilter(k);
+                setTouched(new Set());
+              }}
               className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-semibold ${filter === k ? "border-peach bg-peach/15 text-peach" : "border-line text-muted"}`}
             >
               {label} {l.length}
