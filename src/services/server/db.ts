@@ -18,9 +18,42 @@ export interface DbUser {
 }
 
 /** What 전체 백업 takes, in the order a restore would put them back. */
-const BACKUP_TABLES = ["users", "wallets", "coin_ledger", "payments", "readings", "gifts", "pair_invites", "attendance", "coupons", "coupon_redemptions", "app_settings", "admin_actions", "withdrawn_accounts"];
+const BACKUP_TABLES = ["users", "wallets", "coin_ledger", "payments", "readings", "gifts", "pair_invites", "attendance", "coupons", "coupon_redemptions", "app_settings", "admin_actions", "withdrawn_accounts", "cat_cards"];
 
 export type CoinReason = "charge" | "spend" | "bonus" | "refund" | "admin" | "gift" | "expire";
+/** 단톡방 케미표 · 퀴즈 · 고양이 도감 모으기 */
+export interface RoomRow {
+  id: string;
+  title: string;
+  created_at: string;
+  expires_at: string;
+}
+export interface RoomMemberRow {
+  name: string;
+  birthdate: string;
+  member_key: string;
+  created_at: string;
+}
+export interface QuizRow {
+  id: string;
+  owner_name: string;
+  items: { q: string; a: number }[];
+  created_at: string;
+  expires_at: string;
+}
+export interface QuizPlayRow {
+  name: string;
+  score: number;
+  /** bit i set = question i right */
+  mask: number;
+  created_at: string;
+}
+export interface CatCardRow {
+  no: number;
+  got_day: string;
+}
+export type JoinResult = { ok: boolean; reason?: "none" | "name" | "full" };
+
 export interface LedgerRow {
   delta: number;
   reason: CoinReason;
@@ -216,6 +249,23 @@ export interface Db {
   pairGet(id: string): Promise<PairRow | null>;
   /** false if someone already answered */
   pairAnswer(id: string, to: Pick<PairRow, "to_person" | "to_self" | "to_obs">): Promise<boolean>;
+  // 단톡방 케미표 (expired rooms read as missing; creating one clears the expired)
+  roomCreate(room: { id: string; title: string }, first: { name: string; birthdate: string; key: string }): Promise<void>;
+  roomGet(id: string): Promise<{ room: RoomRow; members: RoomMemberRow[] } | null>;
+  /** at most `max` members, names unique in the room */
+  roomJoin(id: string, m: { name: string; birthdate: string; key: string }, max: number): Promise<JoinResult>;
+  /** takes one member (and their birthday) out; false if the key matched no one */
+  roomLeave(id: string, key: string): Promise<boolean>;
+  // 나를 얼마나 아냥? 퀴즈
+  quizCreate(q: { id: string; owner_name: string; items: { q: string; a: number }[] }): Promise<void>;
+  quizGet(id: string): Promise<{ quiz: QuizRow; plays: QuizPlayRow[] } | null>;
+  quizPlay(id: string, p: { name: string; score: number; mask: number }, max: number): Promise<JoinResult>;
+  /** 30일이 지난 케미표 · 퀴즈 · 궁합 신청서를 지운다 (매일 아침) */
+  purgeExpired(): Promise<void>;
+  // 고양이 도감 모으기
+  catCards(userId: string): Promise<CatCardRow[]>;
+  /** one card a KST day: ok=false (and today's card) when it was already drawn */
+  catDraw(userId: string, day: string, no: number): Promise<{ ok: boolean; no: number }>;
   // 관리자
   adminStats(): Promise<Record<string, number | boolean>>;
   adminUsers(q: string): Promise<AdminUserRow[]>;
@@ -417,6 +467,47 @@ function supabase(url: string, key: string): Db {
       });
       return rows.length > 0;
     },
+    async roomCreate(room, first) {
+      await rest(`chem_rooms?expires_at=lt.${encodeURIComponent(new Date().toISOString())}`, { method: "DELETE" }).catch(() => null);
+      await rest("chem_rooms", { method: "POST", body: JSON.stringify(room) });
+      await rest("chem_members", { method: "POST", body: JSON.stringify({ room_id: room.id, name: first.name, birthdate: first.birthdate, member_key: first.key }) });
+    },
+    async roomGet(id) {
+      const [room] = await rest<RoomRow[]>(`chem_rooms?id=${eq(id)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=*`);
+      if (!room) return null;
+      const members = await rest<RoomMemberRow[]>(`chem_members?room_id=${eq(id)}&select=name,birthdate,member_key,created_at&order=id.asc`);
+      return { room, members };
+    },
+    async roomJoin(id, mb, max) {
+      return rest("rpc/chem_join", { method: "POST", body: JSON.stringify({ p_room: id, p_name: mb.name, p_birth: mb.birthdate, p_key: mb.key, p_max: max }) });
+    },
+    async roomLeave(id, key) {
+      const rows = await rest<unknown[]>(`chem_members?room_id=${eq(id)}&member_key=${eq(key)}`, { method: "DELETE", prefer: "return=representation" });
+      return Array.isArray(rows) && rows.length > 0;
+    },
+    async quizCreate(q) {
+      await rest(`quizzes?expires_at=lt.${encodeURIComponent(new Date().toISOString())}`, { method: "DELETE" }).catch(() => null);
+      await rest("quizzes", { method: "POST", body: JSON.stringify(q) });
+    },
+    async quizGet(id) {
+      const [quiz] = await rest<QuizRow[]>(`quizzes?id=${eq(id)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=*`);
+      if (!quiz) return null;
+      const plays = await rest<QuizPlayRow[]>(`quiz_plays?quiz_id=${eq(id)}&select=name,score,mask,created_at&order=score.desc,id.asc&limit=200`);
+      return { quiz, plays };
+    },
+    async quizPlay(id, p, max) {
+      return rest("rpc/quiz_play", { method: "POST", body: JSON.stringify({ p_quiz: id, p_name: p.name, p_score: p.score, p_mask: p.mask, p_max: max }) });
+    },
+    async purgeExpired() {
+      const now = encodeURIComponent(new Date().toISOString());
+      for (const t of ["chem_rooms", "quizzes", "pair_invites"]) await rest(`${t}?expires_at=lt.${now}`, { method: "DELETE" });
+    },
+    async catCards(userId) {
+      return rest<CatCardRow[]>(`cat_cards?user_id=${eq(userId)}&select=no,got_day&order=got_day.asc`);
+    },
+    async catDraw(userId, day, no) {
+      return rest("rpc/cat_draw", { method: "POST", body: JSON.stringify({ p_user: userId, p_day: day, p_no: no }) });
+    },
     async adminStats() {
       return rest("rpc/admin_stats", { method: "POST", body: "{}" });
     },
@@ -562,9 +653,21 @@ function memory(): Db {
     actions: AdminAction[];
     coupons: Coupon[];
     redemptions: { code: string; user_id: string; created_at: string }[];
+    rooms?: RoomRow[];
+    members?: (RoomMemberRow & { room_id: string })[];
+    quizzes?: QuizRow[];
+    plays?: (QuizPlayRow & { quiz_id: string })[];
+    cats?: (CatCardRow & { user_id: string })[];
   };
   const g = globalThis as unknown as { __nyangDb?: Mem };
   const m: Mem = (g.__nyangDb ??= { users: [], readings: [], payments: [], wallets: new Map(), ledger: [], attendance: new Set(), gifts: [], pairs: [], visits: [], runs: [], errors: [], settings: {}, withdrawn: new Map(), actions: [], coupons: [], redemptions: [] });
+  m.rooms ??= [];
+  m.members ??= [];
+  m.quizzes ??= [];
+  m.plays ??= [];
+  m.cats ??= [];
+  const rooms = m.rooms;
+  const live = <T extends { expires_at: string }>(x: T) => Date.parse(x.expires_at) > Date.now();
   const newUser = (u: { provider: string; providerId: string; nickname: string; email: string | null; passwordHash?: string }): DbUser => ({
     id: randomUUID(),
     provider: u.provider,
@@ -630,6 +733,7 @@ function memory(): Db {
       m.readings = m.readings.filter((x) => x.user_id !== id);
       m.wallets.delete(id);
       m.ledger = m.ledger.filter((x) => x.user_id !== id);
+      m.cats = m.cats!.filter((x) => x.user_id !== id);
     },
     async recordPayment(p) {
       if (!m.payments.some((x) => x.order_id === p.orderId))
@@ -743,6 +847,73 @@ function memory(): Db {
       if (!p || p.answered_at) return false;
       Object.assign(p, to, { answered_at: new Date().toISOString() });
       return true;
+    },
+    async roomCreate(room, first) {
+      m.rooms = rooms.filter(live);
+      const ids = new Set(m.rooms.map((x) => x.id));
+      m.members = m.members!.filter((x) => ids.has(x.room_id));
+      const now = Date.now();
+      m.rooms.push({ ...room, created_at: new Date(now).toISOString(), expires_at: new Date(now + 30 * 864e5).toISOString() });
+      m.members.push({ room_id: room.id, name: first.name, birthdate: first.birthdate, member_key: first.key, created_at: new Date().toISOString() });
+    },
+    async roomGet(id) {
+      const room = m.rooms!.find((x) => x.id === id && live(x));
+      if (!room) return null;
+      return { room, members: m.members!.filter((x) => x.room_id === id).map(({ name, birthdate, member_key, created_at }) => ({ name, birthdate, member_key, created_at })) };
+    },
+    async roomJoin(id, mb, max) {
+      if (!m.rooms!.some((x) => x.id === id && live(x))) return { ok: false, reason: "none" };
+      const mine = m.members!.filter((x) => x.room_id === id);
+      if (mine.some((x) => x.name.toLowerCase() === mb.name.toLowerCase())) return { ok: false, reason: "name" };
+      if (mine.length >= max) return { ok: false, reason: "full" };
+      m.members!.push({ room_id: id, name: mb.name, birthdate: mb.birthdate, member_key: mb.key, created_at: new Date().toISOString() });
+      return { ok: true };
+    },
+    async roomLeave(id, key) {
+      const before = m.members!.length;
+      m.members = m.members!.filter((x) => !(x.room_id === id && x.member_key === key));
+      return m.members.length < before;
+    },
+    async quizCreate(q) {
+      m.quizzes = m.quizzes!.filter(live);
+      const now = Date.now();
+      m.quizzes.push({ ...q, created_at: new Date(now).toISOString(), expires_at: new Date(now + 30 * 864e5).toISOString() });
+    },
+    async quizGet(id) {
+      const quiz = m.quizzes!.find((x) => x.id === id && live(x));
+      if (!quiz) return null;
+      const plays = m.plays!
+        .filter((x) => x.quiz_id === id)
+        .map(({ name, score, mask, created_at }) => ({ name, score, mask, created_at }))
+        .sort((a, b) => b.score - a.score || a.created_at.localeCompare(b.created_at));
+      return { quiz, plays };
+    },
+    async quizPlay(id, p, max) {
+      if (!m.quizzes!.some((x) => x.id === id && live(x))) return { ok: false, reason: "none" };
+      const mine = m.plays!.filter((x) => x.quiz_id === id);
+      if (mine.some((x) => x.name.toLowerCase() === p.name.toLowerCase())) return { ok: false, reason: "name" };
+      if (mine.length >= max) return { ok: false, reason: "full" };
+      m.plays!.push({ quiz_id: id, ...p, created_at: new Date().toISOString() });
+      return { ok: true };
+    },
+    async purgeExpired() {
+      m.rooms = m.rooms!.filter(live);
+      m.quizzes = m.quizzes!.filter(live);
+      m.pairs = m.pairs.filter((x) => Date.parse(x.expires_at) > Date.now());
+      const rooms = new Set(m.rooms.map((x) => x.id));
+      const quizzes = new Set(m.quizzes.map((x) => x.id));
+      m.members = m.members!.filter((x) => rooms.has(x.room_id));
+      m.plays = m.plays!.filter((x) => quizzes.has(x.quiz_id));
+    },
+    async catCards(userId) {
+      return m.cats!.filter((x) => x.user_id === userId).map(({ no, got_day }) => ({ no, got_day }));
+    },
+    async catDraw(userId, day, no) {
+      const today = m.cats!.find((x) => x.user_id === userId && x.got_day === day);
+      if (today) return { ok: false, no: today.no };
+      if (m.cats!.some((x) => x.user_id === userId && x.no === no)) return { ok: false, no: 0 };
+      m.cats!.push({ user_id: userId, no, got_day: day });
+      return { ok: true, no };
     },
     async adminStats() {
       const toss = m.payments.filter((x) => x.method === "toss");
@@ -878,6 +1049,7 @@ function memory(): Db {
         attendance: [...m.attendance],
         coupons: m.coupons,
         coupon_redemptions: m.redemptions,
+        cat_cards: m.cats!,
         app_settings: Object.entries(m.settings).map(([key, value]) => ({ key, value })),
         admin_actions: m.actions,
         withdrawn_accounts: [...m.withdrawn].map(([key, at]) => ({ key, at })),

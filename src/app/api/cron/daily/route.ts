@@ -28,6 +28,11 @@ export async function GET(req: NextRequest) {
         return null;
       })
     : null;
+  // 보관 기간(30일)이 지난 케미표 · 퀴즈 · 궁합 신청서 삭제 (개인정보처리방침 3. 보유 기간)
+  if (db)
+    await db.purgeExpired().catch(async (e) => {
+      await reportError({ source: "server", message: `만료 자료 삭제 실패: ${e instanceof Error ? e.message : String(e)}`, path: "/api/cron/daily", detail: null, ua: null }).catch(() => null);
+    });
   const to = process.env.ADMIN_EMAIL;
   if (!db || !to || !mailConfigured()) return NextResponse.json({ skipped: "메일 설정 없음", expired });
   const [y, b] = await Promise.all([db.adminDay(kstDay(-1)), db.adminDay(kstDay(-2))]);

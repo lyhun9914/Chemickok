@@ -245,3 +245,88 @@ export const giftApi = {
 export const checkinApi = {
   stamp: () => post<{ streak: number; rewarded: boolean; every: number; coins: number; balance?: number }>("/api/checkin", {}),
 };
+
+// ───────────── 재미 기능: 단톡방 케미표 · 나를 얼마나 아냥? · 고양이 도감 모으기 ─────────────
+
+export interface ChemMemberView {
+  name: string;
+  cat: string;
+  icon: string;
+  animal: string;
+  role: string;
+}
+export interface ChemPairView {
+  a: number;
+  b: number;
+  score: number;
+  label: string;
+  line: string;
+}
+export interface RoomView {
+  title: string;
+  expiresAt: string;
+  max: number;
+  /** index of the member this browser's key belongs to, or -1 */
+  me: number;
+  members: ChemMemberView[];
+  pairs: ChemPairView[];
+  best: ChemPairView | null;
+  rival: ChemPairView | null;
+  mood: { member: number; avg: number } | null;
+  carer: { member: number; count: number } | null;
+}
+export const roomApi = {
+  create: (title: string, name: string, birthdate: string) => post<{ id: string; key: string }>("/api/room", { title, name, birthdate }),
+  get: (id: string, key?: string | null) => get<RoomView>(`/api/room/${encodeURIComponent(id)}${key ? `?key=${encodeURIComponent(key)}` : ""}`),
+  join: (id: string, name: string, birthdate: string) => post<RoomView & { key: string }>(`/api/room/${encodeURIComponent(id)}`, { name, birthdate }),
+  leave: (id: string, key: string) => post<{ ok: true }>(`/api/room/${encodeURIComponent(id)}`, { key }, "DELETE"),
+};
+
+export interface QuizView {
+  owner: string;
+  total: number;
+  questions: { q: string; options: string[] }[];
+  ranking: { name: string; score: number }[];
+  plays: number;
+  hardest: { index: number; q: string; missed: number } | null;
+  expiresAt: string;
+}
+export interface QuizResult extends QuizView {
+  mine: { name: string; score: number; right: boolean[]; answers: number[]; picked?: number[]; verdict: string };
+}
+export const quizApi = {
+  create: (name: string, items: { q: string; a: number }[]) => post<{ id: string }>("/api/quiz", { name, items }),
+  get: (id: string) => get<QuizView>(`/api/quiz/${encodeURIComponent(id)}`),
+  play: (id: string, name: string, answers: number[]) => post<QuizResult>(`/api/quiz/${encodeURIComponent(id)}`, { name, answers }),
+};
+
+export interface AlbumCard {
+  no: number;
+  ganji: string;
+  hanja: string;
+  name: string;
+  icon: string;
+  keys: string[];
+  trait: string;
+  rank: number;
+  day?: string;
+}
+export interface AlbumView {
+  size: number;
+  cards: AlbumCard[];
+  drawnToday: boolean;
+  milestones: { at: number; coins: number; done: boolean }[];
+  rewards: boolean;
+  mine: number | null;
+  balance: number;
+}
+export const albumApi = {
+  get: () => get<AlbumView>("/api/album"),
+  /** a 409 (already drawn today) still carries the album and today's card */
+  draw: async (): Promise<AlbumView & { card: AlbumCard | null; reward?: number; first?: boolean; error?: string }> => {
+    const res = await fetch("/api/album", { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok && res.status !== 409) failed("POST /api/album", res.status, data);
+    return data;
+  },
+};

@@ -27,7 +27,17 @@ function ledgerLabel(r: CoinHistoryRow): string {
     case "spend":
       return `📜 ${PRODUCTS[r.ref.split(":")[0] as Mode]?.name ?? "점괘"} 열기`;
     case "bonus":
-      return r.ref === "welcome" ? "🎁 가입 선물" : r.ref === "joined" ? "🎁 초대받아 가입 선물" : r.ref.startsWith("streak:") ? "📅 출석 선물" : "🤝 친구 초대 선물";
+      return r.ref === "welcome"
+        ? "🎁 가입 선물"
+        : r.ref === "joined"
+          ? "🎁 초대받아 가입 선물"
+          : r.ref.startsWith("streak:")
+            ? "📅 출석 선물"
+            : r.ref.startsWith("coupon:")
+              ? `🎟️ 쿠폰 ${r.ref.slice(7)}`
+              : r.ref.startsWith("album:")
+                ? `🗂️ 고양이 도감 ${r.ref.slice(6)}마리 선물`
+                : "🤝 친구 초대 선물";
     case "gift":
       return r.ref.startsWith("send:") ? "🎁 선물 보냄" : r.ref.startsWith("recv:") ? "🎁 선물 받음" : "🎁 선물 취소 (돌려받음)";
     case "refund":

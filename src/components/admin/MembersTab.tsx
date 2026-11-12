@@ -12,7 +12,7 @@ const REASON: Record<string, string> = { charge: "충전", spend: "점괘", bonu
 /** "coupon:ABC" → "쿠폰 ABC", "streak:2026-11-06" → "출석" … so the ledger reads like plain Korean. */
 function refLabel(h: Ledger): string {
   const [k, v] = h.ref.split(":");
-  if (h.reason === "bonus") return k === "coupon" ? `쿠폰 ${v}` : k === "streak" ? "7일 출석" : k === "invite" ? "친구 초대" : k === "welcome" ? "가입 선물" : k === "joined" ? "초대받아 가입" : h.ref;
+  if (h.reason === "bonus") return k === "coupon" ? `쿠폰 ${v}` : k === "streak" ? "7일 출석" : k === "invite" ? "친구 초대" : k === "welcome" ? "가입 선물" : k === "joined" ? "초대받아 가입" : k === "album" ? `도감 ${v}마리` : h.ref;
   if (h.reason === "spend") return `${k} 점괘`;
   if (h.reason === "gift") return k === "send" ? "선물 보냄" : k === "recv" ? "선물 받음" : k === "cancel" ? "선물 취소" : h.ref;
   return h.ref.replace(/#[0-9a-f]+$/, "");

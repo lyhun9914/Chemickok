@@ -31,6 +31,9 @@ const MENU: { title: string; sub: string; modes: Mode[] }[] = [
 const MINI: { id: MiniGame; emoji: string; name: string; sub: string; wide?: boolean }[] = [
   { id: "today", emoji: "📅", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번", wide: true },
   { id: "exam", emoji: "🧧", name: "냥신 합격 부적", sub: "이름 넣으면 냥신이 직접 써 주는 부적 + 시험날 일진", wide: true },
+  { id: "room", emoji: "💬", name: "단톡방 케미표", sub: "링크 하나로 우리 방 궁합표 · 짝꿍 · 앙숙 · 분위기 메이커", wide: true },
+  { id: "quiz", emoji: "❓", name: "나를 얼마나 아냥?", sub: "7문제 퀴즈로 찐친 순위 매기기" },
+  { id: "album", emoji: "🗂️", name: "고양이 도감 모으기", sub: "하루 한 장 · 60마리 모으면 냥 선물" },
   { id: "ilju", emoji: "🐈", name: "일주 고양이 도감", sub: "60일주 중 내 고양이 · 기 센 순위" },
   { id: "contact", emoji: "🃏", name: "할까? 말까?", sub: "고백·선톡·재회… 카드 세 장으로 답한다냥" },
   { id: "tarot", emoji: "🎴", name: "오늘의 타로", sub: "15장 중 2장 · 하루 한 번" },
@@ -50,13 +53,19 @@ export function Landing() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [pairId, setPairId] = useState<string | null>(null);
+  const [linkId, setLinkId] = useState<string | null>(null);
   // Opened from a link: the 맞궁합 신청서 or a mini game (the gift sheet reads its own).
   const deepLink = useAppStore((s) => s.deepLink);
   useEffect(() => {
     if (!deepLink) return;
     if (deepLink.pair) setPairId(deepLink.pair);
     if (deepLink.game && MINI.some((g) => g.id === deepLink.game)) setGame(deepLink.game as MiniGame);
-    if (deepLink.pair || deepLink.game) useAppStore.setState({ deepLink: deepLink.gift ? { gift: deepLink.gift } : null });
+    // 단톡방 케미표 · 퀴즈 links open their game on that room / quiz
+    if (deepLink.room || deepLink.quiz) {
+      setLinkId(deepLink.room ?? deepLink.quiz ?? null);
+      setGame(deepLink.room ? "room" : "quiz");
+    }
+    if (deepLink.pair || deepLink.game || deepLink.room || deepLink.quiz) useAppStore.setState({ deepLink: deepLink.gift ? { gift: deepLink.gift } : null });
   }, [deepLink]);
   const k = new Date(Date.now() + 9 * 3600 * 1000);
   const todayLabel = `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일`;
@@ -250,6 +259,7 @@ export function Landing() {
               key={g.id}
               onClick={() => {
                 sound().play("slide");
+                setLinkId(null);
                 setGame(g.id);
               }}
               className={`relative rounded-2xl border bg-surface p-4 text-left transition hover:border-peach/50 active:scale-[0.98] ${g.wide ? "col-span-2 flex items-center gap-4 border-violet/40" : "border-line"}`}
@@ -316,7 +326,15 @@ export function Landing() {
 
       <MethodSection />
 
-      <MiniGameSheet game={game} onClose={() => setGame(null)} onStart={start} />
+      <MiniGameSheet
+        game={game}
+        linkId={linkId}
+        onClose={() => {
+          setGame(null);
+          setLinkId(null);
+        }}
+        onStart={start}
+      />
       <LoginSheet open={loginOpen} onClose={() => setLoginOpen(false)} />
       <WalletSheet open={walletOpen} onClose={() => setWalletOpen(false)} />
       <PairSheet id={pairId} onClose={() => setPairId(null)} />

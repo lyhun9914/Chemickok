@@ -16,7 +16,10 @@ import { inAppBrowser } from "@/lib/handoff";
 import { newId, track } from "@/lib/track";
 import { isIOS, isMobile, shareService, siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
+import { CatAlbum } from "./CatAlbum";
+import { ChemRoom } from "./ChemRoom";
 import { DateTimeSelects } from "./DateTimeSelects";
+import { FriendQuiz } from "./FriendQuiz";
 import { type BasicInfo, InfoGate, useSavedInfo } from "./InfoGate";
 import { Say } from "./Nyang";
 import { ShareButtons } from "./ShareButtons";
@@ -67,7 +70,7 @@ function GameShare({
   );
 }
 
-export type MiniGame = "today" | "daily" | "tarot" | "zodiac" | "name" | "ilju" | "contact" | "exam";
+export type MiniGame = "today" | "daily" | "tarot" | "zodiac" | "name" | "ilju" | "contact" | "exam" | "room" | "quiz" | "album";
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
@@ -277,9 +280,13 @@ const TITLES: Record<MiniGame, string> = {
   ilju: "🐈 일주 고양이 도감",
   contact: "🃏 할까? 말까?",
   exam: "🧧 냥신 합격 부적",
+  room: "💬 단톡방 케미표",
+  quiz: "❓ 나를 얼마나 아냥?",
+  album: "🗂️ 고양이 도감 모으기",
 };
 
-export function MiniGameSheet({ game, onClose, onStart }: { game: MiniGame | null; onClose: () => void; onStart: (mode?: Mode) => void }) {
+/** `linkId`: the 케미표 / 퀴즈 a shared link opened (?room= · ?quiz=) */
+export function MiniGameSheet({ game, onClose, onStart, linkId }: { game: MiniGame | null; onClose: () => void; onStart: (mode?: Mode) => void; linkId?: string | null }) {
   useBack(game !== null, onClose);
   // 이용 흐름: each mini game opened counts once
   useEffect(() => {
@@ -302,6 +309,12 @@ export function MiniGameSheet({ game, onClose, onStart }: { game: MiniGame | nul
         <ContactTarot onStart={onStart} />
       ) : game === "exam" ? (
         <ExamCharm onStart={onStart} />
+      ) : game === "room" ? (
+        <ChemRoom roomId={linkId} />
+      ) : game === "quiz" ? (
+        <FriendQuiz quizId={linkId} />
+      ) : game === "album" ? (
+        <CatAlbum />
       ) : (
         <NameMatch onStart={() => onStart("couple")} />
       )}
