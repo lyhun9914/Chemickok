@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/services/server/db";
 import { cleanBirth, cleanName, newKey, newRoomId } from "@/services/server/funInput";
+import { sessionUserId } from "@/services/server/session";
 
 /**
  * POST /api/room { title, name, birthdate } — 단톡방 케미표 만들기. The maker is its first member; the link carries the
@@ -17,6 +18,6 @@ export async function POST(req: NextRequest) {
   if (!birthdate) return NextResponse.json({ error: "생년월일을 확인해 주세요." }, { status: 400 });
   const id = newRoomId();
   const key = newKey();
-  await db.roomCreate({ id, title }, { name, birthdate, key });
+  await db.roomCreate({ id, title }, { name, birthdate, key, user: sessionUserId(req) });
   return NextResponse.json({ id, key });
 }

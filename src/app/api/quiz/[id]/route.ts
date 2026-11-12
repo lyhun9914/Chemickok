@@ -3,6 +3,7 @@ import { josa } from "@/lib/josa";
 import { QUIZ_MAX_PLAYS, quizQ, quizText, quizVerdict } from "@/lib/quizBank";
 import { getDb, type QuizPlayRow, type QuizRow } from "@/services/server/db";
 import { cleanName, isId } from "@/services/server/funInput";
+import { sessionUserId } from "@/services/server/session";
 
 const GONE = { error: "퀴즈가 없거나 기간(30일)이 지났다냥." };
 
@@ -24,16 +25,39 @@ function view(r: { quiz: QuizRow; plays: QuizPlayRow[] }) {
     plays: plays.length,
     hardest: hardest >= 0 ? { index: hardest, q: questions[hardest].q, missed: miss[hardest] } : null,
     correct: quiz.items.map((_, i) => plays.length - miss[i]),
+    createdAt: quiz.created_at,
     expiresAt: quiz.expires_at,
   };
 }
 
-/** GET /api/quiz/{id} */
-export async function GET(_req: NextRequest, ctx: RouteContext<"/api/quiz/[id]">) {
+/** The maker: their account, or the key their browser kept. */
+function isOwner(quiz: QuizRow, uid: string | null, key: string | null) {
+  return Boolean((uid && quiz.owner_user === uid) || (key && quiz.owner_key && key === quiz.owner_key));
+}
+
+/** GET /api/quiz/{id}?key= — the quiz; for its maker also their own answers (and a guest-made quiz joins their account). */
+export async function GET(req: NextRequest, ctx: RouteContext<"/api/quiz/[id]">) {
   const { id } = await ctx.params;
-  const r = isId(id) ? await getDb()?.quizGet(id).catch(() => null) : null;
-  if (!r) return NextResponse.json(GONE, { status: 404 });
-  return NextResponse.json(view(r));
+  const db = getDb();
+  const r = db && isId(id) ? await db.quizGet(id).catch(() => null) : null;
+  if (!db || !r) return NextResponse.json(GONE, { status: 404 });
+  const uid = sessionUserId(req);
+  const key = req.nextUrl.searchParams.get("key");
+  const owner = isOwner(r.quiz, uid, key);
+  if (owner && uid && !r.quiz.owner_user) await db.quizClaim(id, uid).catch(() => null);
+  return NextResponse.json({ ...view(r), isOwner: owner, ...(owner ? { myAnswers: r.quiz.items.map((it) => it.a) } : {}) });
+}
+
+/** DELETE /api/quiz/{id} { key } — the maker deletes the quiz and everyone's scores. */
+export async function DELETE(req: NextRequest, ctx: RouteContext<"/api/quiz/[id]">) {
+  const { id } = await ctx.params;
+  const db = getDb();
+  const r = db && isId(id) ? await db.quizGet(id).catch(() => null) : null;
+  if (!db || !r) return NextResponse.json(GONE, { status: 404 });
+  const b = (await req.json().catch(() => null)) as { key?: unknown } | null;
+  if (!isOwner(r.quiz, sessionUserId(req), typeof b?.key === "string" ? b.key : null)) return NextResponse.json({ error: "퀴즈를 만든 사람만 지울 수 있다냥." }, { status: 403 });
+  await db.quizDelete(id);
+  return NextResponse.json({ ok: true });
 }
 
 /** POST /api/quiz/{id} { name, answers: number[] } — a friend's try (once per name). → score, the right answers, the ranking */
@@ -49,7 +73,8 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/quiz/[id]">
   const items = r.quiz.items;
   if (answers.length !== items.length || !answers.every((a) => Number.isInteger(a) && a >= 0 && a < 4))
     return NextResponse.json({ error: "모든 문제에 답해 주세요." }, { status: 400 });
-  if (name.toLowerCase() === r.quiz.owner_name.toLowerCase())
+  const key = typeof (b as { key?: unknown } | null)?.key === "string" ? String((b as { key?: string }).key) : null;
+  if (name.toLowerCase() === r.quiz.owner_name.toLowerCase() || isOwner(r.quiz, sessionUserId(req), key))
     return NextResponse.json({ error: "본인 퀴즈는 못 푼다냥. 친구한테 보내라냥 😼" }, { status: 409 });
   const right = items.map((it, i) => answers[i] === it.a);
   const score = right.filter(Boolean).length;

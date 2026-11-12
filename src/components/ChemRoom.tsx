@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { josa } from "@/lib/josa";
 import { sound } from "@/lib/sound";
-import { roomApi, type ChemPairView, type RoomView } from "@/services/apiClient";
+import { lifeLine, mergeRows } from "@/lib/when";
+import { mineApi, roomApi, type ChemPairView, type MineRoom, type RoomView } from "@/services/apiClient";
 import { shareService } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { DateTimeSelects } from "./DateTimeSelects";
@@ -27,6 +28,10 @@ const saveKey = (id: string, key: string | null) => {
     /* storage unavailable: this browser just won't remember being in the room */
   }
 };
+
+/** the server said the room is gone (30일이 지났거나 지워짐), not just a dropped connection */
+const isGone = (e: unknown) => e instanceof Error && e.message.includes("없거나");
+type View = { at: "make" } | { at: "list" } | { at: "open"; id: string };
 
 /** Name + birthday, prefilled from the saved profile or this visit. */
 function PersonFields({ name, setName, birth, setBirth }: { name: string; setName: (v: string) => void; birth: string; setBirth: (v: string) => void }) {
@@ -56,10 +61,14 @@ function usePerson() {
 /**
  * 단톡방 케미표: make a room (or open one from a link), put yourself in, send the link to the group chat. Everyone who
  * joins shows up with their 일주 cat; every pair gets a 케미 score and the room gets its 짝꿍 · 앙숙 · 분위기 메이커.
+ * 💬 내 케미표 lists the rooms this person made or joined (their account, or the keys this browser kept).
  */
 export function ChemRoom({ roomId }: { roomId?: string | null }) {
-  const [id, setId] = useState<string | null>(roomId ?? null);
-  return id ? <RoomScreen id={id} onNew={() => setId(null)} /> : <RoomCreate onMade={setId} />;
+  const [view, setView] = useState<View>(roomId ? { at: "open", id: roomId } : { at: "make" });
+  const open = (id: string) => setView({ at: "open", id });
+  if (view.at === "list") return <RoomList onOpen={open} onMake={() => setView({ at: "make" })} />;
+  if (view.at === "open") return <RoomScreen key={view.id} id={view.id} onNew={() => setView({ at: "make" })} onList={() => setView({ at: "list" })} />;
+  return <RoomCreate onMade={open} onList={() => setView({ at: "list" })} />;
 }
 
 /** rooms this browser is in (it holds their keys) */
@@ -76,42 +85,108 @@ function myRoomIds(): string[] {
   }
 }
 
-/** 내가 들어간 케미표: back to a room without the link. */
-function MyRooms({ onOpen }: { onOpen: (id: string) => void }) {
-  const [rows, setRows] = useState<{ id: string; v: RoomView }[] | null>(null);
+const rowOf = (id: string, v: RoomView): MineRoom => ({
+  id,
+  title: v.title,
+  count: v.members.length,
+  me: v.members[v.me]?.name ?? null,
+  creator: v.creator,
+  best: v.best ? { a: v.members[v.best.a].name, b: v.members[v.best.b].name, score: v.best.score } : null,
+  createdAt: v.createdAt,
+  expiresAt: v.expiresAt,
+});
+
+/**
+ * The rooms this browser is still in, as 내 케미표 rows. Opening them logged in joins a guest's membership to the
+ * account (the server does that on GET), so read these before the account's list. Dead keys are forgotten.
+ */
+export function localRoomRows(): Promise<MineRoom[]> {
+  return Promise.all(
+    myRoomIds()
+      .slice(0, 20)
+      .map((id) =>
+        roomApi
+          .get(id, readKey(id))
+          .then((v) => {
+            if (v.me < 0) saveKey(id, null); // taken out — forget the dead key
+            return v.me >= 0 ? rowOf(id, v) : null;
+          })
+          .catch((e) => {
+            if (isGone(e)) saveKey(id, null);
+            return null;
+          }),
+      ),
+  ).then((rows) => rows.filter((r): r is MineRoom => Boolean(r)));
+}
+
+/** 나 빼기 (by this browser's key, else by the account); `everything` = the maker deletes the whole room */
+export async function leaveRoom(id: string, everything = false): Promise<{ deleted: boolean }> {
+  const r = await roomApi.leave(id, readKey(id), everything);
+  saveKey(id, null);
+  return { deleted: Boolean(r.deleted) };
+}
+export const roomLink = (id: string) => `${window.location.origin}/room/${id}`;
+
+/** 💬 내 케미표: back to a room without the link — the ones on the account (any device) and the ones this browser is in. */
+function RoomList({ onOpen, onMake }: { onOpen: (id: string) => void; onMake: () => void }) {
+  const me = useAppStore((s) => s.me);
+  const [rows, setRows] = useState<MineRoom[] | null>(null);
   useEffect(() => {
-    const ids = myRoomIds().slice(0, 8);
-    Promise.all(ids.map((id) => roomApi.get(id, readKey(id)).then((v) => ({ id, v })).catch(() => ({ id, v: null as RoomView | null })))).then((all) => {
-      for (const x of all) if (!x.v || x.v.me < 0) saveKey(x.id, null); // gone, or taken out
-      setRows(all.filter((x): x is { id: string; v: RoomView } => Boolean(x.v && x.v.me >= 0)));
-    });
-  }, []);
-  if (!rows?.length) return null;
+    let off = false;
+    localRoomRows()
+      .then(async (local) => {
+        const acct = me ? await mineApi.get().then((m) => m.rooms).catch(() => []) : [];
+        if (!off) setRows(mergeRows(acct, local));
+      })
+      .catch(() => !off && setRows([]));
+    return () => {
+      off = true;
+    };
+  }, [me]);
   return (
-    <div className="rounded-2xl border border-violet/35 bg-white/[0.03] p-4">
-      <p className="text-[14px] font-bold">💬 내가 들어간 케미표</p>
-      <ul className="mt-1 divide-y divide-line">
-        {rows.map(({ id, v }) => (
-          <li key={id}>
-            <button onClick={() => onOpen(id)} className="flex w-full items-center gap-3 py-2.5 text-left">
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14px] font-semibold">{v.title}</span>
-                <span className="block text-[12.5px] text-muted">
-                  {v.members.length}명{v.best ? ` · 최고의 짝꿍 ${v.members[v.best.a].name} & ${v.members[v.best.b].name}` : " · 친구를 기다리는 중"}
+    <div className="space-y-4">
+      <button onClick={onMake} className="text-[13px] text-muted">
+        ← 케미표 만들기
+      </button>
+      <p className="text-[16px] font-bold">💬 내 케미표</p>
+      {!rows ? (
+        <p className="animate-pulse py-8 text-center text-[14px] text-muted">케미표 찾는 중…</p>
+      ) : rows.length ? (
+        <ul className="space-y-2">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <button onClick={() => onOpen(r.id)} className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left active:scale-[0.99]">
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-[14.5px] font-semibold">{r.title}</span>
+                    {r.creator && <span className="shrink-0 rounded-sm bg-violet/30 px-1.5 py-0.5 text-[10.5px] font-bold">방장</span>}
+                  </span>
+                  <span className="mt-0.5 block break-keep text-[12.5px] text-ink/85">
+                    {r.count < 2 ? `⏳ ${r.count}명 · 친구 기다리는 중` : `🟢 ${r.count}명${r.best ? ` · 최고의 짝꿍 ${r.best.a} & ${r.best.b} ${r.best.score}점` : ""}`}
+                  </span>
+                  <span className="mt-0.5 block text-[12px] text-muted">{lifeLine(r.createdAt, r.expiresAt)}</span>
                 </span>
-              </span>
-              <span className="text-peach" aria-hidden>
-                ›
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
+                <span className="shrink-0 text-[12.5px] font-semibold text-peach">결과 보기 ›</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="space-y-3 rounded-2xl border border-line bg-surface p-5 text-center">
+          <p className="text-[14px]">아직 만들거나 들어간 케미표가 없다냥 🐾</p>
+          <button onClick={onMake} className="btn-primary w-full py-3.5">
+            첫 케미표 만들기
+          </button>
+        </div>
+      )}
+      <p className="text-center text-[12px] text-muted">
+        {me ? "로그인한 계정으로 넣은 케미표는 다른 기기에서도 여기 뜬다냥" : "로그인하면 케미표가 계정에 저장돼서 다른 기기에서도 본다냥"}
+      </p>
     </div>
   );
 }
 
-function RoomCreate({ onMade }: { onMade: (id: string) => void }) {
+function RoomCreate({ onMade, onList }: { onMade: (id: string) => void; onList: () => void }) {
   const p = usePerson();
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
@@ -140,21 +215,21 @@ function RoomCreate({ onMade }: { onMade: (id: string) => void }) {
       </label>
       <PersonFields name={p.name} setName={p.setName} birth={p.birth} setBirth={p.setBirth} />
       {error && <p className="text-sm text-pink">{error}</p>}
-      <button onClick={make} disabled={!p.ok || busy} className="btn-primary w-full py-4">
-        {busy ? "케미표 만드는 중…" : "케미표 만들기 →"}
-      </button>
+      <div className="grid grid-cols-[1fr_auto] gap-2">
+        <button onClick={make} disabled={!p.ok || busy} className="btn-primary py-4">
+          {busy ? "만드는 중…" : "케미표 만들기 →"}
+        </button>
+        <button onClick={onList} className="rounded-2xl border border-violet/45 bg-white/[0.04] px-4 text-[14px] font-semibold">
+          💬 내 케미표 보기
+        </button>
+      </div>
       <p className="text-center text-[12px] leading-relaxed text-muted">
         생일은 케미 계산에만 쓰고 화면에 안 보여 준다냥.
         <br />
-        케미표는 만든 날부터 30일 뒤 지워진다냥.
+        케미표는 만든 날부터 30일 뒤 지워진다냥. 만든 · 들어간 케미표는 💬 내 케미표에서 다시 본다냥.
       </p>
-      <MyRooms onOpen={onMade} />
     </div>
   );
-}
-
-function daysLeft(iso: string) {
-  return Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 864e5));
 }
 
 /** One pair: names wrap (long nicknames stay readable), the label under them, the score on the right. `me`: show only the other person. */
@@ -198,13 +273,16 @@ function Highlight({ icon, title, who, score, line }: { icon: string; title: str
   );
 }
 
-function RoomScreen({ id, onNew }: { id: string; onNew: () => void }) {
+function RoomScreen({ id, onNew, onList }: { id: string; onNew: () => void; onList: () => void }) {
   const [v, setV] = useState<RoomView | null>(null);
   const [gone, setGone] = useState<string | null>(null);
   const [all, setAll] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** the 나 빼기 / 지우기 confirm panel */
+  const [ask, setAsk] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
   const p = usePerson();
 
   const load = useCallback(() => {
@@ -214,7 +292,10 @@ function RoomScreen({ id, onNew }: { id: string; onNew: () => void }) {
         setV(r);
         if (r.me < 0) saveKey(id, null); // taken out (or never in) — don't keep a dead key
       })
-      .catch((e) => setGone(e instanceof Error ? e.message : "케미표를 열 수 없다냥."));
+      .catch((e) => {
+        if (isGone(e)) saveKey(id, null);
+        setGone(e instanceof Error ? e.message : "케미표를 열 수 없다냥.");
+      });
   }, [id]);
   useEffect(() => {
     load();
@@ -236,13 +317,21 @@ function RoomScreen({ id, onNew }: { id: string; onNew: () => void }) {
       setBusy(false);
     }
   };
-  const leave = async () => {
-    const key = readKey(id);
-    if (!key || !window.confirm("이 케미표에서 나를 뺄까냥? 내 이름과 생일이 바로 지워진다냥.")) return;
-    await roomApi.leave(id, key).catch(() => null);
-    saveKey(id, null);
-    setNote("빠졌다냥. 내 정보는 지웠다냥 🐾");
-    load();
+  /** 나 빼기 (by this browser's key, else by the account); `everything` = the maker deletes the whole room */
+  const leave = async (everything: boolean) => {
+    setBusy(true);
+    setAskError(null);
+    try {
+      const r = await leaveRoom(id, everything);
+      setAsk(false);
+      if (r.deleted) return onList(); // deleted, or the last one out
+      setNote("빠졌다냥. 내 이름과 생일은 바로 지웠다냥 🐾");
+      load();
+    } catch (e) {
+      setAskError(e instanceof Error ? e.message : "다시 시도해 주세요");
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (gone)
@@ -252,11 +341,14 @@ function RoomScreen({ id, onNew }: { id: string; onNew: () => void }) {
         <button onClick={onNew} className="btn-primary w-full py-4">
           새 케미표 만들기
         </button>
+        <button onClick={onList} className="w-full py-1 text-[13px] text-muted underline underline-offset-4">
+          💬 내 케미표 보기
+        </button>
       </div>
     );
   if (!v) return <p className="animate-pulse py-10 text-center text-[14px] text-muted">케미표 펼치는 중…</p>;
 
-  const link = `${window.location.origin}/room/${id}`;
+  const link = roomLink(id);
   const n = v.members.length;
   const share = () =>
     shareService
@@ -277,11 +369,15 @@ function RoomScreen({ id, onNew }: { id: string; onNew: () => void }) {
 
   return (
     <div className="space-y-4">
+      <button onClick={onList} className="text-[13px] text-muted">
+        ← 내 케미표 목록
+      </button>
       <div className="text-center">
         <p className="font-ritual text-[22px] text-peach">{v.title}</p>
         <p className="mt-1 text-[12.5px] text-muted">
-          {n}명 / 최대 {v.max}명 · {daysLeft(v.expiresAt)}일 뒤 사라짐
+          {n}명 / 최대 {v.max}명 · {lifeLine(v.createdAt, v.expiresAt)}
         </p>
+        {v.me >= 0 && <p className="mt-1 text-[12px] font-semibold text-ink/80">{v.creator ? "👑 내가 만든 방" : "🐾 내가 들어간 방"}</p>}
       </div>
 
       {v.me < 0 && (
@@ -377,20 +473,38 @@ function RoomScreen({ id, onNew }: { id: string; onNew: () => void }) {
         </ul>
       </div>
 
-      <p className="text-center text-[12px] leading-relaxed text-muted">
-        생일은 케미 계산에만 쓰고 화면에 안 보여 준다냥 · 재미로 보는 케미다냥
-        {v.me >= 0 && (
-          <>
-            <br />
-            <button onClick={leave} className="mt-1 underline underline-offset-2">
-              이 케미표에서 나 빼기
-            </button>
-          </>
-        )}
-      </p>
-      <button onClick={onNew} className="w-full py-1 text-[13px] text-muted underline underline-offset-4">
+      <p className="text-center text-[12px] leading-relaxed text-muted">생일은 케미 계산에만 쓰고 화면에 안 보여 준다냥 · 재미로 보는 케미다냥</p>
+      <button onClick={onNew} className="w-full rounded-xl border border-line py-3 text-[14px] font-semibold">
         다른 단톡방 케미표 새로 만들기
       </button>
+      {v.me >= 0 &&
+        (ask ? (
+          <div className="rounded-2xl border border-pink/40 bg-pink/[0.06] p-4 text-center">
+            <p className="text-[13.5px] font-semibold leading-relaxed">
+              {v.creator
+                ? "방장이다냥. 나만 빠지면 방은 남고, 통째로 지우면 모두의 이름 · 생일과 링크가 사라진다냥."
+                : "이 케미표에서 나를 뺄까냥? 내 이름과 생일이 바로 지워진다냥."}
+            </p>
+            {askError && <p className="mt-1 text-[12.5px] text-pink">{askError}</p>}
+            <div className={`mt-3 grid gap-2 ${v.creator ? "grid-cols-3" : "grid-cols-2"}`}>
+              <button onClick={() => setAsk(false)} disabled={busy} className="rounded-xl border border-line py-2.5 text-[13px]">
+                그냥 둘래
+              </button>
+              <button onClick={() => leave(false)} disabled={busy} className="rounded-xl border border-pink/50 py-2.5 text-[13px] font-semibold">
+                {v.creator ? "나만 빠지기" : busy ? "빼는 중…" : "나 빼기"}
+              </button>
+              {v.creator && (
+                <button onClick={() => leave(true)} disabled={busy} className="rounded-xl bg-pink/80 py-2.5 text-[13px] font-bold text-white">
+                  {busy ? "지우는 중…" : "통째로 지우기"}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setAsk(true)} className="w-full py-1 text-[12.5px] text-muted underline underline-offset-4">
+            {v.creator ? "🗑️ 케미표 지우기 · 나 빼기" : "이 케미표에서 나 빼기"}
+          </button>
+        ))}
     </div>
   );
 }

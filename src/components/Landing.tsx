@@ -21,6 +21,7 @@ import { Talisman } from "./Talisman";
 import { TypeCarousel } from "./TypeCarousel";
 import { Coin } from "./Coin";
 import { InstallHelp } from "./InstallPrompt";
+import { AlbumQuest } from "./AlbumQuest";
 
 const MENU: { title: string; sub: string; modes: Mode[] }[] = [
   { title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
@@ -28,19 +29,21 @@ const MENU: { title: string; sub: string; modes: Mode[] }[] = [
 ];
 
 
-const MINI: { id: MiniGame; emoji: string; name: string; sub: string; wide?: boolean }[] = [
-  { id: "today", emoji: "📅", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번", wide: true },
-  { id: "exam", emoji: "🧧", name: "냥신 합격 부적", sub: "이름 넣으면 냥신이 직접 써 주는 부적 + 시험날 일진", wide: true },
-  { id: "room", emoji: "💬", name: "단톡방 케미표", sub: "링크 하나로 우리 방 궁합표 · 짝꿍 · 앙숙 · 분위기 메이커", wide: true },
+/** 가볍게 한 점: one card per row, in this order (고양이 도감 모으기 lives in the top bar as a daily quest) */
+const MINI: { id: MiniGame; emoji: string; name: string; sub: string }[] = [
+  { id: "today", emoji: "📅", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번" },
+  { id: "exam", emoji: "🧧", name: "냥신 합격 부적", sub: "이름 넣으면 냥신이 직접 써 주는 부적 + 시험날 일진" },
+  { id: "room", emoji: "💬", name: "단톡방 케미표", sub: "링크 하나로 우리 방 궁합표 · 짝꿍 · 앙숙 · 분위기 메이커" },
   { id: "quiz", emoji: "❓", name: "나를 얼마나 아냥?", sub: "7문제 퀴즈로 찐친 순위 매기기" },
-  { id: "album", emoji: "🗂️", name: "고양이 도감 모으기", sub: "하루 한 장 · 60마리 모으면 냥 선물" },
   { id: "ilju", emoji: "🐈", name: "일주 고양이 도감", sub: "60일주 중 내 고양이 · 기 센 순위" },
-  { id: "contact", emoji: "🃏", name: "할까? 말까?", sub: "고백·선톡·재회… 카드 세 장으로 답한다냥" },
+  { id: "contact", emoji: "🃏", name: "할까? 말까?", sub: "고백 · 선톡 · 재회… 카드 세 장으로 답한다냥" },
   { id: "tarot", emoji: "🎴", name: "오늘의 타로", sub: "15장 중 2장 · 하루 한 번" },
   { id: "zodiac", emoji: "🐾", name: "띠별 운세", sub: "12띠 오늘 일진 · 무료" },
-  { id: "daily", emoji: "🔮", name: "오늘의 연애운", sub: "이름·생일·혈액형으로 10초 컷" },
+  { id: "daily", emoji: "🔮", name: "오늘의 연애운", sub: "이름 · 생일 · 혈액형으로 10초 컷" },
   { id: "name", emoji: "✍️", name: "이름 궁합", sub: "그 시절 획수 궁합 · 무료" },
 ];
+/** games a ?game= link may open: the cards, plus the top bar's 도감 */
+const LINKABLE: MiniGame[] = [...MINI.map((g) => g.id), "album"];
 
 export function Landing() {
   const { setScreen, me, providers, startInterview } = useAppStore();
@@ -59,7 +62,7 @@ export function Landing() {
   useEffect(() => {
     if (!deepLink) return;
     if (deepLink.pair) setPairId(deepLink.pair);
-    if (deepLink.game && MINI.some((g) => g.id === deepLink.game)) setGame(deepLink.game as MiniGame);
+    if (deepLink.game && LINKABLE.includes(deepLink.game as MiniGame)) setGame(deepLink.game as MiniGame);
     // 단톡방 케미표 · 퀴즈 links open their game on that room / quiz
     if (deepLink.room || deepLink.quiz) {
       setLinkId(deepLink.room ?? deepLink.quiz ?? null);
@@ -74,6 +77,12 @@ export function Landing() {
   useEffect(() => setStreak(streakNow()), [game]);
   const [dday, setDday] = useState<number | null>(null);
   useEffect(() => setDday(suneungDday()), []);
+
+  const openGame = (g: MiniGame) => {
+    sound().play("slide");
+    setLinkId(null);
+    setGame(g);
+  };
 
   // Saved 기본 정보 → the interview skips straight past name/birth. A product card also fixes the mode.
   const start = (mode?: Mode) => {
@@ -93,17 +102,18 @@ export function Landing() {
       {/* clear of the top bar and the 현판: one by the corner, one down by 냥신 */}
       <Talisman className="absolute left-3 top-14" />
       <Talisman className="absolute right-4 top-40 opacity-70 [animation-delay:-2s]" />
-      <div className="relative z-10 flex h-9 items-center justify-end gap-2">
+      <div className="relative z-10 flex h-9 items-center justify-end gap-1.5 min-[380px]:gap-2">
         <InstallHelp />
         <SoundToggle />
+        {providers.length > 0 && <AlbumQuest onOpen={() => openGame("album")} refresh={game === "album"} />}
         {providers.length > 0 &&
           (me ? (
             <>
-              <button onClick={() => setWalletOpen(true)} className="flex h-9 items-center gap-1 rounded-full border border-peach/40 bg-surface/90 px-3 text-[13px] font-bold text-peach" aria-label="내 복주머니">
+              <button onClick={() => setWalletOpen(true)} className="flex h-9 shrink-0 items-center gap-1 rounded-full border border-peach/40 bg-surface/90 px-3 text-[13px] font-bold text-peach" aria-label="내 복주머니">
                 <Coin /> {nyang(me.coins)}
               </button>
-              <button onClick={() => setScreen("my")} className="h-9 rounded-full border border-line bg-surface/90 px-3.5 text-[13px] font-semibold">
-                📜 내 점괘함
+              <button onClick={() => setScreen("my")} className="h-9 shrink-0 rounded-full border border-line bg-surface/90 px-3 text-[13px] font-semibold min-[380px]:px-3.5">
+                📜 <span className="hidden min-[380px]:inline">내 </span>점괘함
               </button>
             </>
           ) : (
@@ -253,30 +263,28 @@ export function Landing() {
       <section className="fade-up mt-8" style={{ animationDelay: "0.15s" }}>
         <h2 className="text-[17px]">🎴 가볍게 한 점 · 매일 무료</h2>
         <p className="mb-3 mt-1 text-[13.5px] text-muted">하루 한 번 들르면 출석 도장을 찍어 준다냥</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-2.5">
           {MINI.map((g) => (
             <button
               key={g.id}
-              onClick={() => {
-                sound().play("slide");
-                setLinkId(null);
-                setGame(g.id);
-              }}
-              className={`relative rounded-2xl border bg-surface p-4 text-left transition hover:border-peach/50 active:scale-[0.98] ${g.wide ? "col-span-2 flex items-center gap-4 border-violet/40" : "border-line"}`}
+              onClick={() => openGame(g.id)}
+              className="flex items-center gap-4 rounded-2xl border border-violet/40 bg-surface px-4 py-3.5 text-left transition hover:border-peach/50 active:scale-[0.98]"
             >
-              <div className="text-3xl">{g.emoji}</div>
-              <div className={g.wide ? "min-w-0 flex-1" : "pr-3"}>
-                <div className={`font-bold ${g.wide ? "text-[16px]" : "mt-2 text-[15px]"}`}>
+              <span className="w-9 shrink-0 text-center text-3xl" aria-hidden>
+                {g.emoji}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[16px] font-bold">
                   {g.name}
                   {g.id === "exam" && dday !== null && (
                     <span className="ml-1.5 rounded-sm bg-pink px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-white">수능 D-{dday}</span>
                   )}
-                </div>
-                <div className="mt-0.5 text-[13px] text-muted">
+                </span>
+                <span className="mt-0.5 block text-[13px] text-muted">
                   {g.id === "today" && streak ? `🐾 출석 ${streak}일째 · ${checkedToday ? "오늘 도장 완료" : "오늘 도장 받으러 가기"}` : g.sub}
-                </div>
-              </div>
-              <span className={`text-peach ${g.wide ? "text-lg" : "absolute right-3 top-3 text-base"}`} aria-hidden>
+                </span>
+              </span>
+              <span className="shrink-0 text-lg text-peach" aria-hidden>
                 ›
               </span>
             </button>

@@ -264,7 +264,10 @@ export interface ChemPairView {
 }
 export interface RoomView {
   title: string;
+  createdAt: string;
   expiresAt: string;
+  /** this visitor made the room (may delete it) */
+  creator: boolean;
   max: number;
   /** index of the member this browser's key belongs to, or -1 */
   me: number;
@@ -279,7 +282,8 @@ export const roomApi = {
   create: (title: string, name: string, birthdate: string) => post<{ id: string; key: string }>("/api/room", { title, name, birthdate }),
   get: (id: string, key?: string | null) => get<RoomView>(`/api/room/${encodeURIComponent(id)}${key ? `?key=${encodeURIComponent(key)}` : ""}`),
   join: (id: string, name: string, birthdate: string) => post<RoomView & { key: string }>(`/api/room/${encodeURIComponent(id)}`, { name, birthdate }),
-  leave: (id: string, key: string) => post<{ ok: true }>(`/api/room/${encodeURIComponent(id)}`, { key }, "DELETE"),
+  /** 나 빼기 (by key, else by the logged-in account); `all` = the maker deletes the room */
+  leave: (id: string, key: string | null, all = false) => post<{ ok: true; deleted?: boolean }>(`/api/room/${encodeURIComponent(id)}`, { key, all }, "DELETE"),
 };
 
 export interface QuizView {
@@ -291,14 +295,20 @@ export interface QuizView {
   hardest: { index: number; q: string; missed: number } | null;
   /** how many friends got each question right */
   correct: number[];
+  createdAt: string;
   expiresAt: string;
+  /** this visitor made the quiz (their account or the key this browser kept) */
+  isOwner?: boolean;
+  /** the maker's own answers (only to the maker) */
+  myAnswers?: number[];
 }
 export interface QuizResult extends QuizView {
   mine: { name: string; score: number; right: boolean[]; answers: number[]; picked?: number[]; verdict: string };
 }
 export const quizApi = {
-  create: (name: string, items: { q: string; a: number }[]) => post<{ id: string }>("/api/quiz", { name, items }),
-  get: (id: string) => get<QuizView>(`/api/quiz/${encodeURIComponent(id)}`),
+  create: (name: string, items: { q: string; a: number }[]) => post<{ id: string; key: string }>("/api/quiz", { name, items }),
+  get: (id: string, key?: string | null) => get<QuizView>(`/api/quiz/${encodeURIComponent(id)}${key ? `?key=${encodeURIComponent(key)}` : ""}`),
+  remove: (id: string, key: string | null) => post<{ ok: true }>(`/api/quiz/${encodeURIComponent(id)}`, { key }, "DELETE"),
   play: (id: string, name: string, answers: number[]) => post<QuizResult>(`/api/quiz/${encodeURIComponent(id)}`, { name, answers }),
 };
 
@@ -331,4 +341,33 @@ export const albumApi = {
     if (!res.ok && res.status !== 409) failed("POST /api/album", res.status, data);
     return data;
   },
+};
+
+/** 내 점괘함 · 친구랑 놀기 (logged in, any device) */
+export interface MineQuiz {
+  id: string;
+  owner: string;
+  total: number;
+  plays: number;
+  leader: { name: string; score: number } | null;
+  createdAt: string;
+  expiresAt: string;
+}
+export interface MineRoom {
+  id: string;
+  title: string;
+  count: number;
+  me: string | null;
+  creator: boolean;
+  best: { a: string; b: string; score: number } | null;
+  createdAt: string;
+  expiresAt: string;
+}
+export interface Mine {
+  quizzes: MineQuiz[];
+  rooms: MineRoom[];
+  album: { count: number; size: number; drawnToday: boolean };
+}
+export const mineApi = {
+  get: () => get<Mine>("/api/mine"),
 };

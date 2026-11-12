@@ -12,6 +12,7 @@ import { useLive } from "@/lib/liveSettings";
 import { WalletSheet, useSocialLabel } from "./CoinShop";
 import { GiftSendSheet, takeGiftDraft } from "./GiftSheet";
 import { DateTimeSelects } from "./DateTimeSelects";
+import { FunSection } from "./MyFun";
 import { Nyang } from "./Nyang";
 import { Coin } from "./Coin";
 import { Overlay } from "./Overlay";
@@ -413,6 +414,8 @@ export function MyPage() {
         )}
       </section>
 
+      <FunSection />
+
       <section className="mt-8">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-muted">📇 기본 정보</h2>
@@ -460,7 +463,7 @@ export function MyPage() {
             <div className="fade-up w-full max-w-[480px] rounded-t-3xl bg-surface p-6 pb-8" onClick={(e) => e.stopPropagation()}>
               <p className="text-lg font-bold">정말 탈퇴할 거냥?</p>
               <p className="mt-2 text-sm leading-relaxed text-muted">
-                기본 정보와 점괘함의 점괘, 복주머니가 모두 바로 삭제되고 되돌릴 수 없어요. 결제 기록은 전자상거래법에 따라 5년간 회원 정보 없이 보관돼요.
+                기본 정보와 점괘함의 점괘, 복주머니, 고양이 도감, 내가 만든 퀴즈와 케미표에 넣은 내 정보가 모두 바로 삭제되고 되돌릴 수 없어요. 결제 기록은 전자상거래법에 따라 5년간 회원 정보 없이 보관돼요.
                 {me.coins > 0 && (
                   <b className="mt-2 block text-peach">
                     복주머니에 남은 {nyang(me.coins)}도 함께 사라져요. 충전한 냥을 환불받으려면 탈퇴 전에 고객문의로 요청해 주세요.

@@ -32,12 +32,17 @@ export interface RoomMemberRow {
   name: string;
   birthdate: string;
   member_key: string;
+  /** the member's account, when they joined logged in */
+  user_id: string | null;
   created_at: string;
 }
 export interface QuizRow {
   id: string;
   owner_name: string;
   items: { q: string; a: number }[];
+  /** the maker: their account (made logged in) and the key kept in their browser */
+  owner_user: string | null;
+  owner_key: string | null;
   created_at: string;
   expires_at: string;
 }
@@ -250,14 +255,26 @@ export interface Db {
   /** false if someone already answered */
   pairAnswer(id: string, to: Pick<PairRow, "to_person" | "to_self" | "to_obs">): Promise<boolean>;
   // 단톡방 케미표 (expired rooms read as missing; creating one clears the expired)
-  roomCreate(room: { id: string; title: string }, first: { name: string; birthdate: string; key: string }): Promise<void>;
+  roomCreate(room: { id: string; title: string }, first: { name: string; birthdate: string; key: string; user: string | null }): Promise<void>;
+  /** members oldest first: [0] made the room */
   roomGet(id: string): Promise<{ room: RoomRow; members: RoomMemberRow[] } | null>;
   /** at most `max` members, names unique in the room */
-  roomJoin(id: string, m: { name: string; birthdate: string; key: string }, max: number): Promise<JoinResult>;
-  /** takes one member (and their birthday) out; false if the key matched no one */
-  roomLeave(id: string, key: string): Promise<boolean>;
+  roomJoin(id: string, m: { name: string; birthdate: string; key: string; user: string | null }, max: number): Promise<JoinResult>;
+  /** takes one member (and their birthday) out, by their key or their account; false if it matched no one */
+  roomLeave(id: string, by: { key?: string | null; user?: string | null }): Promise<boolean>;
+  /** a member who joined as a guest, now logged in: ties them to the account */
+  roomClaim(id: string, key: string, userId: string): Promise<void>;
+  /** the whole room, everyone in it (the maker's choice) */
+  roomDelete(id: string): Promise<void>;
+  /** live rooms this account is in, newest first */
+  roomsOf(userId: string): Promise<string[]>;
   // 나를 얼마나 아냥? 퀴즈
-  quizCreate(q: { id: string; owner_name: string; items: { q: string; a: number }[] }): Promise<void>;
+  quizCreate(q: { id: string; owner_name: string; items: { q: string; a: number }[]; owner_user: string | null; owner_key: string }): Promise<void>;
+  /** a quiz made as a guest, opened logged in with its key: ties it to the account */
+  quizClaim(id: string, userId: string): Promise<void>;
+  quizDelete(id: string): Promise<void>;
+  /** live quizzes this account made, newest first */
+  quizzesOf(userId: string): Promise<{ quiz: QuizRow; plays: QuizPlayRow[] }[]>;
   quizGet(id: string): Promise<{ quiz: QuizRow; plays: QuizPlayRow[] } | null>;
   quizPlay(id: string, p: { name: string; score: number; mask: number }, max: number): Promise<JoinResult>;
   /** 30일이 지난 케미표 · 퀴즈 · 궁합 신청서를 지운다 (매일 아침) */
@@ -470,20 +487,50 @@ function supabase(url: string, key: string): Db {
     async roomCreate(room, first) {
       await rest(`chem_rooms?expires_at=lt.${encodeURIComponent(new Date().toISOString())}`, { method: "DELETE" }).catch(() => null);
       await rest("chem_rooms", { method: "POST", body: JSON.stringify(room) });
-      await rest("chem_members", { method: "POST", body: JSON.stringify({ room_id: room.id, name: first.name, birthdate: first.birthdate, member_key: first.key }) });
+      await rest("chem_members", { method: "POST", body: JSON.stringify({ room_id: room.id, name: first.name, birthdate: first.birthdate, member_key: first.key, user_id: first.user }) });
     },
     async roomGet(id) {
       const [room] = await rest<RoomRow[]>(`chem_rooms?id=${eq(id)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=*`);
       if (!room) return null;
-      const members = await rest<RoomMemberRow[]>(`chem_members?room_id=${eq(id)}&select=name,birthdate,member_key,created_at&order=id.asc`);
+      const members = await rest<RoomMemberRow[]>(`chem_members?room_id=${eq(id)}&select=name,birthdate,member_key,user_id,created_at&order=id.asc`);
       return { room, members };
     },
     async roomJoin(id, mb, max) {
-      return rest("rpc/chem_join", { method: "POST", body: JSON.stringify({ p_room: id, p_name: mb.name, p_birth: mb.birthdate, p_key: mb.key, p_max: max }) });
+      return rest("rpc/chem_join", { method: "POST", body: JSON.stringify({ p_room: id, p_name: mb.name, p_birth: mb.birthdate, p_key: mb.key, p_max: max, p_user: mb.user }) });
     },
-    async roomLeave(id, key) {
-      const rows = await rest<unknown[]>(`chem_members?room_id=${eq(id)}&member_key=${eq(key)}`, { method: "DELETE", prefer: "return=representation" });
+    async roomLeave(id, by) {
+      const who = by.key ? `member_key=${eq(by.key)}` : by.user ? `user_id=${eq(by.user)}` : null;
+      if (!who) return false;
+      const rows = await rest<unknown[]>(`chem_members?room_id=${eq(id)}&${who}`, { method: "DELETE", prefer: "return=representation" });
       return Array.isArray(rows) && rows.length > 0;
+    },
+    async roomClaim(id, key, userId) {
+      await rest(`chem_members?room_id=${eq(id)}&member_key=${eq(key)}&user_id=is.null`, { method: "PATCH", body: JSON.stringify({ user_id: userId }) });
+    },
+    async roomDelete(id) {
+      await rest(`chem_rooms?id=${eq(id)}`, { method: "DELETE" });
+    },
+    async roomsOf(userId) {
+      const mine = await rest<{ room_id: string }[]>(`chem_members?user_id=${eq(userId)}&select=room_id&order=id.desc&limit=50`);
+      const ids = [...new Set(mine.map((x) => x.room_id))];
+      if (!ids.length) return [];
+      const live = await rest<{ id: string }[]>(`chem_rooms?id=in.(${ids.map(encodeURIComponent).join(",")})&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=id`);
+      const ok = new Set(live.map((x) => x.id));
+      return ids.filter((x) => ok.has(x));
+    },
+    async quizClaim(id, userId) {
+      await rest(`quizzes?id=${eq(id)}&owner_user=is.null`, { method: "PATCH", body: JSON.stringify({ owner_user: userId }) });
+    },
+    async quizDelete(id) {
+      await rest(`quizzes?id=${eq(id)}`, { method: "DELETE" });
+    },
+    async quizzesOf(userId) {
+      const qs = await rest<QuizRow[]>(`quizzes?owner_user=${eq(userId)}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=*&order=created_at.desc&limit=20`);
+      if (!qs.length) return [];
+      const plays = await rest<(QuizPlayRow & { quiz_id: string })[]>(
+        `quiz_plays?quiz_id=in.(${qs.map((q) => encodeURIComponent(q.id)).join(",")})&select=quiz_id,name,score,mask,created_at&order=score.desc,id.asc&limit=2000`,
+      );
+      return qs.map((quiz) => ({ quiz, plays: plays.filter((p) => p.quiz_id === quiz.id).map(({ name, score, mask, created_at }) => ({ name, score, mask, created_at })) }));
     },
     async quizCreate(q) {
       await rest(`quizzes?expires_at=lt.${encodeURIComponent(new Date().toISOString())}`, { method: "DELETE" }).catch(() => null);
@@ -734,6 +781,10 @@ function memory(): Db {
       m.wallets.delete(id);
       m.ledger = m.ledger.filter((x) => x.user_id !== id);
       m.cats = m.cats!.filter((x) => x.user_id !== id);
+      m.members = m.members!.filter((x) => x.user_id !== id);
+      const gone = new Set(m.quizzes!.filter((q) => q.owner_user === id).map((q) => q.id));
+      m.quizzes = m.quizzes!.filter((q) => !gone.has(q.id));
+      m.plays = m.plays!.filter((x) => !gone.has(x.quiz_id));
     },
     async recordPayment(p) {
       if (!m.payments.some((x) => x.order_id === p.orderId))
@@ -854,25 +905,54 @@ function memory(): Db {
       m.members = m.members!.filter((x) => ids.has(x.room_id));
       const now = Date.now();
       m.rooms.push({ ...room, created_at: new Date(now).toISOString(), expires_at: new Date(now + 30 * 864e5).toISOString() });
-      m.members.push({ room_id: room.id, name: first.name, birthdate: first.birthdate, member_key: first.key, created_at: new Date().toISOString() });
+      m.members.push({ room_id: room.id, name: first.name, birthdate: first.birthdate, member_key: first.key, user_id: first.user, created_at: new Date().toISOString() });
     },
     async roomGet(id) {
       const room = m.rooms!.find((x) => x.id === id && live(x));
       if (!room) return null;
-      return { room, members: m.members!.filter((x) => x.room_id === id).map(({ name, birthdate, member_key, created_at }) => ({ name, birthdate, member_key, created_at })) };
+      return { room, members: m.members!.filter((x) => x.room_id === id).map(({ name, birthdate, member_key, user_id, created_at }) => ({ name, birthdate, member_key, user_id, created_at })) };
     },
     async roomJoin(id, mb, max) {
       if (!m.rooms!.some((x) => x.id === id && live(x))) return { ok: false, reason: "none" };
       const mine = m.members!.filter((x) => x.room_id === id);
       if (mine.some((x) => x.name.toLowerCase() === mb.name.toLowerCase())) return { ok: false, reason: "name" };
       if (mine.length >= max) return { ok: false, reason: "full" };
-      m.members!.push({ room_id: id, name: mb.name, birthdate: mb.birthdate, member_key: mb.key, created_at: new Date().toISOString() });
+      m.members!.push({ room_id: id, name: mb.name, birthdate: mb.birthdate, member_key: mb.key, user_id: mb.user, created_at: new Date().toISOString() });
       return { ok: true };
     },
-    async roomLeave(id, key) {
+    async roomLeave(id, by) {
+      if (!by.key && !by.user) return false;
       const before = m.members!.length;
-      m.members = m.members!.filter((x) => !(x.room_id === id && x.member_key === key));
+      m.members = m.members!.filter((x) => !(x.room_id === id && (by.key ? x.member_key === by.key : x.user_id === by.user)));
       return m.members.length < before;
+    },
+    async roomClaim(id, key, userId) {
+      for (const x of m.members!) if (x.room_id === id && x.member_key === key && !x.user_id) x.user_id = userId;
+    },
+    async roomDelete(id) {
+      m.rooms = m.rooms!.filter((x) => x.id !== id);
+      m.members = m.members!.filter((x) => x.room_id !== id);
+    },
+    async roomsOf(userId) {
+      const ids = [...new Set(m.members!.filter((x) => x.user_id === userId).reverse().map((x) => x.room_id))];
+      return ids.filter((id) => m.rooms!.some((r) => r.id === id && live(r)));
+    },
+    async quizClaim(id, userId) {
+      for (const q of m.quizzes!) if (q.id === id && !q.owner_user) q.owner_user = userId;
+    },
+    async quizDelete(id) {
+      m.quizzes = m.quizzes!.filter((x) => x.id !== id);
+      m.plays = m.plays!.filter((x) => x.quiz_id !== id);
+    },
+    async quizzesOf(userId) {
+      const qs = m.quizzes!.filter((q) => q.owner_user === userId && live(q)).reverse();
+      return qs.map((quiz) => ({
+        quiz,
+        plays: m.plays!
+          .filter((x) => x.quiz_id === quiz.id)
+          .map(({ name, score, mask, created_at }) => ({ name, score, mask, created_at }))
+          .sort((a, b) => b.score - a.score || a.created_at.localeCompare(b.created_at)),
+      }));
     },
     async quizCreate(q) {
       m.quizzes = m.quizzes!.filter(live);
