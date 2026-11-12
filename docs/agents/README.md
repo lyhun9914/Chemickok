@@ -86,8 +86,8 @@
 
 | 담당 | 도구 |
 | --- | --- |
-| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), agent-skills, ponytail |
-| 점검 | Playwright MCP, agent-browser, web-design-guidelines(화면·접근성 검토) |
+| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max(화면·디자인 업그레이드), agent-skills, ponytail |
+| 점검 | Playwright MCP, agent-browser, web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
 | 배포·운영 | Vercel·Supabase 커넥터, session-report(사용량 보고) |
 | 고객 | Gmail 커넥터, Supabase 커넥터(읽기), customer-support(문의 분류·답장 초안) |
 | 글 | graphify(글이 나오는 조건 찾기), brand-voice(냥신 말투 지키기) |
@@ -99,3 +99,12 @@
 - 담당의 일하는 방식을 바꾸려면 `.claude/agents/` 안의 해당 파일을 고친다. 한국어로 적혀 있어 그대로 읽고 고칠 수 있다.
 - 새 담당을 만들려면 같은 폴더에 파일을 하나 더 만들고, 이 문서의 표와 `AGENTS.md` 의 표에 한 줄씩 더한다.
 - 고친 내용은 새로 여는 대화부터 적용된다. 새 대화는 보통 `main` 에서 시작하므로, 실제 사이트에 배포된 뒤에야 모든 곳에서 보인다.
+
+### 화면·디자인을 업그레이드할 때 (운영자 요청)
+
+냥신 점괘의 화면을 새로 만들거나 크게 고칠 때는 개발 담당이 `ui-ux-pro-max` 를 먼저 쓴다.
+
+1. 업종·분위기(고양이 점집, 밤, 신비, 귀여움)와 기술(`--stack nextjs`)로 디자인 규칙을 찾는다.
+2. 이미 있는 냥신의 분위기(색, 글꼴, 고양이 캐릭터, 말투)는 유지한다. 새 디자인 체계로 통째로 바꾸지 않고, 찾은 규칙은 고칠 화면에만 맞춰 쓴다.
+3. 다 고친 뒤 점검 담당이 `web-design-guidelines` 와 휴대폰 폭(360·390px)으로 확인한다.
+4. 작은 문구·버튼 수정에는 쓰지 않는다(토큰 아끼기).
