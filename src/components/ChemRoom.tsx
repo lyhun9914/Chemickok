@@ -107,16 +107,28 @@ function daysLeft(iso: string) {
   return Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 864e5));
 }
 
-function PairRow({ v, p, mark }: { v: RoomView; p: ChemPairView; mark?: boolean }) {
+/** One pair: names wrap (long nicknames stay readable), the label under them, the score on the right. `me`: show only the other person. */
+function PairRow({ v, p, mark, me }: { v: RoomView; p: ChemPairView; mark?: boolean; me?: number }) {
   const a = v.members[p.a];
   const b = v.members[p.b];
+  const other = me === p.a ? b : me === p.b ? a : null;
   return (
-    <li className={`flex items-center gap-2 py-2.5 ${mark ? "text-peach" : ""}`}>
-      <span className="min-w-0 flex-1 truncate text-[14px]">
-        {a.icon} {a.name} <span className="text-muted">↔</span> {b.icon} {b.name}
+    <li className={`flex items-center gap-3 py-2.5 ${mark ? "text-peach" : ""}`}>
+      <span className="min-w-0 flex-1">
+        <span className="block break-keep text-[14px] leading-snug">
+          {other ? (
+            <>
+              {other.icon} {other.name}
+            </>
+          ) : (
+            <>
+              {a.icon} {a.name} <span className="text-muted">↔</span> {b.icon} {b.name}
+            </>
+          )}
+        </span>
+        <span className="mt-0.5 block text-[12px] text-muted">{p.label}</span>
       </span>
-      <span className="shrink-0 text-[12px] text-muted">{p.label}</span>
-      <span className="w-10 shrink-0 text-right text-[15px] font-extrabold">{p.score}</span>
+      <span className="w-10 shrink-0 text-right text-[16px] font-extrabold">{p.score}</span>
     </li>
   );
 }
@@ -269,7 +281,7 @@ function RoomScreen({ id, onNew }: { id: string; onNew: () => void }) {
               <p className="text-[14px] font-bold">🐾 나랑 케미</p>
               <ul className="mt-1 divide-y divide-line">
                 {mine.map((x) => (
-                  <PairRow key={`${x.a}-${x.b}`} v={v} p={x} />
+                  <PairRow key={`${x.a}-${x.b}`} v={v} p={x} me={v.me} />
                 ))}
               </ul>
             </div>
