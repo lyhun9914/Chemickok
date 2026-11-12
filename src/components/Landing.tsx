@@ -22,6 +22,7 @@ import { TypeCarousel } from "./TypeCarousel";
 import { Coin } from "./Coin";
 import { InstallHelp } from "./InstallPrompt";
 import { AlbumQuest } from "./AlbumQuest";
+import { SuggestCard } from "./Feedback";
 
 const MENU: { title: string; sub: string; modes: Mode[] }[] = [
   { title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
@@ -112,8 +113,13 @@ export function Landing() {
               <button onClick={() => setWalletOpen(true)} className="flex h-9 shrink-0 items-center gap-1 rounded-full border border-peach/40 bg-surface/90 px-3 text-[13px] font-bold text-peach" aria-label="내 복주머니">
                 <Coin /> {nyang(me.coins)}
               </button>
-              <button onClick={() => setScreen("my")} className="h-9 shrink-0 rounded-full border border-line bg-surface/90 px-3 text-[13px] font-semibold min-[380px]:px-3.5">
+              <button
+                onClick={() => setScreen("my")}
+                aria-label={me.news ? "내 점괘함 · 건의 답장 새 소식" : "내 점괘함"}
+                className="relative h-9 shrink-0 rounded-full border border-line bg-surface/90 px-3 text-[13px] font-semibold min-[380px]:px-3.5"
+              >
                 📜 <span className="hidden min-[380px]:inline">내 </span>점괘함
+                {me.news ? <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-pink ring-2 ring-[#120a07]" aria-hidden /> : null}
               </button>
             </>
           ) : (
@@ -333,6 +339,8 @@ export function Landing() {
       </section>
 
       <MethodSection />
+
+      <SuggestCard />
 
       <MiniGameSheet
         game={game}

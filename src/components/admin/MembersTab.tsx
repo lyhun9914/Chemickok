@@ -8,11 +8,11 @@ type UserRow = { id: string; provider: string; nickname: string; email: string |
 type Ledger = { delta: number; reason: string; ref: string; balance_after: number; created_at: string };
 type Detail = { user: Omit<UserRow, "balance">; balance: number; history: Ledger[]; payments: Payment[] };
 
-const REASON: Record<string, string> = { charge: "충전", spend: "점괘", bonus: "선물·출석·초대·쿠폰", refund: "환불", admin: "관리자", gift: "냥 선물", expire: "유효기간 지남" };
+const REASON: Record<string, string> = { charge: "충전", spend: "점괘", bonus: "선물·출석·초대·쿠폰·채택", refund: "환불", admin: "관리자", gift: "냥 선물", expire: "유효기간 지남" };
 /** "coupon:ABC" → "쿠폰 ABC", "streak:2026-11-06" → "출석" … so the ledger reads like plain Korean. */
 function refLabel(h: Ledger): string {
   const [k, v] = h.ref.split(":");
-  if (h.reason === "bonus") return k === "coupon" ? `쿠폰 ${v}` : k === "streak" ? "7일 출석" : k === "invite" ? "친구 초대" : k === "welcome" ? "가입 선물" : k === "joined" ? "초대받아 가입" : k === "album" ? `도감 ${v}마리` : h.ref;
+  if (h.reason === "bonus") return k === "coupon" ? `쿠폰 ${v}` : k === "streak" ? "7일 출석" : k === "invite" ? "친구 초대" : k === "welcome" ? "가입 선물" : k === "joined" ? "초대받아 가입" : k === "album" ? `도감 ${v}마리` : k === "idea" ? `건의 채택 #${v}` : h.ref;
   if (h.reason === "spend") return `${k} 점괘`;
   if (h.reason === "gift") return k === "send" ? "선물 보냄" : k === "recv" ? "선물 받음" : k === "cancel" ? "선물 취소" : h.ref;
   return h.ref.replace(/#[0-9a-f]+$/, "");

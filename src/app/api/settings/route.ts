@@ -2,13 +2,13 @@ import { NextResponse, connection } from "next/server";
 import { saleLive } from "@/lib/pricing";
 import { getSettings } from "@/services/server/settings";
 
-/** GET /api/settings — the live 가격 · 세일 (while it runs) · 공지 (when on), for the app to show. */
+/** GET /api/settings — the live 가격 · 세일 (while it runs) · 공지 (when on) · 채택 선물, for the app to show. */
 export async function GET() {
   // read on every request (not once at build): the 관리자 can change these any time
   await connection();
   const s = await getSettings();
   return NextResponse.json(
-    { pricing: s.pricing, sale: saleLive(s.sale) ? s.sale : null, banner: s.banner.on ? s.banner : null },
+    { pricing: s.pricing, sale: saleLive(s.sale) ? s.sale : null, banner: s.banner.on ? s.banner : null, feedback: s.feedback },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

@@ -54,6 +54,8 @@ interface AppState {
   deepLink: { pair?: string; gift?: string; game?: string; room?: string; quiz?: string } | null;
   /** 이용 흐름: this interview's random id (lib/track) */
   runId: string | null;
+  /** the paid reading on screen, as saved in 내 점괘함 (its 점괘 평가 is kept per reading) */
+  readingId: string | null;
 
   setScreen: (s: Screen) => void;
   setStep: (n: number) => void;
@@ -77,7 +79,7 @@ interface AppState {
   /** start a fresh interview; `mode` from a product card, `me` from saved 기본 정보 or the previous reading */
   startInterview: (opts?: { mode?: Mode; me?: PersonInput | null; partner?: Partial<PersonInput>; status?: RelationshipStatus; pair?: { id: string; from: string } }) => void;
   /** open a saved reading from 내 점괘함 */
-  openSaved: (r: Pick<SavedReading, "mode" | "names" | "teaser" | "report">) => void;
+  openSaved: (r: Pick<SavedReading, "mode" | "names" | "teaser" | "report"> & { id?: string }) => void;
 }
 
 const initialInput = (): QuestionnaireInput => ({
@@ -106,6 +108,7 @@ const initial = {
   pairView: null as PairView | null,
   deepLink: null as { pair?: string; gift?: string; game?: string; room?: string; quiz?: string } | null,
   runId: null as string | null,
+  readingId: null as string | null,
 };
 
 export const useAppStore = create<AppState>()(
@@ -134,15 +137,16 @@ export const useAppStore = create<AppState>()(
       setPartnerObs: (id, v) =>
         set((s) => ({ input: { ...s.input, partnerObs: { ...s.input.partnerObs, [id]: v } } })),
       setTeaser: (teaser, inputHash) =>
-        set({ teaser, fortune: null, inputHash, report: null, level: "none", screen: "result" }),
+        set({ teaser, fortune: null, inputHash, report: null, level: "none", readingId: null, screen: "result" }),
       setFortune: (fortune, inputHash) =>
-        set({ fortune, teaser: null, inputHash, report: null, level: "none", screen: "result" }),
+        set({ fortune, teaser: null, inputHash, report: null, level: "none", readingId: null, screen: "result" }),
       // Never downgrade: a later "share" unlock must not hide an already-paid full report.
-      applyUnlock: ({ level, report, coins }) =>
+      applyUnlock: ({ level, report, coins, readingId }) =>
         set((s) => {
           if (level === "full" && s.level !== "full") track("paid", s.runId, { product: s.input.mode });
           return {
           ...(s.level === "full" ? {} : { level, report }),
+          ...(readingId ? { readingId } : {}),
           ...(coins !== undefined && s.me ? { me: { ...s.me, coins } } : {}),
           };
         }),
@@ -187,9 +191,10 @@ export const useAppStore = create<AppState>()(
           report: null,
           level: "none",
           inputHash: null,
+          readingId: null,
         });
       },
-      openSaved: ({ mode, names, teaser, report }) => {
+      openSaved: ({ id, mode, names, teaser, report }) => {
         const base = initialInput();
         const fortune = isFortune(mode);
         set({
@@ -199,6 +204,7 @@ export const useAppStore = create<AppState>()(
           report,
           level: "full",
           inputHash: "saved",
+          readingId: id ?? null,
           screen: "result",
         });
       },
@@ -207,8 +213,9 @@ export const useAppStore = create<AppState>()(
       name: "love-chemistry-v6",
       // sessionStorage survives the Toss redirect round-trip but not a new tab/session.
       storage: createJSONStorage(() => sessionStorage),
-      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, pendingSpend, preset, story, pair, pairView, runId }) => ({
+      partialize: ({ screen, step, input, inputHash, teaser, fortune, report, level, resumePay, pendingSpend, preset, story, pair, pairView, runId, readingId }) => ({
         runId,
+        readingId,
         story,
         pair,
         pairView,

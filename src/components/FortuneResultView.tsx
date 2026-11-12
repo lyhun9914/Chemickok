@@ -13,6 +13,7 @@ import { LoginSheet } from "./LoginSheet";
 import { Nyang, Say } from "./Nyang";
 import { PaymentModal } from "./PaymentModal";
 import { FullReportView, LockedCard, SectionCard } from "./ReportCards";
+import { RatingCard } from "./Feedback";
 import { ShareButtons } from "./ShareButtons";
 import { ShareUnlockPanel } from "./ShareUnlockPanel";
 import { useToast } from "./Toast";
@@ -296,6 +297,7 @@ export function FortuneResultView() {
       {allShown && !typing && (
         <>
           <ShareButtons teaser={storyCard} myName={me} partnerName={input.partner.name} toast={toast.show} />
+          {level === "full" && <RatingCard mode={input.mode} />}
 
           {level === "full" && (
             <section className="mt-10">

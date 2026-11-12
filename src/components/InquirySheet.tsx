@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBack } from "@/lib/back";
 import { BUSINESS } from "@/lib/config";
+import { deviceOf } from "@/lib/device";
 import { Say } from "./Nyang";
 import { Overlay } from "./Overlay";
 
@@ -45,39 +46,7 @@ const KINDS: { id: Kind; emoji: string; label: string; fields: { key: string; la
 ];
 
 /** A short "기기 · 브라우저" line so a bug report says where it happened. */
-function deviceLine(): string {
-  if (typeof navigator === "undefined") return "";
-  const ua = navigator.userAgent;
-  const device = /iPhone/.test(ua)
-    ? "iPhone"
-    : /iPad/.test(ua)
-      ? "iPad"
-      : /Android/.test(ua)
-        ? "Android"
-        : /Windows/.test(ua)
-          ? "Windows PC"
-          : /Mac/.test(ua)
-            ? "Mac"
-            : "기타 기기";
-  const browser = /KAKAOTALK/i.test(ua)
-    ? "카카오톡 인앱"
-    : /Instagram/.test(ua)
-      ? "인스타그램 인앱"
-      : /NAVER/.test(ua)
-        ? "네이버 앱"
-        : /SamsungBrowser/.test(ua)
-          ? "삼성 인터넷"
-          : /Edg\//.test(ua)
-            ? "Edge"
-            : /Chrome|CriOS/.test(ua)
-              ? "Chrome"
-              : /Safari/.test(ua)
-                ? "Safari"
-                : /Firefox/.test(ua)
-                  ? "Firefox"
-                  : "기타 브라우저";
-  return `${device} · ${browser}`;
-}
+const deviceLine = () => (typeof navigator === "undefined" ? "" : deviceOf(navigator.userAgent));
 
 const inputCls = "w-full rounded-xl border border-line bg-surface-2 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-muted/60 focus:border-pink/60";
 
@@ -193,6 +162,9 @@ export function InquirySheet({ open, onClose }: { open: boolean; onClose: () => 
                 />
               </label>
               {kind === "pay" && <p className="text-[12.5px] text-peach">결제 문의는 결제 일시와 금액을 꼭 적어 주세요. 그래야 바로 찾을 수 있어요.</p>}
+              {kind === "etc" && (
+                <p className="text-[12.5px] leading-relaxed text-peach">💡 기능 제안이나 아쉬운 점은 홈 화면 맨 아래 &lsquo;📮 냥신 건의함&rsquo;으로 보내면 답장도 받고, 채택되면 냥 선물도 받아요.</p>
+              )}
               <p className="text-[12px] text-muted">사용 환경({device})은 메일에 자동으로 적혀요.</p>
             </div>
 

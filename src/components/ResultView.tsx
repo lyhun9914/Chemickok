@@ -31,6 +31,7 @@ import {
   TraitsCard,
   TwoFacesCard,
 } from "./ReportCards";
+import { RatingCard } from "./Feedback";
 import { ShareButtons } from "./ShareButtons";
 import { ShareUnlockPanel } from "./ShareUnlockPanel";
 import { useToast } from "./Toast";
@@ -477,6 +478,7 @@ export function ResultView() {
       {allShown && !typing && (
         <>
           <ShareButtons teaser={teaser} myName={me} partnerName={p} toast={toast.show} />
+          {level === "full" && <RatingCard mode={input.mode} />}
           {teaser.couple && !pair && <PairInviteCard input={input} />}
           {level === "full" && (
             <button

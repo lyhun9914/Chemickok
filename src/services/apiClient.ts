@@ -1,3 +1,4 @@
+import type { FeedbackStatus, Rating, SuggestKind } from "@/lib/feedback";
 import { reportClientError } from "@/lib/track";
 import type { AnalyzeResponse, FortuneAnalyzeResponse, FortuneTeaser, FullReport, Gender, Mode, PairResult, PersonInput, QuestionnaireInput, RelationshipStatus, TeaserReport, UnlockResponse } from "@/models/types";
 
@@ -121,6 +122,8 @@ export interface Me {
   /** for 친구 초대 links */
   refCode: string;
   email: string | null;
+  /** 내 건의 with news (답장 · 반영 · 채택) not seen yet */
+  news?: number;
 }
 
 export interface CoinHistoryRow {
@@ -369,4 +372,31 @@ export interface Mine {
 }
 export const mineApi = {
   get: () => get<Mine>("/api/mine"),
+};
+
+// ───────────── 냥신 건의함 · 점괘 평가 (회원) ─────────────
+
+export interface MyRating {
+  rating: Rating;
+  tags: string[];
+  body: string;
+}
+export interface MySuggestion {
+  id: number;
+  kind: SuggestKind;
+  body: string;
+  status: FeedbackStatus;
+  reply: string;
+  adopted: boolean;
+  reward: number;
+  unread: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export const feedbackApi = {
+  mine: () => get<{ items: MySuggestion[]; news: number }>("/api/feedback"),
+  ratingOf: (ref: string) => get<{ rating: MyRating | null }>(`/api/feedback?ref=${encodeURIComponent(ref)}`),
+  rate: (r: { mode: Mode; ref: string; rating: Rating; tags?: string[]; body?: string }) => post<{ ok: true; rating: MyRating }>("/api/feedback", { kind: "rating", ...r }),
+  suggest: (s: { kind: SuggestKind; body: string; page?: "home" | "result" | "my"; mode?: Mode | null }) => post<{ ok: true; item: MySuggestion }>("/api/feedback", s),
+  seen: () => post<{ ok: true }>("/api/feedback", {}, "PATCH"),
 };

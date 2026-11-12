@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { won } from "@/lib/config";
-import { kstDay } from "@/lib/kst";
+import { RATINGS } from "@/lib/feedback";
+import { kstDay, kstStart } from "@/lib/kst";
 import { getDb } from "@/services/server/db";
 import { SITE } from "@/lib/site";
 import { expireDueCoins } from "@/services/server/coinExpiry";
@@ -35,7 +36,17 @@ export async function GET(req: NextRequest) {
     });
   const to = process.env.ADMIN_EMAIL;
   if (!db || !to || !mailConfigured()) return NextResponse.json({ skipped: "메일 설정 없음", expired });
-  const [y, b] = await Promise.all([db.adminDay(kstDay(-1)), db.adminDay(kstDay(-2))]);
+  const [y, b, fb] = await Promise.all([
+    db.adminDay(kstDay(-1)),
+    db.adminDay(kstDay(-2)),
+    db.feedbackBetween(kstStart(kstDay(-1)), kstStart(kstDay())).catch(() => []),
+  ]);
+  const ideas = fb.filter((f) => f.kind !== "rating");
+  const rated = fb.filter((f) => f.kind === "rating");
+  const fbLine =
+    ideas.length || rated.length
+      ? `📮 건의 ${ideas.length}건${ideas.length ? ` (💡${ideas.filter((f) => f.kind === "idea").length} 😿${ideas.filter((f) => f.kind === "sad").length} 🐞${ideas.filter((f) => f.kind === "bug").length} 💌${ideas.filter((f) => f.kind === "praise").length})` : ""} · 점괘 평가 ${rated.length}건${rated.length ? ` (${RATINGS.map((r) => `${r.emoji}${rated.filter((f) => f.rating === r.id).length}`).join(" ")})` : ""} — 관리자 화면 '의견'`
+      : "📮 건의 · 점괘 평가 없음";
   const net = n(y.sales) - n(y.refunds);
   const lines = [
     `냥신 점괘 ${y.day} 하루 요약 🐾 (괄호는 그 전날과 비교)`,
@@ -46,6 +57,7 @@ export async function GET(req: NextRequest) {
     `🎮 미니게임 ${n(y.games)} · 🎟️ 쿠폰 사용 ${n(y.coupons)}`,
     `🙋 새 회원 ${n(y.newUsers)}${diff(y.newUsers, b.newUsers)} · 쓴 냥 ${n(y.coinsSpent)}냥`,
     ...(expired?.coins ? [`⏳ 유효기간(1년)이 지난 충전 냥 ${expired.coins}냥 정리 (${expired.users}명)`] : []),
+    fbLine,
     `🚨 오류 ${n(y.errors)}건 (${n(y.errorKinds)}종류)${n(y.errors) ? " — 관리자 화면 '오류'에서 확인하세요" : ""}`,
     "",
     `관리자 화면: ${SITE}/admin`,

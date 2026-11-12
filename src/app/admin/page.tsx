@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AdminInstall } from "@/components/admin/AdminInstall";
 import { ErrorsPanel } from "@/components/admin/ErrorsPanel";
+import { FeedbackTab } from "@/components/admin/FeedbackTab";
 import { FunnelPanel } from "@/components/admin/FunnelPanel";
 import { MembersTab } from "@/components/admin/MembersTab";
 import { PaymentsTab } from "@/components/admin/PaymentsTab";
@@ -22,6 +23,7 @@ const TABS = [
   ["todo", "✅ 할 일"],
   ["pay", "💳 결제·환불"],
   ["members", "👥 회원"],
+  ["feedback", "📮 의견"],
   ["prices", "🪙 가격·세일"],
   ["promo", "📢 공지·쿠폰"],
   ["flow", "📈 이용 흐름"],
@@ -45,7 +47,7 @@ function DayTile({ label, today, yesterday, money }: { label: string; today: unk
   );
 }
 
-function HomeTab({ go, todoCount }: { go: (t: Tab) => void; todoCount: number }) {
+function HomeTab({ go, todoCount, fbCount }: { go: (t: Tab) => void; todoCount: number; fbCount: number }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [day, setDay] = useState<{ today: Day; yesterday: Day } | null>(null);
   const [live, setLive] = useState<Live | null>(null);
@@ -62,6 +64,7 @@ function HomeTab({ go, todoCount }: { go: (t: Tab) => void; todoCount: number })
 
   const alerts: { tone: "warn" | "error" | "info"; text: string; tab?: Tab }[] = [];
   if (todoCount > 0) alerts.push({ tone: "warn", text: `✅ 지금 할 일이 ${todoCount}개 있어요.`, tab: "todo" });
+  if (fbCount > 0) alerts.push({ tone: "info", text: `📮 새 의견이 ${fbCount}건 왔어요.`, tab: "feedback" });
   if (stats.testMode) alerts.push({ tone: "warn", text: "최근 하루 안에 테스트 결제가 있었어요. 실제 결제 키로 바뀌었는지 확인하세요." });
   if (Number(stats.errors24h) > 0) alerts.push({ tone: "error", text: `최근 24시간 오류 ${num(stats.errors24h)}건이 있어요.`, tab: "errors" });
   if (live?.sale.on) alerts.push({ tone: "info", text: `🎉 세일 켜짐: ${live.sale.label || "충전 세일"}${live.sale.to ? ` (${new Date(live.sale.to).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}까지)` : ""}`, tab: "prices" });
@@ -166,6 +169,7 @@ export default function AdminPage() {
   const [openUser, setOpenUser] = useState<string | null>(null);
   const [errCount, setErrCount] = useState(0);
   const [todoCount, setTodoCount] = useState(0);
+  const [fbCount, setFbCount] = useState(0);
 
   const go = useCallback((t: Tab) => {
     setTab(t);
@@ -184,6 +188,9 @@ export default function AdminPage() {
     if (!state?.admin) return;
     call<{ errors: { count: number }[] }>("/api/admin/errors?hours=24").then((r) => setErrCount(r.errors.reduce((n, e) => n + e.count, 0))).catch(() => null);
     call<{ done: Record<string, string> }>("/api/admin/todo").then((r) => setTodoCount(dueCount(r.done))).catch(() => null);
+    call<{ items: { kind: string; status: string }[] }>("/api/admin/feedback?days=60")
+      .then((r) => setFbCount(r.items.filter((i) => i.kind !== "rating" && i.status === "new").length))
+      .catch(() => null);
   }, [state?.admin]);
 
   const login = async () => {
@@ -273,16 +280,18 @@ export default function AdminPage() {
               {label}
               {k === "errors" && errCount > 0 && <span className="ml-1 rounded-full bg-pink px-1.5 text-[10.5px] text-white">{errCount}</span>}
               {k === "todo" && todoCount > 0 && <span className="ml-1 rounded-full bg-pink px-1.5 text-[10.5px] text-white">{todoCount}</span>}
+              {k === "feedback" && fbCount > 0 && <span className="ml-1 rounded-full bg-pink px-1.5 text-[10.5px] text-white">{fbCount}</span>}
             </button>
           ))}
         </nav>
       </header>
 
       <div className="space-y-4 p-4">
-        {tab === "home" && <HomeTab go={go} todoCount={todoCount} />}
+        {tab === "home" && <HomeTab go={go} todoCount={todoCount} fbCount={fbCount} />}
         {tab === "todo" && <TodoTab go={(t) => go(t as Tab)} onCount={setTodoCount} />}
         {tab === "pay" && <PaymentsTab onOpenUser={openMember} />}
         {tab === "members" && <MembersTab openId={openUser} onOpened={clearOpen} />}
+        {tab === "feedback" && <FeedbackTab onCount={setFbCount} onOpenUser={openMember} />}
         {tab === "prices" && <PricesTab />}
         {tab === "promo" && <PromoTab />}
         {tab === "flow" && <FunnelPanel />}

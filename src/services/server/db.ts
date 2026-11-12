@@ -1,4 +1,5 @@
 import "server-only";
+import type { FeedbackKind, FeedbackStatus, Rating } from "@/lib/feedback";
 import { randomUUID } from "node:crypto";
 import type { FortuneTeaser, FullReport, PersonInput, RelationshipStatus, TeaserReport } from "@/models/types";
 
@@ -18,7 +19,7 @@ export interface DbUser {
 }
 
 /** What 전체 백업 takes, in the order a restore would put them back. */
-const BACKUP_TABLES = ["users", "wallets", "coin_ledger", "payments", "readings", "gifts", "pair_invites", "attendance", "coupons", "coupon_redemptions", "app_settings", "admin_actions", "withdrawn_accounts", "cat_cards"];
+const BACKUP_TABLES = ["users", "wallets", "coin_ledger", "payments", "readings", "gifts", "pair_invites", "attendance", "coupons", "coupon_redemptions", "app_settings", "admin_actions", "withdrawn_accounts", "cat_cards", "feedback"];
 
 export type CoinReason = "charge" | "spend" | "bonus" | "refund" | "admin" | "gift" | "expire";
 /** 단톡방 케미표 · 퀴즈 · 고양이 도감 모으기 */
@@ -58,6 +59,32 @@ export interface CatCardRow {
   got_day: string;
 }
 export type JoinResult = { ok: boolean; reason?: "none" | "name" | "full" };
+
+/** 냥신 건의함 · 점괘 평가 (one table: kind "rating" is a result's 평가, the rest are 건의) */
+export interface FeedbackRow {
+  id: number;
+  user_id: string;
+  kind: FeedbackKind;
+  rating: Rating | null;
+  tags: string[];
+  body: string;
+  mode: string | null;
+  ref: string | null;
+  page: string | null;
+  device: string | null;
+  status: FeedbackStatus;
+  memo: string;
+  reply: string;
+  adopted_at: string | null;
+  reward: number;
+  unread: boolean;
+  created_at: string;
+  updated_at: string;
+}
+export interface AdminFeedbackRow extends FeedbackRow {
+  users: { nickname: string; provider: string } | null;
+}
+export type FeedbackPatch = Partial<Pick<FeedbackRow, "status" | "memo" | "reply" | "adopted_at" | "reward" | "unread">>;
 
 export interface LedgerRow {
   delta: number;
@@ -283,6 +310,23 @@ export interface Db {
   catCards(userId: string): Promise<CatCardRow[]>;
   /** one card a KST day: ok=false (and today's card) when it was already drawn */
   catDraw(userId: string, day: string, no: number): Promise<{ ok: boolean; no: number }>;
+  // 냥신 건의함 · 점괘 평가
+  feedbackAdd(f: Pick<FeedbackRow, "user_id" | "kind" | "body" | "mode" | "page" | "device">): Promise<FeedbackRow>;
+  /** one 평가 per reading (user + ref): sending again changes it */
+  feedbackRate(f: Pick<FeedbackRow, "user_id" | "ref" | "rating" | "tags" | "body" | "mode" | "page" | "device">): Promise<FeedbackRow>;
+  feedbackRatingOf(userId: string, ref: string): Promise<FeedbackRow | null>;
+  /** this member's 건의 (not 평가), newest first */
+  feedbackMine(userId: string): Promise<FeedbackRow[]>;
+  /** 건의 this member sent since `since` (the daily limit) */
+  feedbackCountSince(userId: string, since: string): Promise<number>;
+  /** 건의 with news (답장 · 반영 · 채택) the member hasn't seen */
+  feedbackNews(userId: string): Promise<number>;
+  feedbackSeen(userId: string): Promise<void>;
+  feedbackGet(id: number): Promise<FeedbackRow | null>;
+  adminFeedback(since: string): Promise<AdminFeedbackRow[]>;
+  adminFeedbackUpdate(id: number, patch: FeedbackPatch): Promise<FeedbackRow | null>;
+  /** 하루 요약: what came in between from and to */
+  feedbackBetween(from: string, to: string): Promise<Pick<FeedbackRow, "kind" | "rating">[]>;
   // 관리자
   adminStats(): Promise<Record<string, number | boolean>>;
   adminUsers(q: string): Promise<AdminUserRow[]>;
@@ -555,6 +599,54 @@ function supabase(url: string, key: string): Db {
     async catDraw(userId, day, no) {
       return rest("rpc/cat_draw", { method: "POST", body: JSON.stringify({ p_user: userId, p_day: day, p_no: no }) });
     },
+    async feedbackAdd(f) {
+      const [row] = await rest<FeedbackRow[]>("feedback", { method: "POST", prefer: "return=representation", body: JSON.stringify({ ...f, kind: f.kind }) });
+      return row;
+    },
+    async feedbackRate(f) {
+      const [row] = await rest<FeedbackRow[]>("feedback?on_conflict=user_id,ref", {
+        method: "POST",
+        prefer: "resolution=merge-duplicates,return=representation",
+        body: JSON.stringify({ ...f, kind: "rating", updated_at: new Date().toISOString() }),
+      });
+      return row;
+    },
+    async feedbackRatingOf(userId, ref) {
+      const rows = await rest<FeedbackRow[]>(`feedback?user_id=${eq(userId)}&ref=${eq(ref)}&kind=eq.rating&select=*`);
+      return rows[0] ?? null;
+    },
+    async feedbackMine(userId) {
+      return rest<FeedbackRow[]>(`feedback?user_id=${eq(userId)}&kind=neq.rating&select=*&order=created_at.desc&limit=50`);
+    },
+    async feedbackCountSince(userId, since) {
+      const rows = await rest<unknown[]>(`feedback?user_id=${eq(userId)}&kind=neq.rating&created_at=gte.${encodeURIComponent(since)}&select=id&limit=50`);
+      return rows.length;
+    },
+    async feedbackNews(userId) {
+      const rows = await rest<unknown[]>(`feedback?user_id=${eq(userId)}&unread=is.true&select=id&limit=50`);
+      return rows.length;
+    },
+    async feedbackSeen(userId) {
+      await rest(`feedback?user_id=${eq(userId)}&unread=is.true`, { method: "PATCH", body: JSON.stringify({ unread: false }) });
+    },
+    async feedbackGet(id) {
+      const rows = await rest<FeedbackRow[]>(`feedback?id=eq.${Math.trunc(id)}&select=*`);
+      return rows[0] ?? null;
+    },
+    async adminFeedback(since) {
+      return rest<AdminFeedbackRow[]>(`feedback?created_at=gte.${encodeURIComponent(since)}&select=*,users(nickname,provider)&order=created_at.desc&limit=1000`);
+    },
+    async adminFeedbackUpdate(id, patch) {
+      const rows = await rest<FeedbackRow[]>(`feedback?id=eq.${Math.trunc(id)}`, {
+        method: "PATCH",
+        prefer: "return=representation",
+        body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+      });
+      return rows[0] ?? null;
+    },
+    async feedbackBetween(from, to) {
+      return rest(`feedback?created_at=gte.${encodeURIComponent(from)}&created_at=lt.${encodeURIComponent(to)}&select=kind,rating&limit=5000`);
+    },
     async adminStats() {
       return rest("rpc/admin_stats", { method: "POST", body: "{}" });
     },
@@ -705,6 +797,7 @@ function memory(): Db {
     quizzes?: QuizRow[];
     plays?: (QuizPlayRow & { quiz_id: string })[];
     cats?: (CatCardRow & { user_id: string })[];
+    fb?: FeedbackRow[];
   };
   const g = globalThis as unknown as { __nyangDb?: Mem };
   const m: Mem = (g.__nyangDb ??= { users: [], readings: [], payments: [], wallets: new Map(), ledger: [], attendance: new Set(), gifts: [], pairs: [], visits: [], runs: [], errors: [], settings: {}, withdrawn: new Map(), actions: [], coupons: [], redemptions: [] });
@@ -713,6 +806,7 @@ function memory(): Db {
   m.quizzes ??= [];
   m.plays ??= [];
   m.cats ??= [];
+  m.fb ??= [];
   const rooms = m.rooms;
   const live = <T extends { expires_at: string }>(x: T) => Date.parse(x.expires_at) > Date.now();
   const newUser = (u: { provider: string; providerId: string; nickname: string; email: string | null; passwordHash?: string }): DbUser => ({
@@ -781,6 +875,7 @@ function memory(): Db {
       m.wallets.delete(id);
       m.ledger = m.ledger.filter((x) => x.user_id !== id);
       m.cats = m.cats!.filter((x) => x.user_id !== id);
+      m.fb = m.fb!.filter((x) => x.user_id !== id);
       m.members = m.members!.filter((x) => x.user_id !== id);
       const gone = new Set(m.quizzes!.filter((q) => q.owner_user === id).map((q) => q.id));
       m.quizzes = m.quizzes!.filter((q) => !gone.has(q.id));
@@ -987,6 +1082,54 @@ function memory(): Db {
     },
     async catCards(userId) {
       return m.cats!.filter((x) => x.user_id === userId).map(({ no, got_day }) => ({ no, got_day }));
+    },
+    async feedbackAdd(f) {
+      const now = new Date().toISOString();
+      const row: FeedbackRow = { id: m.fb!.length + 1, rating: null, tags: [], ref: null, status: "new", memo: "", reply: "", adopted_at: null, reward: 0, unread: false, created_at: now, updated_at: now, ...f };
+      m.fb!.push(row);
+      return row;
+    },
+    async feedbackRate(f) {
+      const now = new Date().toISOString();
+      const had = m.fb!.find((x) => x.user_id === f.user_id && x.ref === f.ref && x.kind === "rating");
+      if (had) return Object.assign(had, f, { updated_at: now });
+      const row: FeedbackRow = { id: m.fb!.length + 1, kind: "rating", status: "new", memo: "", reply: "", adopted_at: null, reward: 0, unread: false, created_at: now, updated_at: now, ...f };
+      m.fb!.push(row);
+      return row;
+    },
+    async feedbackRatingOf(userId, ref) {
+      return m.fb!.find((x) => x.user_id === userId && x.ref === ref && x.kind === "rating") ?? null;
+    },
+    async feedbackMine(userId) {
+      return m.fb!.filter((x) => x.user_id === userId && x.kind !== "rating").reverse().slice(0, 50);
+    },
+    async feedbackCountSince(userId, since) {
+      return m.fb!.filter((x) => x.user_id === userId && x.kind !== "rating" && x.created_at >= since).length;
+    },
+    async feedbackNews(userId) {
+      return m.fb!.filter((x) => x.user_id === userId && x.unread).length;
+    },
+    async feedbackSeen(userId) {
+      for (const x of m.fb!) if (x.user_id === userId) x.unread = false;
+    },
+    async feedbackGet(id) {
+      return m.fb!.find((x) => x.id === id) ?? null;
+    },
+    async adminFeedback(since) {
+      return m.fb!
+        .filter((x) => x.created_at >= since)
+        .reverse()
+        .map((x) => {
+          const u = m.users.find((y) => y.id === x.user_id);
+          return { ...x, users: u ? { nickname: u.nickname, provider: u.provider } : null };
+        });
+    },
+    async adminFeedbackUpdate(id, patch) {
+      const row = m.fb!.find((x) => x.id === id);
+      return row ? Object.assign(row, patch, { updated_at: new Date().toISOString() }) : null;
+    },
+    async feedbackBetween(from, to) {
+      return m.fb!.filter((x) => x.created_at >= from && x.created_at < to).map(({ kind, rating }) => ({ kind, rating }));
     },
     async catDraw(userId, day, no) {
       const today = m.cats!.find((x) => x.user_id === userId && x.got_day === day);
