@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 !.env.example
+
+# graphify 결과물 (세션 시작 때 자동으로 다시 만듦)
+graphify-out/
