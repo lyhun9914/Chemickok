@@ -44,6 +44,26 @@
       }
     ]
   },
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true,
+    "task-observer@one-skill-to-rule-them-all": true,
+    "agent-skills@addy-agent-skills": true,
+    "ponytail@ponytail": true,
+    "agent-browser@agent-browser": true,
+    "taste-skill@taste-skill": true,
+    "example-skills@anthropic-agent-skills": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "session-report@claude-plugins-official": true,
+    "supabase@supabase-agent-skills": true,
+    "postgres-best-practices@supabase-agent-skills": true,
+    "marketing@knowledge-work-plugins": true,
+    "design@knowledge-work-plugins": true,
+    "brand-voice@knowledge-work-plugins": true,
+    "customer-support@knowledge-work-plugins": true
+  },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
       "source": {
@@ -99,25 +119,5 @@
         "repo": "anthropics/knowledge-work-plugins"
       }
     }
-  },
-  "enabledPlugins": {
-    "claude-code-setup@claude-plugins-official": true,
-    "task-observer@one-skill-to-rule-them-all": true,
-    "agent-skills@addy-agent-skills": true,
-    "ponytail@ponytail": true,
-    "agent-browser@agent-browser": true,
-    "taste-skill@taste-skill": true,
-    "example-skills@anthropic-agent-skills": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "security-guidance@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
-    "session-report@claude-plugins-official": true,
-    "supabase@supabase-agent-skills": true,
-    "postgres-best-practices@supabase-agent-skills": true,
-    "marketing@knowledge-work-plugins": true,
-    "design@knowledge-work-plugins": true,
-    "brand-voice@knowledge-work-plugins": true,
-    "customer-support@knowledge-work-plugins": true
   }
 }
