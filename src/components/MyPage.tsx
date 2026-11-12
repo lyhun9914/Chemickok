@@ -12,7 +12,7 @@ import { useLive } from "@/lib/liveSettings";
 import { WalletSheet, useSocialLabel } from "./CoinShop";
 import { GiftSendSheet, takeGiftDraft } from "./GiftSheet";
 import { DateTimeSelects } from "./DateTimeSelects";
-import { FunSection } from "./MyFun";
+import { AlbumSection, FunSection } from "./MyFun";
 import { Nyang } from "./Nyang";
 import { Coin } from "./Coin";
 import { Overlay } from "./Overlay";
@@ -413,6 +413,8 @@ export function MyPage() {
           </ul>
         )}
       </section>
+
+      <AlbumSection />
 
       <FunSection />
 

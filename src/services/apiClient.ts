@@ -343,7 +343,7 @@ export const albumApi = {
   },
 };
 
-/** 내 점괘함 · 친구랑 놀기 (logged in, any device) */
+/** 내 점괘함 · 친구와 나눈 점괘 (logged in, any device) */
 export interface MineQuiz {
   id: string;
   owner: string;
@@ -366,7 +366,6 @@ export interface MineRoom {
 export interface Mine {
   quizzes: MineQuiz[];
   rooms: MineRoom[];
-  album: { count: number; size: number; drawnToday: boolean };
 }
 export const mineApi = {
   get: () => get<Mine>("/api/mine"),

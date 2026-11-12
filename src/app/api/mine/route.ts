@@ -1,19 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { chemRoom } from "@/engine/groupChem";
-import { ALBUM_SIZE } from "@/lib/catAlbum";
-import { kstDay } from "@/lib/kst";
 import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
 
 /**
- * GET /api/mine — 내 점괘함의 '친구랑 놀기': the quizzes this account made, the 케미표 it is in, and the 고양이 도감 — each
- * with what the list needs (who leads, how many played or joined, when it lapses). Any device, once logged in.
+ * GET /api/mine — 내 점괘함의 '친구와 나눈 점괘': the quizzes this account made and the 케미표 it is in, each with what the
+ * list needs (who leads, how many played or joined, when it lapses). Any device, once logged in.
  */
 export async function GET(req: NextRequest) {
   const db = getDb();
   const uid = sessionUserId(req);
   if (!db || !uid) return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
-  const [quizzes, roomIds, cards] = await Promise.all([db.quizzesOf(uid), db.roomsOf(uid), db.catCards(uid)]);
+  const [quizzes, roomIds] = await Promise.all([db.quizzesOf(uid), db.roomsOf(uid)]);
   const rooms = (await Promise.all(roomIds.map((id) => db.roomGet(id).then((r) => (r ? { id, r } : null))))).filter(Boolean) as {
     id: string;
     r: NonNullable<Awaited<ReturnType<typeof db.roomGet>>>;
@@ -42,6 +40,5 @@ export async function GET(req: NextRequest) {
         expiresAt: r.room.expires_at,
       };
     }),
-    album: { count: cards.length, size: ALBUM_SIZE, drawnToday: cards.some((c) => c.got_day === kstDay()) },
   });
 }

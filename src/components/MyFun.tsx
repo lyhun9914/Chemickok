@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { nyang } from "@/lib/config";
 import { josa } from "@/lib/josa";
 import { lifeLine, mergeRows } from "@/lib/when";
-import { mineApi, type Mine, type MineQuiz, type MineRoom } from "@/services/apiClient";
+import { albumApi, mineApi, type AlbumView, type MineQuiz, type MineRoom } from "@/services/apiClient";
 import { useAppStore } from "@/store/useAppStore";
 import { leaveRoom, localRoomRows, roomLink } from "./ChemRoom";
 import { deleteQuiz, localQuizRows, quizLink } from "./FriendQuiz";
@@ -12,12 +13,12 @@ import { MiniGameSheet, type MiniGame } from "./MiniGames";
 type Ask = { kind: "quiz" | "room"; id: string };
 
 /**
- * 내 점괘함 · 친구랑 논 기록: the 고양이 도감, the quizzes this member made and the 케미표 they made or joined — open the
- * results, copy the link, delete / leave — on any device. Guest-made ones on this browser join the account here too.
+ * 내 점괘함 · 친구와 나눈 점괘: the quizzes this member made and the 케미표 they made or joined — open the results, copy
+ * the link, delete / leave — on any device. Guest-made ones on this browser join the account here too.
  */
 export function FunSection() {
   const setScreen = useAppStore((s) => s.setScreen);
-  const [m, setM] = useState<Mine | null>(null);
+  const [m, setM] = useState<{ quizzes: MineQuiz[]; rooms: MineRoom[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<{ game: MiniGame; id?: string | null } | null>(null);
   const [note, setNote] = useState<{ id: string; text: string } | null>(null);
@@ -30,7 +31,7 @@ export function FunSection() {
       // this browser's first: opening them logged in joins guest-made ones to the account
       const [lq, lr] = await Promise.all([localQuizRows().catch(() => []), localRoomRows().catch(() => [])]);
       const mine = await mineApi.get();
-      setM({ ...mine, quizzes: mergeRows(mine.quizzes, lq), rooms: mergeRows(mine.rooms, lr) });
+      setM({ quizzes: mergeRows(mine.quizzes, lq), rooms: mergeRows(mine.rooms, lr) });
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "불러오지 못했다냥.");
@@ -138,10 +139,9 @@ export function FunSection() {
     </li>
   );
 
-  const pct = m ? Math.round((m.album.count / m.album.size) * 100) : 0;
   return (
     <section className="mt-8">
-      <h2 className="mb-2 text-sm font-semibold text-muted">🐾 친구랑 논 기록</h2>
+      <h2 className="mb-2 text-sm font-semibold text-muted">💌 친구와 나눈 점괘</h2>
       {error && (
         <p className="mb-2 text-sm text-pink">
           {error}{" "}
@@ -154,29 +154,6 @@ export function FunSection() {
         !error && <p className="py-6 text-center text-sm text-muted">불러오는 중…</p>
       ) : (
         <div className="space-y-3">
-          <button onClick={() => setSheet({ game: "album" })} className="flex w-full items-center gap-3 rounded-2xl border border-violet/40 bg-surface p-4 text-left">
-            <span className="text-2xl" aria-hidden>
-              🗂️
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-baseline justify-between gap-2">
-                <span className="text-[14px] font-semibold">고양이 도감</span>
-                <span className="text-[12.5px] text-muted">
-                  {m.album.count} / {m.album.size}
-                </span>
-              </span>
-              <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-white/10">
-                <span className="block h-full rounded-full bg-gradient-to-r from-pink to-peach" style={{ width: `${pct}%` }} />
-              </span>
-              <span className={`mt-1 block text-[12px] ${m.album.drawnToday || m.album.count >= m.album.size ? "text-muted" : "font-semibold text-peach"}`}>
-                {m.album.count >= m.album.size ? "👑 60마리 다 모았다냥" : m.album.drawnToday ? "✅ 오늘 고양이 뽑음 · 내일 또" : "🎴 오늘의 고양이 뽑을 수 있다냥"}
-              </span>
-            </span>
-            <span className="text-peach" aria-hidden>
-              ›
-            </span>
-          </button>
-
           <div className="rounded-2xl border border-line bg-surface p-4">
             <div className="flex items-center justify-between">
               <p className="text-[14px] font-bold">📋 내가 만든 퀴즈 {m.quizzes.length ? m.quizzes.length : ""}</p>
@@ -212,6 +189,111 @@ export function FunSection() {
         linkId={sheet?.id ?? null}
         onClose={() => {
           setSheet(null);
+          load();
+        }}
+        onStart={() => setScreen("landing")}
+      />
+    </section>
+  );
+}
+
+/**
+ * 내 점괘함 · 고양이 도감: its own corner — how many of the 60 cats are in, the 냥 선물 steps, the latest cats, and today's
+ * draw. Opens the full 도감 sheet.
+ */
+export function AlbumSection() {
+  const setScreen = useAppStore((s) => s.setScreen);
+  const [v, setV] = useState<AlbumView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const load = useCallback(() => {
+    albumApi
+      .get()
+      .then((x) => {
+        setV(x);
+        setError(null);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "불러오지 못했다냥."));
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const done = v ? v.cards.length >= v.size : false;
+  const pct = v ? Math.round((v.cards.length / v.size) * 100) : 0;
+  const latest = v ? [...v.cards].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "")).slice(0, 6) : [];
+  const next = v?.milestones.find((x) => !x.done);
+  return (
+    <section className="mt-8">
+      <h2 className="mb-2 text-sm font-semibold text-muted">🗂️ 고양이 도감</h2>
+      {error ? (
+        <p className="text-sm text-pink">
+          {error}{" "}
+          <button onClick={load} className="underline">
+            다시
+          </button>
+        </p>
+      ) : !v ? (
+        <p className="py-6 text-center text-sm text-muted">불러오는 중…</p>
+      ) : (
+        <div className="rounded-2xl border border-peach/35 bg-gradient-to-b from-[#24130d] to-[#120a07] p-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[15px] font-bold">
+              모은 고양이 <span className="text-peach">{v.cards.length}</span> / {v.size}
+            </p>
+            <p className="text-[12.5px] text-muted">{pct}%</p>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-gradient-to-r from-pink to-peach" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {v.milestones.map((x) => (
+              <span key={x.at} className={`rounded-full px-2.5 py-1 text-[12px] ${x.done ? "bg-peach/20 font-bold text-peach" : "border border-line text-muted"}`}>
+                {x.done ? "✅" : "🎁"} {x.at}마리{v.rewards ? ` · ${nyang(x.coins)}` : ""}
+              </span>
+            ))}
+          </div>
+          {next && !done && (
+            <p className="mt-1.5 text-[12px] text-muted">
+              {next.at - v.cards.length}마리 더 모으면 {next.at}마리 달성{v.rewards ? ` · ${nyang(next.coins)} 선물` : ""}이다냥
+            </p>
+          )}
+
+          {latest.length > 0 ? (
+            <div className="mt-3">
+              <p className="text-[12px] font-semibold text-muted">최근 모은 고양이</p>
+              <div className="mt-1.5 grid grid-cols-6 gap-1.5">
+                {latest.map((c) => (
+                  <div key={c.no} className="flex aspect-square flex-col items-center justify-center rounded-lg border border-violet/40 bg-white/[0.04]" title={c.name}>
+                    <span className="text-[20px] leading-none" aria-hidden>
+                      {c.icon}
+                    </span>
+                    <span className="mt-0.5 text-[9.5px] text-muted">{String(c.no).padStart(2, "0")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 text-[13px] text-muted">아직 모은 고양이가 없다냥. 하루 한 장씩, 첫 장은 네 일주 고양이다냥 🐾</p>
+          )}
+
+          {done ? (
+            <p className="mt-3 rounded-xl bg-peach/10 py-2.5 text-center text-[13.5px] font-bold text-peach">👑 60마리를 다 모았다냥!</p>
+          ) : v.drawnToday ? (
+            <p className="mt-3 text-center text-[12.5px] text-muted">✅ 오늘 고양이는 뽑았다냥 · 내일 또 와라냥</p>
+          ) : null}
+          <button
+            onClick={() => setOpen(true)}
+            className={`mt-3 w-full py-3.5 text-[15px] ${!done && !v.drawnToday ? "btn-primary" : "rounded-xl border border-violet/45 bg-white/[0.04] font-semibold"}`}
+          >
+            {!done && !v.drawnToday ? "🎴 오늘의 고양이 뽑기" : "도감 펼쳐 보기 ›"}
+          </button>
+        </div>
+      )}
+      <MiniGameSheet
+        game={open ? "album" : null}
+        onClose={() => {
+          setOpen(false);
           load();
         }}
         onStart={() => setScreen("landing")}
