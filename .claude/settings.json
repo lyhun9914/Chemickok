@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v graphify >/dev/null 2>&1 || pip install -q graphifyy >/dev/null 2>&1 || python3 -m pip install -q graphifyy >/dev/null 2>&1; cd \"$CLAUDE_PROJECT_DIR\" && [ ! -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1 && graphify update . >/dev/null 2>&1; exit 0",
+            "command": "command -v graphify >/dev/null 2>&1 || pip install -q graphifyy >/dev/null 2>&1 || python3 -m pip install -q graphifyy >/dev/null 2>&1; command -v typescript-language-server >/dev/null 2>&1 || npm install -g --silent typescript-language-server typescript >/dev/null 2>&1; cd \"$CLAUDE_PROJECT_DIR\" && [ ! -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1 && graphify update . >/dev/null 2>&1; exit 0",
             "timeout": 180
           }
         ]
@@ -86,6 +86,12 @@
         "source": "github",
         "repo": "anthropics/skills"
       }
+    },
+    "supabase-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "supabase/agent-skills"
+      }
     }
   },
   "enabledPlugins": {
@@ -95,6 +101,13 @@
     "ponytail@ponytail": true,
     "agent-browser@agent-browser": true,
     "taste-skill@taste-skill": true,
-    "example-skills@anthropic-agent-skills": true
+    "example-skills@anthropic-agent-skills": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "session-report@claude-plugins-official": true,
+    "supabase@supabase-agent-skills": true,
+    "postgres-best-practices@supabase-agent-skills": true
   }
 }
