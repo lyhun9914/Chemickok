@@ -290,6 +290,7 @@ export function MyPage() {
   const [editing, setEditing] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
   useBack(true, () => setScreen("landing"));
   useBack(confirmLeave, () => setConfirmLeave(false));
 
@@ -331,7 +332,6 @@ export function MyPage() {
     setMe(null);
     reset();
   };
-  const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const withdraw = async () => {
     setWithdrawError(null);
     try {
