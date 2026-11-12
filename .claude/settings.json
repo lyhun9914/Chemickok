@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v graphify >/dev/null 2>&1 || pip install -q graphifyy >/dev/null 2>&1 || python3 -m pip install -q graphifyy >/dev/null 2>&1; command -v typescript-language-server >/dev/null 2>&1 || npm install -g --silent typescript-language-server typescript >/dev/null 2>&1; cd \"$CLAUDE_PROJECT_DIR\" && [ ! -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1 && graphify update . >/dev/null 2>&1; exit 0",
+            "command": "command -v graphify >/dev/null 2>&1 || pip install -q \"graphifyy[sql]\" >/dev/null 2>&1 || python3 -m pip install -q \"graphifyy[sql]\" >/dev/null 2>&1; command -v typescript-language-server >/dev/null 2>&1 || npm install -g --silent typescript-language-server typescript >/dev/null 2>&1; cd \"$CLAUDE_PROJECT_DIR\" && [ ! -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1 && graphify update . >/dev/null 2>&1; exit 0",
             "timeout": 180
           }
         ]
