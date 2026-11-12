@@ -80,6 +80,20 @@
 
 연결이 없으면 추측으로 채우지 않는다. 무엇이 없어서 어디까지 못 했는지 알린다.
 
+### 담당별로 먼저 쓰는 도구
+
+저장소 설정(`.claude/settings.json`, `.mcp.json`)으로 어느 세션에서나 켜지는 도구다. 계정 커넥터는 claude.ai 에 연결된 것이다.
+
+| 담당 | 도구 |
+| --- | --- |
+| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), agent-skills, ponytail |
+| 점검 | Playwright MCP, agent-browser |
+| 배포·운영 | Vercel·Supabase 커넥터, session-report(사용량 보고) |
+| 고객 | Gmail 커넥터, Supabase 커넥터(읽기) |
+| 글 | graphify(글이 나오는 조건 찾기) |
+| 홍보 | Canva·아트리스트 커넥터, taste-skill, Firecrawl(조사) |
+| 모두 | task-observer(반복 작업·지적 기록), claude-md-management(규칙 문서 정리), find-skills(새 스킬 찾기, 설치 전 운영자 확인) |
+
 ## 7. 고치는 법
 
 - 담당의 일하는 방식을 바꾸려면 `.claude/agents/` 안의 해당 파일을 고친다. 한국어로 적혀 있어 그대로 읽고 고칠 수 있다.
