@@ -14,8 +14,8 @@ export const STATUS_OPTIONS: { id: RelationshipStatus; label: string; emoji: str
 ];
 
 export const MODE_OPTIONS: { id: Mode; emoji: string; label: string; desc: string }[] = [
-  { id: "solo", emoji: "🙋", label: "나 혼자 보기", desc: "솔로 · 나의 연애 유형과 찰떡 궁합" },
-  { id: "couple", emoji: "💞", label: "그 사람과 궁합 보기", desc: "연애 중 · 썸 · 짝사랑 · 권태기 · 이별 후" },
+  { id: "solo", emoji: "🐾", label: "내 연애 팔자", desc: "나 혼자 보기 · 나의 연애 유형과 찰떡 궁합" },
+  { id: "couple", emoji: "💞", label: "그 사람과 궁합", desc: "둘이 보기 · 연애 중 · 썸 · 짝사랑 · 권태기 · 이별 후" },
 ];
 
 export const MBTI_TYPES = [

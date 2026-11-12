@@ -34,7 +34,7 @@ function ledgerLabel(r: CoinHistoryRow): string {
         : r.ref === "joined"
           ? "🎁 초대받아 가입 선물"
           : r.ref.startsWith("streak:")
-            ? "📅 출석 선물"
+            ? "🗓️ 출석 선물"
             : r.ref.startsWith("coupon:")
               ? `🎟️ 쿠폰 ${r.ref.slice(7)}`
               : r.ref.startsWith("album:")

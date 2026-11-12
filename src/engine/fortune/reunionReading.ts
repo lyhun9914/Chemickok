@@ -475,7 +475,7 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
       days.length ? `이 날짜를 다 놓치면 ${josa(bestMonth(c, waitDays + 45), "이/가")} 다음 문이다냥.` : `달로 보면 ${josa(bestMonth(c, waitDays), "이/가")} 기운이 맞다냥.`,
       "시간은 저녁 8~10시. 퇴근하고 마음이 풀린 시간이다냥.",
     ),
-    days.length ? days.map((d) => `📅 ${d}`) : ["📅 이번 달은 네 기운이 닫혀 있다냥. 다음 달 초를 노려라냥."],
+    days.length ? days.map((d) => `🗓️ ${d}`) : ["🗓️ 이번 달은 네 기운이 닫혀 있다냥. 다음 달 초를 노려라냥."],
   );
 
   // They already reached out: the first line is a reply, not an opener.
@@ -587,7 +587,7 @@ export function reunionReading(input: QuestionnaireInput, c: Chart): { teaser: F
   const sections = [
     { id: "mind", icon: "💭", section: mindSec },
     { id: "chance", icon: "🔁", section: chanceSec },
-    { id: "timing", icon: "📅", section: timingSec },
+    { id: "timing", icon: "🗓️", section: timingSec },
     { id: "first", icon: "💬", section: firstSec },
     { id: "dont", icon: "🚫", section: dontSec },
     { id: "match", icon: "☯️", section: matchSec },

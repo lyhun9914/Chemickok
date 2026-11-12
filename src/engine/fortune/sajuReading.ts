@@ -638,7 +638,7 @@ export function sajuReading(input: QuestionnaireInput, c: Chart): { teaser: Fort
     { id: "love", icon: "💞", section: love },
     { id: "health", icon: "🩺", section: health },
     { id: "people", icon: "🤝", section: people },
-    { id: "years", icon: "📅", section: yearSec },
+    { id: "years", icon: "🗓️", section: yearSec },
     { id: "luck", icon: "🧿", section: luck },
   ];
   const first = FOCUS_SECTION[focus] ?? "nature";

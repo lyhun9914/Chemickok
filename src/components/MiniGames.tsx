@@ -272,7 +272,7 @@ function NameMatch({ onStart }: { onStart: () => void }) {
 }
 
 const TITLES: Record<MiniGame, string> = {
-  today: "📅 오늘의 운세",
+  today: "🗓️ 오늘의 운세",
   daily: "🔮 오늘의 연애운",
   tarot: "🃏 오늘의 타로 한 장",
   zodiac: "🐾 띠별 오늘의 운세",
@@ -354,7 +354,7 @@ function Stamps({ stamps, streak, reward, member }: { stamps: boolean[]; streak:
         </p>
       ) : reward ? (
         <p className="mt-2 text-[12.5px] text-peach/90">
-          📅 {reward.every}일 연속 출석할 때마다 {reward.coins}냥 선물 · 다음 선물까지 {reward.every - (reward.streak % reward.every)}일
+          🗓️ {reward.every}일 연속 출석할 때마다 {reward.coins}냥 선물 · 다음 선물까지 {reward.every - (reward.streak % reward.every)}일
         </p>
       ) : !member ? (
         <p className="mt-2 text-[12.5px] text-muted/90">
@@ -421,7 +421,7 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
         <InfoGate
           ask="하루 한 번, 오늘의 일진을 네 사주에 맞대 보겠다냥. 이름, 생일, 혈액형만 대라냥."
           purpose="오늘의 일진을 짚겠다냥"
-          cta="오늘의 운세 보기 📅"
+          cta="오늘의 운세 보기 🗓️"
           busy={busy}
           onReady={go}
         />
@@ -501,7 +501,7 @@ function TodayFortune({ onStart }: { onStart: (mode?: Mode) => void }) {
         card={{
           kind: "fortune",
           label: `${info.name}의 오늘의 운세`,
-          emoji: "📅",
+          emoji: "🗓️",
           headline: `${result.score}점`,
           sub: result.title,
           meta: `${result.date} · ${result.ganji}`,

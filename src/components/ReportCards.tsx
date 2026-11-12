@@ -351,7 +351,7 @@ function LuckCard({ luck }: { luck: LuckSection }) {
       <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink/90">{luck.body}</p>
       {luck.luckyDays.length > 0 && (
         <div className="mt-4 rounded-2xl border border-peach/30 bg-peach/5 p-3">
-          <p className="text-xs font-semibold text-peach">📅 이번 달 연애 길일</p>
+          <p className="text-xs font-semibold text-peach">🗓️ 이번 달 연애 길일</p>
           <ul className="mt-2 space-y-1 text-sm">
             {luck.luckyDays.map((d) => (
               <li key={d}>· {d}</li>

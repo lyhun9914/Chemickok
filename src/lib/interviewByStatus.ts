@@ -198,7 +198,7 @@ export const SLUMP_ONLY: InterviewQuestion[] = [
     short: "권태가 처음 느껴진 순간은?",
     ask: ["권태기는 어느 날 갑자기 오지 않는다냥.", "'아, 우리 좀 식었나?' 처음 느낀 순간은?"],
     options: [
-      { id: "a", label: "📅 데이트가 숙제처럼 느껴질 때", react: "숙제… 그렇구냥." },
+      { id: "a", label: "🗓️ 데이트가 숙제처럼 느껴질 때", react: "숙제… 그렇구냥." },
       { id: "b", label: "📱 연락이 의무처럼 느껴질 때", react: "의무감이 들었구냥." },
       { id: "c", label: "🔍 {p}의 단점만 눈에 들어올 때", react: "…그때가 제일 위험하다냥.", mood: "wow" },
       { id: "d", label: "🤲 스킨십이 줄었을 때", react: "온도가 내려갔구냥." },

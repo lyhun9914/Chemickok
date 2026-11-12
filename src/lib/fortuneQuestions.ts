@@ -266,7 +266,7 @@ const REUNION: InterviewQuestion[] = [
     ask: ["헤어진 지 얼마나 됐냥?"],
     options: [
       { id: "w1", label: "⏱️ 일주일도 안 됐다", react: "아직 뜨겁구냥." },
-      { id: "m1", label: "📅 한 달 안쪽", react: "한 달… 제일 흔들릴 때다냥.", mood: "wow" },
+      { id: "m1", label: "🗓️ 한 달 안쪽", react: "한 달… 제일 흔들릴 때다냥.", mood: "wow" },
       { id: "m3", label: "🗓️ 석 달 안쪽", react: "석 달이구냥. 그쪽도 생각날 때다냥.", mood: "smug" },
       { id: "y1", label: "🍂 1년 안쪽", react: "꽤 지났구냥." },
       { id: "long", label: "🕰️ 1년이 넘었다", react: "오래 품고 있었구냥…", mood: "wow" },
@@ -367,7 +367,7 @@ const SPOUSE: InterviewQuestion[] = [
     ask: ["결혼은 언제 하고 싶냥?"],
     options: [
       { id: "asap", label: "⏩ 빠를수록 좋다", react: "급하구냥 😼", mood: "smug" },
-      { id: "soon", label: "📅 2~3년 안에", react: "계획이 있구냥." },
+      { id: "soon", label: "🗓️ 2~3년 안에", react: "계획이 있구냥." },
       { id: "later", label: "🕰️ 몇 년 뒤, 자리 잡고 나서", react: "천천히구냥. 준비된 사람이 좋은 짝을 만난다냥." },
       { id: "flow", label: "🌀 인연 오면 그때", react: "흐름에 맡기는구냥." },
       { id: "no", label: "🙅 별로 생각 없다", react: "생각 없는데 왔구냥? 궁금은 하구냥 😼", mood: "smug" },

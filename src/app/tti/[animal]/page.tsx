@@ -78,7 +78,7 @@ async function TodayLine({ animal }: { animal: string }) {
   return (
     <section className="mt-5 rounded-2xl border border-violet/40 bg-violet/5 p-4">
       <h2 className="text-[16px] font-bold">
-        📅 오늘의 {animal}띠 운세 · {today.date} {today.ganji}
+        🗓️ 오늘의 {animal}띠 운세 · {today.date} {today.ganji}
       </h2>
       <p className="mt-1 text-[26px] font-black text-peach">{today.score}점</p>
       <p className="mt-1 text-[14.5px] leading-relaxed">{today.line}</p>

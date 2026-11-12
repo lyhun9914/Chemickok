@@ -67,7 +67,7 @@ export function shortsData(day = kstToday()): ShortsData {
   });
 
   const ttiCaption = [
-    `📅 ${z.date} (${weekday}) ${z.ganji} · 띠별 오늘의 운세`,
+    `🗓️ ${z.date} (${weekday}) ${z.ganji} · 띠별 오늘의 운세`,
     "",
     `🥇 ${top[0].animal}띠 ${top[0].score}점 · 🥈 ${top[1].animal}띠 ${top[1].score}점 · 🥉 ${top[2].animal}띠 ${top[2].score}점`,
     "",

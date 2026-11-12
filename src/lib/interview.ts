@@ -306,7 +306,7 @@ export const PARTNER_INTERVIEW: InterviewQuestion[] = [
     short: "{p:이/가} 먼저 '보고 싶다'고 한 게 언제?",
     ask: ["{p:이/가} 먼저 '보고 싶다'고 한 게 언제냥?"],
     options: [
-      { id: "a", label: "📅 오늘·어제", react: "달달하구냥 💕", mood: "happy" },
+      { id: "a", label: "🗓️ 오늘·어제", react: "달달하구냥 💕", mood: "happy" },
       { id: "b", label: "🗓️ 일주일 안쪽", react: "적당하구냥." },
       { id: "c", label: "🕐 헤어질 때나 전화 끊을 때만 한다", react: "아쉬울 때 나오는구냥." },
       { id: "d", label: "🚫 그런 말 하는 사람이 아니다", react: "그런 사람도 있다냥." },

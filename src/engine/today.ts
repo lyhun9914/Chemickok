@@ -190,9 +190,34 @@ export function todayFortune(birthdate: string, blood?: unknown, now = new Date(
   };
 }
 
+/** 삼합 (같은 편) 띠 lines: two 띠 share it each day, so each gets its own */
+const TOGETHER_LINES = [
+  "같은 편 기운이 드는 날이다냥. 사람이 돕는다냥.",
+  "든든한 편이 생기는 날이다냥. 함께하면 일이 커진다냥.",
+  "도와줄 사람이 가까이 있다냥. 혼자 끙끙대지 마라냥.",
+];
+/** the plain days (most 띠): one line each, never the same twice in a day, turning over day by day */
+const PLAIN_LINES = [
+  "평범한 하루다냥. 작은 친절이 돌아온다냥.",
+  "무난한 날이다냥. 미뤄 둔 연락 하나 해라냥.",
+  "조용한 날이다냥. 일찍 자면 내일이 가볍다냥.",
+  "잔잔한 하루다냥. 하던 일을 마무리하기 좋다냥.",
+  "흐름이 순하다냥. 오늘 고른 작은 물건이 오래 간다냥.",
+  "큰일 없이 지나간다냥. 점심은 따뜻한 걸로 먹어라냥.",
+  "평탄한 날이다냥. 말 한마디 먼저 건네면 일이 풀린다냥.",
+  "고르게 흘러가는 날이다냥. 계획 하나만 지켜도 충분하다냥.",
+  "느긋해도 되는 날이다냥. 산책 한 바퀴가 운을 깨운다냥.",
+  "숨 고르기 좋은 날이다냥. 무리한 약속은 미뤄라냥.",
+  "소소하게 좋은 날이다냥. 오랜 친구 소식이 들려온다냥.",
+  "차분한 하루다냥. 지갑만 단속하면 남는 날이다냥.",
+];
+
 /** 띠별 오늘의 운세: today's 일지 against each 띠. */
 export function zodiacToday(now = new Date()): { date: string; ganji: string; list: ZodiacToday[] } {
   const t = today(now);
+  const turn = seedOf(t.key);
+  let plain = 0;
+  let side = 0;
   const list = ANIMALS.map((animal, b) => {
     const rel = branchRelation(b, t.branch);
     const together = SAMHAP.some((g) => g.includes(b) && g.includes(t.branch)) && b !== t.branch;
@@ -202,12 +227,12 @@ export function zodiacToday(now = new Date()): { date: string; ganji: string; li
       rel === "harmony"
         ? "오늘의 기운과 합이 든다냥. 부탁하면 다 들어준다냥."
         : together
-          ? "같은 편 기운이 드는 날이다냥. 사람이 돕는다냥."
+          ? TOGETHER_LINES[(turn + side++) % TOGETHER_LINES.length]
           : rel === "clash"
             ? "오늘 기운과 부딪친다냥. 서두르지 말고 한 번 더 확인해라냥."
             : b === t.branch
               ? "오늘이 네 띠의 날이다냥. 내 페이스대로 가면 된다냥."
-              : ["평범한 하루다냥. 작은 친절이 돌아온다냥.", "무난한 날이다냥. 미뤄 둔 연락 하나 해라냥.", "조용한 날이다냥. 일찍 자면 내일이 가볍다냥."][seed % 3];
+              : PLAIN_LINES[(turn + plain++) % PLAIN_LINES.length];
     return { animal, score, line };
   });
   return { date: `${t.m}월 ${t.d}일`, ganji: `${STEMS_HANGUL[t.stem]}${BRANCHES_HANGUL[t.branch]}일`, list };

@@ -981,7 +981,7 @@ export function daeunReading(input: QuestionnaireInput, c: Chart): { teaser: For
     { id: "child", icon: "🏡", section: childSec },
     { id: "helper", icon: "🤝", section: helperSec },
     { id: "all", icon: "🌊", section: allSec },
-    { id: "seun", icon: "📅", section: seunSec },
+    { id: "seun", icon: "🗓️", section: seunSec },
     { id: "use", icon: "🧿", section: useSec },
   ];
   const report: FullReport = {

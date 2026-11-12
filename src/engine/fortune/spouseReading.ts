@@ -484,7 +484,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
       body: soonTop
         ? `썸 타는 중이라고 했지. 운이 ${top!.year}년으로 기울어 있어서, 이 썸이 오래 안 간다냥. 빨리 정해지는 쪽이다냥.`
         : "썸 타는 중이라고 했지. 이 썸이 배우자 인연이면, 미적거림 없이 석 달 안에 정해진다냥. 길어지면 아니다냥.",
-      when: top ? `📅 ${top.year}년 전에 연인이 되면 그 사람이다냥` : "📅 인연 해에 연인이 되면 그 사람이다냥",
+      when: top ? `🗓️ ${top.year}년 전에 연인이 되면 그 사람이다냥` : "🗓️ 인연 해에 연인이 되면 그 사람이다냥",
     },
     dating: {
       title: "지금 그 사람이 배우자일까",
@@ -492,7 +492,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
       body: soonTop
         ? `연애 중이라고 했지. 결혼 기운이 ${top!.year}년에 바로 들어온다냥. 지금 사람과 그해를 넘기면 결혼까지 간다냥.`
         : "연애 중이라고 했지. 지금 사람이 배우자 자리의 사람인지는 아래 세 가지로 가려진다냥.",
-      when: top ? `📅 ${top.year}년에 관계가 한 단계 넘어가면 그 사람이다냥` : "📅 인연 해에 관계가 깊어지면 그 사람이다냥",
+      when: top ? `🗓️ ${top.year}년에 관계가 한 단계 넘어가면 그 사람이다냥` : "🗓️ 인연 해에 관계가 깊어지면 그 사람이다냥",
     },
     talk: {
       title: "결혼 얘기 오가는 그 사람",
@@ -502,7 +502,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
         : nearTop
           ? `결혼 얘기가 오간다고 했지. 가까운 세 해 중엔 ${nearTop.year}년(${nearTop.ganji})이 제일 낫다냥. 인연 기운이 제일 센 해는 ${top!.year}년이지만, 이미 만난 인연이면 가까운 해에 맺는 게 맞다냥.`
           : "결혼 얘기가 오간다고 했지. 도장 찍기 전에 아래 세 가지를 꼭 맞춰 봐라냥.",
-      when: soonTop || !nearTop ? (top ? `📅 날짜는 ${top.year}년 ${seasonFor(c, top.year)}이 제일 좋다냥` : "📅 인연 해에 날을 잡아라냥") : `📅 날짜는 ${nearTop.year}년 ${seasonFor(c, nearTop.year)}이 제일 좋다냥`,
+      when: soonTop || !nearTop ? (top ? `🗓️ 날짜는 ${top.year}년 ${seasonFor(c, top.year)}이 제일 좋다냥` : "🗓️ 인연 해에 날을 잡아라냥") : `🗓️ 날짜는 ${nearTop.year}년 ${seasonFor(c, nearTop.year)}이 제일 좋다냥`,
     },
   };
   const nw = status ? NOW[status] : undefined;
@@ -518,7 +518,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
     { id: "trait", icon: "💍", section: traitSec },
     { id: "look", icon: "👀", section: lookSec },
     { id: "job", icon: "💼", section: jobSec },
-    { id: "timing", icon: "📅", section: timingSec },
+    { id: "timing", icon: "🗓️", section: timingSec },
     { id: "place", icon: "📍", section: placeSec },
     { id: "married", icon: "🏡", section: marriedSec },
     { id: "caution", icon: "⚠️", section: cautionSec },
@@ -565,7 +565,7 @@ export function spouseReading(input: QuestionnaireInput, c: Chart): { teaser: Fo
       mood: "wow",
       card: {
         kind: "text",
-        icon: "📅",
+        icon: "🗓️",
         title: "만나는 시기",
         body: top
           ? `제일 센 해는 ${String(top.year).slice(0, 2)}○○년, ${top.age}세 무렵이다냥. ${WANT_GAP[a("sp2") ?? ""]?.(top.year - now) ?? "몇 월 무렵인지까지 보인다냥."} 감정서에 적어 뒀다냥.`

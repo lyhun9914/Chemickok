@@ -156,7 +156,7 @@ export function ShortsStudio() {
       </div>
       <div className="mt-2 flex gap-1.5">
         <button onClick={() => setTab("tti")} className={`${btn} flex-1 ${tab === "tti" ? "border-peach text-peach" : ""}`}>
-          📅 띠별 운세
+          🗓️ 띠별 운세
         </button>
         <button onClick={() => setTab("type")} className={`${btn} flex-1 ${tab === "type" ? "border-peach text-peach" : ""}`}>
           🃏 16유형

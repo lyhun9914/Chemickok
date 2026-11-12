@@ -2,7 +2,7 @@
 
 export type Gender = "female" | "male" | "other";
 
-/** solo = 나 혼자 보기, couple = 마음에 둔 사람과 궁합 보기 */
+/** solo = 내 연애 팔자 (나 혼자 보기), couple = 그 사람과 궁합 (둘이 보기) */
 /** 연애 점괘 (the original interview + love engine) */
 export type LoveMode = "solo" | "couple";
 /** 사주·운세 점괘: their own short interview, chart-based readings */

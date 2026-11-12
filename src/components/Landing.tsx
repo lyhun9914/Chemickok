@@ -32,7 +32,7 @@ const MENU: { title: string; sub: string; modes: Mode[] }[] = [
 
 /** 가볍게 한 점: one card per row, in this order (고양이 도감 모으기 lives in the top bar as a daily quest) */
 const MINI: { id: MiniGame; emoji: string; name: string; sub: string }[] = [
-  { id: "today", emoji: "📅", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번" },
+  { id: "today", emoji: "🗓️", name: "오늘의 운세", sub: "총운 · 재물 · 연애 · 일 · 건강, 하루 한 번" },
   { id: "exam", emoji: "🧧", name: "냥신 합격 부적", sub: "이름 넣으면 냥신이 직접 써 주는 부적 + 시험날 일진" },
   { id: "room", emoji: "💬", name: "단톡방 케미표", sub: "링크 하나로 우리 방 궁합표 · 짝꿍 · 앙숙 · 분위기 메이커" },
   { id: "quiz", emoji: "❓", name: "나를 얼마나 아냥?", sub: "7문제 퀴즈로 찐친 순위 매기기" },
@@ -199,7 +199,7 @@ export function Landing() {
         onClick={() => setGame("today")}
         className="fade-up mt-6 flex w-full items-center gap-3 rounded-2xl border border-peach/40 bg-peach/5 px-4 py-3.5 text-left active:scale-[0.98]"
       >
-        <span className="text-2xl">📅</span>
+        <span className="text-2xl">🗓️</span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-bold text-peach">오늘의 운세 · {todayLabel}</span>
           <span className="block text-[13px] text-muted">
@@ -243,12 +243,13 @@ export function Landing() {
                     <span className="min-w-0 flex-1">
                       <span className="block text-[17px] font-bold">
                         {pr.name}
-                        {m === "newyear" && <span className="ml-1.5 rounded-sm bg-pink px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-white">NEW · 시즌</span>}
+                        {m === "newyear" && <span className="ml-1.5 inline-block whitespace-nowrap rounded-sm bg-pink px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-white">NEW · 시즌</span>}
                       </span>
                       <span className="mt-1 block text-[13px] leading-relaxed text-muted">{pr.pitch}</span>
-                      <span className="mt-1.5 block text-xs">
-                        <span className="rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
-                        <span className="ml-1.5 font-semibold text-peach">
+                      {/* the price stays on one line (on a 360px phone "1냥" used to drop below on its own) */}
+                      <span className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+                        <span className="whitespace-nowrap rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
+                        <span className="whitespace-nowrap font-semibold text-peach">
                           {isFortune(m) ? "전체 감정서" : "전체 풀이"} <Coin /> {nyang(pr.coins)}
                         </span>
                       </span>
@@ -322,7 +323,7 @@ export function Landing() {
             ["🕯️", "촛불 앞 면담", "이상해 보이는 질문마다 이유가 있다냥. 답이 해석의 근거가 된다냥"],
             ["🀄", "원국과 감정 근거", "원국 · 십성 · 용신 · 신살 · 대운을 표로 적어 준다냥"],
             ["😳", "일간 해석", '"이거 나 몰래 본 거 아니냥?" 소리 나오는 성격 풀이'],
-            ["📅", "날짜까지 짚는 시기", "좋은 해 · 좋은 달 · 조심할 때를 숫자로 적는다냥"],
+            ["🗓️", "날짜까지 짚는 시기", "좋은 해 · 좋은 달 · 조심할 때를 숫자로 적는다냥"],
             ["💌", "그 사람의 속마음", "궁합 · 재회엔 끝내 보내지 못한 편지까지 꺼내 준다냥"],
           ].map(([icon, title, text]) => (
             <li key={title} className="flex gap-3 py-3">
