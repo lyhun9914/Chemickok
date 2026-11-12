@@ -1,5 +1,6 @@
 -- 재미 기능: 단톡방 케미표 · 나를 얼마나 아냥? 퀴즈 · 고양이 도감 모으기
--- 케미표와 퀴즈는 만든 날부터 30일 보관 (만료된 것은 새로 만들 때 · 매일 아침 지운다). 도감은 회원 탈퇴 때 같이 지운다.
+-- 케미표와 퀴즈는 만든 날부터 30일 보관 (만료된 것은 새로 만들 때 · 매일 아침 지운다). 회원이 만든 퀴즈 · 들어간 케미표는
+-- 계정에 이어 두어 내 점괘함에서 다시 볼 수 있고, 도감과 함께 회원 탈퇴 때 지운다.
 
 -- ── 단톡방 케미표 ──
 create table if not exists public.chem_rooms (
@@ -15,14 +16,16 @@ create table if not exists public.chem_members (
   name text not null,
   birthdate text not null,
   member_key text not null,
+  user_id uuid references public.users (id) on delete cascade,
   created_at timestamptz not null default now()
 );
 create index if not exists chem_members_room on public.chem_members (room_id);
+create index if not exists chem_members_user on public.chem_members (user_id);
 alter table public.chem_rooms enable row level security;
 alter table public.chem_members enable row level security;
 
--- Joins a live room: names unique (case aside), at most p_max people. → { ok, reason? }
-create or replace function public.chem_join(p_room text, p_name text, p_birth text, p_key text, p_max integer)
+-- Joins a live room: names unique (case aside), at most p_max people; p_user = the member's account, if logged in. → { ok, reason? }
+create or replace function public.chem_join(p_room text, p_name text, p_birth text, p_key text, p_max integer, p_user uuid default null)
 returns jsonb
 language plpgsql
 set search_path = public
@@ -38,7 +41,7 @@ begin
   if (select count(*) from chem_members where room_id = p_room) >= p_max then
     return jsonb_build_object('ok', false, 'reason', 'full');
   end if;
-  insert into chem_members (room_id, name, birthdate, member_key) values (p_room, p_name, p_birth, p_key);
+  insert into chem_members (room_id, name, birthdate, member_key, user_id) values (p_room, p_name, p_birth, p_key, p_user);
   return jsonb_build_object('ok', true);
 end;
 $$;
@@ -48,10 +51,14 @@ create table if not exists public.quizzes (
   id text primary key,
   owner_name text not null,
   items jsonb not null,
+  -- the maker: their account (logged in) and/or the key kept in their browser
+  owner_user uuid references public.users (id) on delete cascade,
+  owner_key text,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null default now() + interval '30 days'
 );
 create index if not exists quizzes_expires on public.quizzes (expires_at);
+create index if not exists quizzes_owner on public.quizzes (owner_user);
 create table if not exists public.quiz_plays (
   id bigserial primary key,
   quiz_id text not null references public.quizzes (id) on delete cascade,
@@ -119,9 +126,9 @@ begin
 end;
 $$;
 
-revoke execute on function public.chem_join(text, text, text, text, integer) from public, anon, authenticated;
+revoke execute on function public.chem_join(text, text, text, text, integer, uuid) from public, anon, authenticated;
 revoke execute on function public.quiz_play(text, text, integer, integer, integer) from public, anon, authenticated;
 revoke execute on function public.cat_draw(uuid, date, integer) from public, anon, authenticated;
-grant execute on function public.chem_join(text, text, text, text, integer) to service_role;
+grant execute on function public.chem_join(text, text, text, text, integer, uuid) to service_role;
 grant execute on function public.quiz_play(text, text, integer, integer, integer) to service_role;
 grant execute on function public.cat_draw(uuid, date, integer) to service_role;
