@@ -68,12 +68,33 @@
         "source": "github",
         "repo": "DietrichGebert/ponytail"
       }
+    },
+    "agent-browser": {
+      "source": {
+        "source": "github",
+        "repo": "vercel-labs/agent-browser"
+      }
+    },
+    "taste-skill": {
+      "source": {
+        "source": "github",
+        "repo": "Leonxlnx/taste-skill"
+      }
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
     }
   },
   "enabledPlugins": {
     "claude-code-setup@claude-plugins-official": true,
     "task-observer@one-skill-to-rule-them-all": true,
     "agent-skills@addy-agent-skills": true,
-    "ponytail@ponytail": true
+    "ponytail@ponytail": true,
+    "agent-browser@agent-browser": true,
+    "taste-skill@taste-skill": true,
+    "example-skills@anthropic-agent-skills": true
   }
 }
