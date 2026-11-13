@@ -1,8 +1,4 @@
 {
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8787",
-    "ENABLE_TOOL_SEARCH": "true"
-  },
   "hooks": {
     "PreToolUse": [
       {
@@ -31,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/headroom-proxy.sh\"",
+            "command": "python3 -c 'import headroom' >/dev/null 2>&1 || pip install -q \"headroom-ai==0.44.0\" >/dev/null 2>&1; exit 0",
             "timeout": 150
           }
         ]
@@ -52,6 +48,18 @@
             "type": "command",
             "command": "graphify hook-guard compact",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/headroom-hook.py\"",
+            "timeout": 30
           }
         ]
       }
