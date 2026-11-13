@@ -55,8 +55,10 @@ For example, top skills for web development include:
 If the leaderboard doesn't cover the user's need, run the find command:
 
 ```bash
-npx skills find [query] [--owner <owner>]
+NODE_USE_ENV_PROXY=1 npx skills find [query] [--owner <owner>]
 ```
+
+In this repository's cloud sessions keep the `NODE_USE_ENV_PROXY=1` prefix: without it Node ignores the network proxy and every search silently prints "No skills found". If a search still finds nothing, check the index directly: `curl -s "https://skills.sh/api/search?q=<query>"`.
 
 For example:
 
@@ -102,7 +104,7 @@ If the user wants to proceed, install it into this repository, never globally:
 npx skills add <owner/repo@skill> -y
 ```
 
-Do not use the `-g` flag: this repository keeps every Claude Code tool inside the repository so it works the same on every computer and cloud session. Installing runs someone else's code, so ask the user before installing, then commit the new skill files.
+Do not use the `-g` flag: this repository keeps every Claude Code tool inside the repository so it works the same on every computer and cloud session. Installing runs someone else's code. Before installing, check whether building a slim MCP server with the `mcp-builder` skill would be more efficient (criteria: `docs/agents/README.md` section 7 "새 연결 만들기"), and say which you chose and why. Follow the install rule in `docs/agents/README.md` common rule 10: install without asking only when the skill is from an official company repository, has 1K+ installs, and its SKILL.md and scripts were read in full with nothing that sends secrets or files out or quietly changes settings; otherwise ask the user. Commit the new skill files to `dev`.
 
 ## Common Skill Categories
 

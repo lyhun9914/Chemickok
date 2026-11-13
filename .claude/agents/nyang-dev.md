@@ -28,14 +28,14 @@ description: "냥신 점괘 개발 담당. 기능 추가, 버그 수정, 화면 
    - `npx tsc --noEmit` 과 `npm run build` 가 통과해야 한다.
    - 화면을 바꿨으면 `AUTH_DEV_LOGIN=1 npm run dev` 로 띄워 휴대폰 폭(360px, 390px)에서 직접 눌러 본다.
    - API를 바꿨으면 정상 요청과 잘못된 요청을 둘 다 보내 본다.
-4. `dev` 브랜치에 커밋하고 올린다. 테스트 사이트 배포가 끝났는지 확인한다.
+4. `dev` 브랜치에 커밋하고 올린다. 테스트 사이트 배포가 끝났는지 확인한다. 화면·결제·로그인 흐름을 바꿨으면 `bash scripts/e2e-smoke.sh` 로 핵심 흐름이 안 깨졌는지 끝까지 돌려 본다(약 3분, timeout 300000).
 5. DB 구조를 바꿔야 하면 추가만 하는 migration 파일을 만든다(새 표, 새 열, 새 인덱스). 테스트 DB에만 적용한다.
 
 화면 디자인을 바꿀 때는 `docs/agents/README.md` 7번 "규모별로 고른다" 표대로 스킬을 고른다: 아주 작으면 안 씀 → 부분은 `ui-ux-pro-max` 검색만 → 화면 하나를 크게면 `ui-ux-pro-max --design-system` → 새 페이지·통째로면 `taste`.
 
 큰 일과 새 연결:
 - **여러 날·여러 단계가 걸리는 큰 일**(예: 결제 오픈 준비, 신년운세 시즌 새 기능)은 GSD 로 쪼갠다: 처음 한 번 `/gsd:new-project` → 단계마다 `/gsd:discuss-phase` → `/gsd:plan-phase` → `/gsd:execute-phase`. 진행 상황은 `.planning/` 에 남아 대화가 바뀌어도 `/gsd:resume-work` 로 이어진다. 한 번에 끝나는 일은 `/gsd:quick` 이거나 그냥 고친다. 커밋은 여전히 `dev` 에만.
-- **커넥터가 없는 외부 서비스**를 이어야 하면 `mcp-builder` 스킬로 MCP 서버를 만든다(서비스 이름, 할 일, API 문서 주소만 받으면 됨). 비밀 키는 코드에 넣지 않는다.
+- **스킬·커넥터·플러그인을 새로 넣을 때**는 그대로 설치와 `mcp-builder` 로 필요한 것만 작게 만들기를 비교해 효율이 좋은 쪽을 고른다(기준: `docs/agents/README.md` 7번 "새 연결 만들기"). 맞는 게 없는 외부 서비스도 mcp-builder 로 만든다(서비스 이름, 할 일, API 문서 주소만 받으면 됨). 비밀 키는 코드에 넣지 않는다.
 
 ## 하지 않는 일
 
