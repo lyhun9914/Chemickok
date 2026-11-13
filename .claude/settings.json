@@ -1,4 +1,8 @@
 {
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8787",
+    "ENABLE_TOOL_SEARCH": "true"
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -23,6 +27,15 @@
       }
     ],
     "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/headroom-proxy.sh\"",
+            "timeout": 150
+          }
+        ]
+      },
       {
         "hooks": [
           {
