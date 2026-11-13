@@ -62,8 +62,10 @@ export function Landing() {
   const [linkId, setLinkId] = useState<string | null>(null);
   // Opened from a link: the 맞궁합 신청서 or a mini game (the gift sheet reads its own).
   const deepLink = useAppStore((s) => s.deepLink);
+  const meLoaded = useAppStore((s) => s.meLoaded);
   useEffect(() => {
-    if (!deepLink) return;
+    // ?open= starts the interview: wait for the saved 기본 정보 or it asks name/birth again
+    if (!deepLink || (deepLink.open && !meLoaded)) return;
     if (deepLink.pair) setPairId(deepLink.pair);
     if (deepLink.game && LINKABLE.includes(deepLink.game as MiniGame)) setGame(deepLink.game as MiniGame);
     // 단톡방 케미표 · 퀴즈 links open their game on that room / quiz
@@ -77,7 +79,7 @@ export function Landing() {
       else if (LINKABLE.includes(t.game as MiniGame)) setGame(t.game as MiniGame);
     }
     if (deepLink.pair || deepLink.game || deepLink.room || deepLink.quiz || deepLink.open) useAppStore.setState({ deepLink: deepLink.gift ? { gift: deepLink.gift } : null });
-  }, [deepLink]);
+  }, [deepLink, meLoaded]);
   // 출석 streak lives in this browser only; read after mount and whenever a mini game closes.
   const [{ streak, checkedToday }, setStreak] = useState({ streak: 0, checkedToday: false });
   useEffect(() => setStreak(streakNow()), [game]);
@@ -105,6 +107,16 @@ export function Landing() {
     setTab(t);
     document.getElementById("menu")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+  // Old links point at #menu-love / #menu-fortune: open that tab on the new #menu.
+  useEffect(() => {
+    const onHash = () => {
+      const t = location.hash.match(/^#menu-(love|fortune)$/)?.[1] as Tab | undefined;
+      if (t) goMenu(t);
+    };
+    onHash();
+    addEventListener("hashchange", onHash);
+    return () => removeEventListener("hashchange", onHash);
+  }, []);
   const minCost = Math.min(...Object.values(live.pricing.costs));
   const unit = live.pricing.packs[0].price / live.pricing.packs[0].coins;
   const maxSave = Math.max(0, ...sellPacks({ ...live, sale: null }).map((p) => Math.round((1 - p.price / p.coins / unit) * 100)));
