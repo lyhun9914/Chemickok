@@ -117,5 +117,6 @@
         "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
       }
     }
-  }
+  },
+  "autoCompactWindow": 200000
 }
