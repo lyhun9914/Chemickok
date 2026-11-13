@@ -18,7 +18,9 @@ model: sonnet
 
 ## 어떻게 보는가
 
-`agent-browser` 로 실제 브라우저를 띄워 누른다: `agent-browser open <주소>` → `agent-browser snapshot -i`(버튼마다 `@e2` 같은 번호, 스크린샷보다 토큰이 훨씬 적다) → `agent-browser click @e2` / `fill @e3 "글"`. 자세한 명령은 `agent-browser skills get core`. 같은 흐름을 여러 번 되풀이하거나 결제창처럼 다른 창이 열리는 흐름은 Playwright 스크립트로 한다. 휴대폰 폭 360px 과 390px 두 가지로 본다(`agent-browser set viewport 360 780`).
+**먼저 끝까지 시험을 돌린다**: `bash scripts/e2e-smoke.sh` (테스트 사이트, 약 3분 — Bash 도구 timeout 을 300000 으로 주거나 백그라운드로). 홈·무료 점괘·바로 결제 칸·가격 안내·로그인→충전→유료 감정서까지 진짜 브라우저로 끝까지 누르고 단계마다 PASS/FAIL 을 찍는다. 그다음 FAIL 난 단계와 이번에 바뀐 화면만 직접 눌러 본다. 전부 PASS 이고 바뀐 화면이 없으면 그 결과로 보고한다.
+
+직접 볼 때는 `agent-browser` 로 실제 브라우저를 띄워 누른다: `agent-browser open <주소>` → `agent-browser snapshot -i`(버튼마다 `@e2` 같은 번호, 스크린샷보다 토큰이 훨씬 적다) → `agent-browser click @e2` / `fill @e3 "글"`. 자세한 명령은 `agent-browser skills get core`. 같은 흐름을 여러 번 되풀이하거나 결제창처럼 다른 창이 열리는 흐름은 Playwright 스크립트로 한다. 휴대폰 폭 360px 과 390px 두 가지로 본다(`agent-browser set viewport 360 780`).
 
 화면마다 확인할 것:
 

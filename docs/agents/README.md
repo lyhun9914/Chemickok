@@ -127,7 +127,7 @@
 
 | 스킬 | 언제 | 누가 | 어떻게 |
 | --- | --- | --- | --- |
-| agent-browser | 화면을 진짜 브라우저로 눌러 보고 끝까지 시험할 때 | 점검 | `agent-browser open <주소>` → `snapshot -i` → `click @e2`. 실행 파일은 세션 시작 때 자동 설치 |
+| agent-browser | 화면을 진짜 브라우저로 눌러 보고 끝까지 시험할 때 | 점검(시작 때), 개발(화면 고친 뒤), 배포(올린 직후) | 먼저 `bash scripts/e2e-smoke.sh [주소]`(핵심 흐름 끝까지, 실제 사이트는 읽기만) → FAIL·바뀐 화면만 `agent-browser open` → `snapshot -i` → `click @e2`. 실행 파일은 세션 시작 때 자동 설치 |
 | find-skills | 처음 하는 종류의 일을 시작하기 전 | 모두 | 공통 규칙 10번: `npx skills find <영어 낱말>` 로 찾아 보고, 설치는 운영자 확인 |
 | GSD | 여러 날 걸리는 큰 일을 잘게 쪼개고, 대화가 바뀌어도 잊지 않게 할 때 | 개발(총책임자가 맡김) | `/gsd:new-project` → `/gsd:discuss-phase` → `/gsd:plan-phase` → `/gsd:execute-phase`, 이어 할 땐 `/gsd:resume-work`. 기록은 `.planning/`(공개 저장소라 비밀 값 금지) |
 | taste | 뻔한 AI 디자인 말고 디자이너가 한 것 같은 결과물 | 홍보, 개발 | 위 "규모별로 고른다" 표의 4번(새로 만들기·통째로)일 때만 |

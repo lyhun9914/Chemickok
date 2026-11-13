@@ -14,7 +14,8 @@ Last activity: 2026-11-13 — PR #6(headroom 압축) 실제 사이트 배포, ag
 
 ## 할 일 (총책임자가 하나 끝날 때마다 고친다)
 
-- [ ] **맡김(개발 담당)** `scripts/e2e-smoke.sh` — agent-browser 로 손님 핵심 흐름 끝까지 시험. 받으면: 두 사이트 PASS 확인 → 점검(시작 때)·개발(화면 고친 뒤)·배포(올린 직후) 담당 규칙에 연결 → 커밋
+- [x] `scripts/e2e-smoke.sh` (7e1685e): 테스트 5단계 PASS(약 2분 50초), 실제 읽기 2단계 PASS(8초). 점검(시작 때)·개발(흐름 고친 뒤)·배포(올린 직후) 규칙에 연결
+- [ ] **운영자 확인 필요** 시험 중 발견: 같은 면담 답이면 생년월일이 달라도 이미 산 점괘로 보고 냥이 안 빠짐(`inputHash` 가 답으로만 만들어짐). 다른 사람 생일로 보면 공짜가 되는지 개발 담당이 확인할 일
 - [ ] **mcp-builder 연결 (운영자 11/13)** 토스 조회·냥신 관리자 API, 둘 다 읽기 전용
   - [x] 개발 담당: `mcp/toss`(2 도구), `mcp/nyangsin-admin`(6 도구) + `.mcp.json` + 관리자 GET 키 헤더(admin.ts, 틀린 키는 감사 기록) + README 7번 "새 연결 만들기" (f9811e9)
   - [ ] 키 입력창 띄우기: 토스 api.tosspayments.com Basic(사용자=시크릿 키, 비밀번호 비움) / 관리자 nyangsin-admin.vercel.app·nyangsin-test-admin.vercel.app Bearer(각 사이트 ADMIN_KEY)
