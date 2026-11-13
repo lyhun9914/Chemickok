@@ -103,22 +103,28 @@
   - 결제 완료 화면 새로고침 — 다시 눌러도 "실패"가 뜨지 않게 고쳐 두었습니다.
 - 모두 확인되면 라이브 키로 바꾸고 Redeploy합니다.
 
-### 2-4. 오픈 전에 꼭
+### 2-4. 결제 오픈 당일 순서 (카드사 심사가 끝난 뒤)
 
-1. **테스트 모드로 쌓인 냥 정리**
-   - 지금은 테스트 모드라 누구나 공짜로 냥을 충전할 수 있습니다.
-   - 오픈 직전에 Supabase → SQL Editor에서 아래를 실행하세요. 테스트 충전 기록을 지우고 잔액을 다시 계산합니다.
+지금(11/13) 실제 사이트는 테스트 모드 `false` + 토스 **테스트 키**라서, 충전·바로 결제 자리에 "🐾 결제 오픈 준비 중이다냥"이 나오고 서버도 거절합니다. 아래 2번에서 라이브 키를 넣는 순간 자동으로 열립니다.
+
+1. **심사 결과 확인**: 토스 상점관리자 → 이용정보 → 결제·부가서비스. 주요 카드사가 모두 승인인지, 네이버페이 결과는 어떤지.
+2. **라이브 키 넣기** (운영자): Vercel → `chemickok` → Settings → Environment Variables → Production 에서 `NEXT_PUBLIC_TOSS_CLIENT_KEY` 와 `TOSS_SECRET_KEY` 를 **둘 다** `live_` 키로 바꾸고 Redeploy. 하나만 바꾸면 버튼은 열리는데 서버가 거절하거나 그 반대가 됩니다. TEST_MODE 두 값은 `false` 그대로.
+3. **990원 실결제 1건**: 운영자 카드로 1냥(990원) 충전 → 냥이 들어오는지 → 관리자 화면 결제 탭에서 환불 → 토스 상점관리자에서 취소됐는지.
+4. **네이버페이**: 반려면 충전 화면의 네이버페이 버튼을 숨긴다(개발 담당).
+5. **테스트 키 결제 정리**: 테스트 키 결제는 주문번호가 진짜와 같은 모양(`c1-…`)이라 `test-` 로 걸러지지 않습니다. 라이브 키를 넣은 시각 **이전** 결제는 전부 돈이 안 나간 시험입니다. 11/13 기준 5건(모두 11/6, 충전 2건 20냥은 카카오 회원 1명, 3건은 탈퇴 회원). 먼저 아래로 다시 보고, 지울지는 운영자가 정합니다(지우면 되돌릴 수 없음).
 
    ```sql
-   delete from coin_ledger where reason = 'charge' and ref like 'test-%';
-   update wallets w
-     set balance = greatest(0, coalesce((select sum(delta) from coin_ledger l where l.user_id = w.user_id), 0)),
-         updated_at = now();
-   delete from payments where order_id like 'test-%';
-   delete from users where provider = 'dev';  -- 개발용 테스트 계정
+   -- 보기만: 라이브 키를 넣은 시각(한국 시간)으로 바꿔서
+   select p.order_id, p.amount, p.created_at, u.provider, w.balance
+   from payments p left join users u on u.id = p.user_id left join wallets w on w.user_id = p.user_id
+   where p.created_at < '2026-12-01 10:00+09';
    ```
 
-2. **카카오 개발자 콘솔 → 앱 → 플랫폼 → Web** 에 `https://chemickok.vercel.app`이 등록돼 있는지 확인합니다. 등록이 안 돼 있으면 카톡 공유 창이 안 뜨고 링크 복사로 바뀝니다.
+6. **예전 주소 넘기기**: Production 에 `REDIRECT_OLD_HOSTS=1` → Redeploy → `https://chemickok.vercel.app` 이 308 로 넘어가는지.
+7. **하단 사업자 정보 접기**: `NEXT_PUBLIC_FOOTER_FOLDED=1` → Redeploy.
+8. **오픈 이벤트**: 관리자 화면에서 세일 '오픈 기념'·배너·쿠폰 NYANGOPEN 날짜를 결제 오픈일 기준으로 다시 정한다(운영자가 기간 결정).
+9. **홍보 시작**: `docs/marketing/instagram-plan.md` "결제 오픈 뒤 2주 공격적 홍보"의 D+0 을 오픈일로 정해 승인받고 홍보 담당이 올린다.
+10. **카카오 개발자 콘솔 → 앱 → 플랫폼 → Web** 에 `https://nyangsin.vercel.app` 이 등록돼 있는지(없으면 카톡 공유 창 대신 링크 복사로 바뀜).
 
 ---
 

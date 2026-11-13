@@ -2,12 +2,13 @@ import { NextResponse, after } from "next/server";
 import { reportError } from "@/services/server/errors";
 import { buildReport, buildTeaser, inputHash, validateInput } from "@/engine/analyze";
 import { buildFortuneReport, buildFortuneTeaser, fortuneHash, fortuneTitle, isFortuneMode, validateFortune } from "@/engine/fortune";
+import { PAYMENT_CLOSED_MESSAGE } from "@/lib/config";
 import { productIn } from "@/lib/pricing";
 import type { UnlockResponse } from "@/models/types";
 import { getDb } from "@/services/server/db";
 import { getSettings } from "@/services/server/settings";
 import { sessionUserId } from "@/services/server/session";
-import { confirmTossPayment, serverTestMode } from "@/services/server/tossConfirm";
+import { confirmTossPayment, serverPaymentClosed, serverTestMode } from "@/services/server/tossConfirm";
 
 interface ConfirmBody {
   input: unknown;
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
       }
       break;
     case "toss": {
+      if (serverPaymentClosed) return NextResponse.json({ error: PAYMENT_CLOSED_MESSAGE }, { status: 403 });
       if (body.amount !== product.price) product = productIn((await getSettings(true)).pricing, input.mode);
       if (!body.paymentKey || !body.orderId || body.amount !== product.price) {
         return NextResponse.json({ error: "결제 정보가 올바르지 않습니다." }, { status: 400 });

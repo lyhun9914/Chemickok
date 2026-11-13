@@ -1,4 +1,4 @@
-import { TOSS_CLIENT_KEY, chargeTag, isTestMode as defaultTestMode } from "@/lib/config";
+import { PAYMENT_CLOSED_MESSAGE, TOSS_CLIENT_KEY, chargeTag, isPaymentClosed, isTestMode as defaultTestMode } from "@/lib/config";
 import { getLive, liveProduct } from "@/lib/liveSettings";
 import type { SellPack } from "@/lib/pricing";
 import { loadScript } from "@/lib/loadScript";
@@ -52,7 +52,10 @@ async function tossPayment(customerKey: string) {
 const cancelled = (e: unknown) => /USER_CANCEL|취소/.test(String((e as { code?: string })?.code ?? (e as Error)?.message ?? ""));
 
 export class PaymentService {
-  constructor(public readonly isTestMode: boolean = defaultTestMode) {}
+  constructor(
+    public readonly isTestMode: boolean = defaultTestMode,
+    public readonly isClosed: boolean = isPaymentClosed,
+  ) {}
 
   /** orderId starts with the server-issued hash of the answers, binding the payment to them. */
   static makeOrderId(prefix: string): string {
@@ -66,6 +69,7 @@ export class PaymentService {
         await new Promise((r) => setTimeout(r, 900)); // feels like a payment
         return { status: "unlocked", unlock: await api.unlock({ input, method: "test" }) };
       }
+      if (this.isClosed) return { status: "failed", message: PAYMENT_CLOSED_MESSAGE };
       const product = liveProduct(getLive(), input.mode);
       const payment = await tossPayment(ANONYMOUS);
       await payment.requestPayment({
@@ -98,6 +102,7 @@ export class PaymentService {
         await new Promise((r) => setTimeout(r, 700));
         return { status: "charged", balance: (await coinApi.charge({ packId: pack.id, method: "test" })).balance };
       }
+      if (this.isClosed) return { status: "failed", message: PAYMENT_CLOSED_MESSAGE };
       const tag = chargeTag(userId);
       const payment = await tossPayment(`u_${tag}`);
       await payment.requestPayment({

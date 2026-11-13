@@ -8,7 +8,7 @@ import type { PaymentMethod, QuestionnaireInput, UnlockResponse } from "@/models
 import { paymentService } from "@/services/PaymentService";
 import { useAppStore } from "@/store/useAppStore";
 import { useBack } from "@/lib/back";
-import { CoinShop, MethodPicker, TestModeNote, useSocialLabel } from "./CoinShop";
+import { CoinShop, MethodPicker, PayClosedNote, TestModeNote, useSocialLabel } from "./CoinShop";
 import { Coin } from "./Coin";
 import { Overlay } from "./Overlay";
 
@@ -152,19 +152,25 @@ export function PaymentModal({ open, input, inputHash, onClose, onUnlocked, onLo
                   <span aria-hidden>→</span>
                 </button>
               )}
-              <p className="mb-3 text-[13px] text-muted">
-                {onLogin ? "로그인 없이 이 점괘만 바로 보기" : "이 점괘 바로 보기"} · <b className="text-ink">{won(product.price)}</b>
-              </p>
-              <MethodPicker value={method} onChange={setMethod} />
-              <label className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted">
-                <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-pink" />
-                <span>{AGREE.replace("냥으로 여는 점괘는 여는 즉시", "이 점괘는 결제 즉시")}</span>
-              </label>
-              {error && <p className="mt-3 text-sm text-pink">{error}</p>}
-              <button onClick={payDirect} disabled={!agree || busy} className="btn-primary mt-4 w-full py-4 text-base">
-                {busy ? "냥신이 복채 세는 중…" : `복채 ${won(product.price)} 내고 전부 듣기`}
-              </button>
-              <TestModeNote />
+              {paymentService.isClosed ? (
+                <PayClosedNote />
+              ) : (
+                <>
+                  <p className="mb-3 text-[13px] text-muted">
+                    {onLogin ? "로그인 없이 이 점괘만 바로 보기" : "이 점괘 바로 보기"} · <b className="text-ink">{won(product.price)}</b>
+                  </p>
+                  <MethodPicker value={method} onChange={setMethod} />
+                  <label className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-muted">
+                    <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-pink" />
+                    <span>{AGREE.replace("냥으로 여는 점괘는 여는 즉시", "이 점괘는 결제 즉시")}</span>
+                  </label>
+                  {error && <p className="mt-3 text-sm text-pink">{error}</p>}
+                  <button onClick={payDirect} disabled={!agree || busy} className="btn-primary mt-4 w-full py-4 text-base">
+                    {busy ? "냥신이 복채 세는 중…" : `복채 ${won(product.price)} 내고 전부 듣기`}
+                  </button>
+                  <TestModeNote />
+                </>
+              )}
             </div>
           )}
         </div>
