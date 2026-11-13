@@ -47,3 +47,6 @@ graphify-out/
 
 # Playwright MCP 임시 기록(점검 담당 콘솔 로그·화면 기록)
 .playwright-mcp/
+
+# Python 캐시(mcp/ 서버, scripts/check-mcp.py)
+__pycache__/

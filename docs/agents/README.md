@@ -93,8 +93,8 @@
 | --- | --- |
 | 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max·taste(화면 디자인, 7번 "규모별로 고른다" 표대로), ponytail, GSD(큰 일 쪼개기·기억), mcp-builder(새 외부 서비스 연결) |
 | 점검 | agent-browser(먼저), Playwright(반복·결제창 흐름 스크립트, MCP 는 0.0.83 고정), web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
-| 배포·운영 | Vercel·Supabase 커넥터, session-report(사용량 보고) |
-| 고객 | Gmail 커넥터, Supabase 커넥터(읽기), customer-support(문의 분류·답장 초안) |
+| 배포·운영 | Vercel·Supabase 커넥터, `toss`(토스 결제·거래 조회)·`nyangsin-admin`(관리자 숫자·오류·건의·결제 목록) MCP — 둘 다 읽기만, session-report(사용량 보고) |
+| 고객 | Gmail 커넥터, Supabase 커넥터(읽기), `toss`·`nyangsin-admin` MCP(결제 확인·건의 읽기, 이메일·전화는 가려 나옴), customer-support(문의 분류·답장 초안) |
 | 글 | graphify(글이 나오는 조건 찾기), `docs/` 의 냥신 말투 예시 |
 | 홍보 | Canva·아트리스트 커넥터, taste·ui-ux-pro-max(7번 "규모별로 고른다" 표대로), Firecrawl(조사), Windsor.ai 커넥터(인스타 숫자·게시), marketing(캠페인·콘텐츠·성과), remotion-*(코드로 영상 만들기, 회사 3명 이하 무료) |
 | 모두 | task-observer(반복 작업·지적 기록), claude-md-management(규칙 문서 정리), find-skills(새 스킬 찾기, 설치 전 운영자 확인) |
@@ -135,6 +135,16 @@
 
 - GSD 는 `standard` 묶음(스킬 19개, 하위 에이전트 6개)만 넣고, 모든 도구 호출마다 도는 감시 장치(hook 9개)는 뺐다(다른 담당까지 느려짐). `/gsd:update` 를 하면 `.claude/settings.json` 에 hook 이 다시 붙으니 지운다. 파일 안 경로가 `/home/user/nyangsin` 으로 박혀 있어, 저장소를 다른 경로로 열면 `npx get-shit-done-cc@1.42.3 --claude --local --profile=standard` 를 다시 한다.
 - mcp-builder 는 example-skills 플러그인 전체가 아니라 스킬 하나만 `.claude/skills/` 에 넣었다(`npx skills add anthropics/skills --skill mcp-builder`).
+
+### 새 연결 만들기 (mcp-builder, 운영자 요청 11/13)
+
+커넥터 없는 외부 서비스가 필요하면 개발 담당이 `mcp/toss/server.py`, `mcp/nyangsin-admin/server.py` 모양 그대로 만든다.
+
+- `mcp/<이름>/server.py` 한 파일(Python `mcp` 2.x 의 `MCPServer`, stdio, 표준 라이브러리 `urllib` 로 요청) + `.mcp.json` 에 한 줄.
+- **키는 코드·설정·환경변수에 넣지 않는다.** 서버는 인증 헤더 없이 요청하고, 총책임자가 그 호스트의 키를 이 환경의 네트워크 비밀로 넣으면 프록시가 헤더를 붙인다. 401/403 이면 "키가 아직 안 들어갔다"는 짧은 오류.
+- 읽기 전용(GET)이 기본이다. 바꾸는 도구(취소·환불·수정)는 운영자 확인 뒤에만 만든다.
+- 결과는 필요한 필드만 추려 한 줄씩. 원본 JSON 통째로 넘기지 않는다. 손님 이메일·전화는 가린다(`ab***@gmail.com`, `010-****-1234`).
+- 검사: `python3 scripts/check-mcp.py`(도구 목록·키 없을 때 오류), 관리자 키 헤더는 `bash scripts/check-admin-bearer.sh`.
 
 ### 효율 설정 (2026-11-13)
 

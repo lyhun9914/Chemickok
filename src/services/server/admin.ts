@@ -35,5 +35,16 @@ export function clearAdmin(res: NextResponse) {
 
 export const isAdmin = (req: NextRequest) => adminConfigured() && Boolean(unseal<{ admin: boolean }>(req.cookies.get(ADMIN_COOKIE)?.value)?.admin);
 
-/** 401 unless the request carries the admin cookie. */
-export const adminOnly = (req: NextRequest) => (isAdmin(req) ? null : NextResponse.json({ error: "관리자 로그인이 필요해요." }, { status: 401 }));
+/** `Authorization: Bearer <ADMIN_KEY>` on a GET: the read-only MCP server (mcp/nyangsin-admin). Changes stay cookie-only. */
+const bearerKey = (req: NextRequest) => (req.method === "GET" ? req.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1] : undefined);
+
+/**
+ * 401 unless the request carries the admin cookie, or (GET only) the admin key as a Bearer header. A wrong key header
+ * costs a second like a wrong login; every route does `if (denied) return denied`, so the delayed 401 is awaited there.
+ */
+export const adminOnly = (req: NextRequest) => {
+  const key = bearerKey(req);
+  if (key ? adminKeyMatches(key) : isAdmin(req)) return null;
+  const res = NextResponse.json({ error: "관리자 로그인이 필요해요." }, { status: 401 });
+  return key ? new Promise<NextResponse>((r) => setTimeout(() => r(res), 1000)) : res;
+};
