@@ -71,8 +71,6 @@ export function Landing() {
     }
     if (deepLink.pair || deepLink.game || deepLink.room || deepLink.quiz) useAppStore.setState({ deepLink: deepLink.gift ? { gift: deepLink.gift } : null });
   }, [deepLink]);
-  const k = new Date(Date.now() + 9 * 3600 * 1000);
-  const todayLabel = `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일`;
   // 출석 streak lives in this browser only; read after mount and whenever a mini game closes.
   const [{ streak, checkedToday }, setStreak] = useState({ streak: 0, checkedToday: false });
   useEffect(() => setStreak(streakNow()), [game]);
@@ -92,8 +90,7 @@ export function Landing() {
   };
 
   const live = useLive();
-  const others = (Object.keys(live.pricing.costs) as Mode[]).filter((m) => m !== "couple").map((m) => live.pricing.costs[m]);
-  const oneCost = Math.min(...others);
+  const minCost = Math.min(...Object.values(live.pricing.costs));
   const unit = live.pricing.packs[0].price / live.pricing.packs[0].coins;
   const maxSave = Math.max(0, ...sellPacks({ ...live, sale: null }).map((p) => Math.round((1 - p.price / p.coins / unit) * 100)));
 
@@ -195,24 +192,10 @@ export function Landing() {
         </button>
       )}
 
-      <button
-        onClick={() => setGame("today")}
-        className="fade-up mt-6 flex w-full items-center gap-3 rounded-2xl border border-peach/40 bg-peach/5 px-4 py-3.5 text-left active:scale-[0.98]"
-      >
-        <span className="text-2xl">🗓️</span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold text-peach">오늘의 운세 · {todayLabel}</span>
-          <span className="block text-[13px] text-muted">
-            {checkedToday ? `오늘 도장 완료 · 연속 ${streak}일째 🐾` : streak ? `연속 ${streak}일째 출석 중 · 오늘 도장 받아 가라냥` : "하루 한 번, 오늘의 일진을 짚어 준다냥"}
-          </span>
-        </span>
-        <span className="text-muted" aria-hidden>
-          →
-        </span>
-      </button>
-
-      <p className="fade-up mt-8 rounded-xl border border-violet/25 bg-white/[0.03] px-3.5 py-2.5 text-center text-[12.5px] leading-relaxed text-muted">
-        <Coin /> 복채는 <b className="text-peach">냥</b>(엽전)으로 낸다냥 · 점괘 하나 {nyang(oneCost)}, 궁합은 {nyang(live.pricing.costs.couple)}
+      <p className="fade-up mt-6 rounded-xl border border-violet/25 bg-white/[0.03] px-3.5 py-2.5 text-center text-[12.5px] leading-relaxed text-muted">
+        <Coin /> 복채는 <b className="text-peach">냥</b>(엽전)으로 낸다냥
+        {/* the code defaults are not the live prices: name a price only once /api/settings has answered */}
+        {live.loaded && <> · 점괘 하나 {nyang(minCost)}부터</>}
         {live.sale ? <> · 🎉 지금 충전 세일 중이다냥</> : maxSave > 0 && <> · 묶음으로 채우면 최대 {maxSave}% 싸다냥</>}
       </p>
 
