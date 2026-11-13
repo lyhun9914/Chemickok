@@ -2,3 +2,6 @@
 .claude/
 public/
 skills-lock.json
+# 코드 질문에 섞이지 않게: 사람용 문서와 할 일 목록은 직접 읽는다
+docs/
+.planning/
