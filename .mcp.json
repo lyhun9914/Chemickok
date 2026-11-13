@@ -2,15 +2,15 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@0.0.83"]
-    },
-    "toss": {
-      "command": "python3",
-      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp/toss/server.py"]
+      "args": [
+        "@playwright/mcp@0.0.83"
+      ]
     },
     "nyangsin-admin": {
       "command": "python3",
-      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp/nyangsin-admin/server.py"]
+      "args": [
+        "${CLAUDE_PROJECT_DIR:-.}/mcp/nyangsin-admin/server.py"
+      ]
     }
   }
 }

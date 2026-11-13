@@ -76,7 +76,6 @@
     ]
   },
   "enabledPlugins": {
-    "task-observer@one-skill-to-rule-them-all": true,
     "ponytail@ponytail": true,
     "agent-browser@agent-browser": true,
     "taste-skill@taste-skill": true,
@@ -85,10 +84,7 @@
     "code-review@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "session-report@claude-plugins-official": true,
-    "supabase@supabase-agent-skills": true,
     "postgres-best-practices@supabase-agent-skills": true,
-    "marketing@knowledge-work-plugins": true,
-    "customer-support@knowledge-work-plugins": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true
   },
   "extraKnownMarketplaces": {
@@ -96,12 +92,6 @@
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
-      }
-    },
-    "one-skill-to-rule-them-all": {
-      "source": {
-        "source": "github",
-        "repo": "rebelytics/one-skill-to-rule-them-all"
       }
     },
     "ponytail": {
@@ -126,12 +116,6 @@
       "source": {
         "source": "github",
         "repo": "supabase/agent-skills"
-      }
-    },
-    "knowledge-work-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/knowledge-work-plugins"
       }
     },
     "ui-ux-pro-max-skill": {

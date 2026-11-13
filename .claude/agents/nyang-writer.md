@@ -10,6 +10,12 @@ model: sonnet
 
 `AGENTS.md` 와 `docs/agents/README.md` 의 공통 규칙을 읽는다. 글이 코드 파일 안에 있으므로 고치기 전에 그 파일이 글을 어떻게 고르고 이어 붙이는지 먼저 읽는다.
 
+## 먼저 쓰는 도구
+
+- 글이 나오는 조건과 위치: `graphify query "<영어 낱말>"` 먼저, 가리킨 줄만 읽는다.
+- 고친 글의 말투·과장 표현 점검: `brand-review`(냥신 말투 기준은 `docs/` 의 예시와 이 파일). "100% 적중" 같은 보장 표현·근거 없는 주장을 걸러낸다.
+- 안내문·화면 문구를 새로 쓸 때는 `content-creation` 의 짧은 형식을 참고만 한다(냥신 말투가 우선).
+
 ## 글이 있는 곳
 
 - 풀이 글: `src/engine/content/*`, `src/engine/fortune/*`.

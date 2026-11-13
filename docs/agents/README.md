@@ -93,11 +93,11 @@
 | --- | --- |
 | 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max·taste(화면 디자인, 7번 "규모별로 고른다" 표대로), ponytail, GSD(큰 일 쪼개기·기억), mcp-builder(새 외부 서비스 연결) |
 | 점검 | agent-browser(먼저), Playwright(반복·결제창 흐름 스크립트, MCP 는 0.0.83 고정), web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
-| 배포·운영 | Vercel·Supabase 커넥터, `toss`(토스 결제·거래 조회)·`nyangsin-admin`(관리자 숫자·오류·건의·결제 목록) MCP — 둘 다 읽기만, session-report(사용량 보고) |
-| 고객 | Gmail 커넥터, Supabase 커넥터(읽기), `toss`·`nyangsin-admin` MCP(결제 확인·건의 읽기, 이메일·전화는 가려 나옴), customer-support(문의 분류·답장 초안) |
-| 글 | graphify(글이 나오는 조건 찾기), `docs/` 의 냥신 말투 예시 |
-| 홍보 | Canva·아트리스트 커넥터, taste·ui-ux-pro-max(7번 "규모별로 고른다" 표대로), Firecrawl(조사), Windsor.ai 커넥터(인스타 숫자·게시), marketing(캠페인·콘텐츠·성과), remotion-*(코드로 영상 만들기, 회사 3명 이하 무료) |
-| 모두 | task-observer(반복 작업·지적 기록), claude-md-management(규칙 문서 정리), find-skills(새 스킬 찾기, 공통 규칙 10번 기준이면 바로 설치) |
+| 배포·운영 | `nyangsin-admin` MCP(관리자 숫자·오류·건의·결제 목록, 읽기만) 먼저, Vercel·Supabase 커넥터, e2e-smoke(배포 직후), session-report(사용량 보고). `toss` 조회는 결제 오픈 때까지 등록 해제(인증 방식 문제, 코드는 `mcp/toss`) |
+| 고객 | Gmail 커넥터, `nyangsin-admin` MCP(결제 확인·건의 읽기, 이메일·전화는 가려 나옴), Supabase 커넥터(읽기), ticket-triage·draft-response·customer-research·customer-escalation·kb-article(문의 분류·답장 초안·조사·개발 넘기기·안내문) |
+| 글 | graphify(글이 나오는 조건 찾기), brand-review(말투·과장 표현 점검), `docs/` 의 냥신 말투 예시 |
+| 홍보 | Canva·아트리스트 커넥터, taste·ui-ux-pro-max(7번 "규모별로 고른다" 표대로), Firecrawl(조사), Windsor.ai 커넥터(인스타 숫자·게시), campaign-plan·content-creation·performance-report·competitive-brief(기획·글·성과·조사), remotion-*(코드로 영상, 무료라 영상은 이것 먼저) |
+| 모두 | claude-md-management(규칙 문서 정리), find-skills(새 스킬 찾기, 공통 규칙 10번 기준이면 바로 설치) |
 
 ## 7. 고치는 법
 
@@ -152,6 +152,14 @@
 - 읽기 전용(GET)이 기본이다. 바꾸는 도구(취소·환불·수정)는 운영자 확인 뒤에만 만든다.
 - 결과는 필요한 필드만 추려 한 줄씩. 원본 JSON 통째로 넘기지 않는다. 손님 이메일·전화는 가린다(`ab***@gmail.com`, `010-****-1234`).
 - 검사: `python3 scripts/check-mcp.py`(도구 목록·키 없을 때 오류), 관리자 키 헤더는 `bash scripts/check-admin-bearer.sh`.
+
+### 전체 검토로 바꾼 것 (11/13 운영자 "전부 적용")
+
+- 담당 파일마다 "먼저 쓰는 도구"를 넣었다. 담당은 이 문서의 공통 규칙만 읽으므로, 위 표에만 있고 담당 파일에 없는 도구는 실제로 안 쓰였다.
+- 마케팅·고객지원·supabase 플러그인은 이 환경에서 절대 안 붙는 연결 14개를 매 대화 시작마다 시도했다. 스킬만 `.claude/skills/` 로 옮기고(Apache-2.0·MIT, 각 폴더에 LICENSE) 플러그인은 껐다. 이름에서 `marketing:` 같은 앞말이 빠졌다(`content-creation`, `draft-response` …).
+- GSD 모델은 `balanced`(`.planning/config.json`): 계획만 큰 모델, 실행은 sonnet.
+- task-observer 는 껐다. 이 클라우드는 대화가 끝나면 기록이 사라지고 저장소는 공개라 남길 곳이 없었다. 반복 작업·운영자 지적은 `docs/agents/handoff.md` "배운 점"에 한 줄씩.
+- `toss` 조회 연결은 인증 방식(Basic)이 이 환경 네트워크 비밀로 안 붙어 결제 오픈 때까지 `.mcp.json` 에서 뺐다.
 
 ### 효율 설정 (2026-11-13)
 

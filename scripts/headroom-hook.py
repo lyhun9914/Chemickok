@@ -45,7 +45,8 @@ def updated(ev):
     if name == "Bash" and isinstance(resp, dict) and len(resp.get("stdout") or "") >= MIN_CHARS:
         new = shrink(resp["stdout"], name)
         return dict(resp, stdout=new) if new else None
-    if name.startswith("mcp__"):
+    # search/scrape results are prose to read: crushing them hid every description behind <<ccr:...>> markers (11/13)
+    if name.startswith("mcp__") and not any(k in name.lower() for k in ("search", "scrape", "read_paper", "find_tools")):
         if isinstance(resp, str) and len(resp) >= MIN_CHARS:
             return shrink(resp, name)
         blocks = resp.get("content") if isinstance(resp, dict) else resp
