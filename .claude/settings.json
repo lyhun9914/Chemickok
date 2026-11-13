@@ -45,13 +45,10 @@
     ]
   },
   "enabledPlugins": {
-    "claude-code-setup@claude-plugins-official": true,
     "task-observer@one-skill-to-rule-them-all": true,
-    "agent-skills@addy-agent-skills": true,
     "ponytail@ponytail": true,
     "agent-browser@agent-browser": true,
     "taste-skill@taste-skill": true,
-    "example-skills@anthropic-agent-skills": true,
     "typescript-lsp@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
@@ -60,8 +57,6 @@
     "supabase@supabase-agent-skills": true,
     "postgres-best-practices@supabase-agent-skills": true,
     "marketing@knowledge-work-plugins": true,
-    "design@knowledge-work-plugins": true,
-    "brand-voice@knowledge-work-plugins": true,
     "customer-support@knowledge-work-plugins": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true
   },
@@ -76,12 +71,6 @@
       "source": {
         "source": "github",
         "repo": "rebelytics/one-skill-to-rule-them-all"
-      }
-    },
-    "addy-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "addyosmani/agent-skills"
       }
     },
     "ponytail": {
@@ -100,12 +89,6 @@
       "source": {
         "source": "github",
         "repo": "Leonxlnx/taste-skill"
-      }
-    },
-    "anthropic-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/skills"
       }
     },
     "supabase-agent-skills": {
