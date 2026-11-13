@@ -86,8 +86,8 @@
 
 | 담당 | 도구 |
 | --- | --- |
-| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max(화면·디자인 업그레이드), ponytail |
-| 점검 | Playwright(설치된 라이브러리로 스크립트, MCP 는 0.0.83 고정), agent-browser, web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
+| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max(화면·디자인 업그레이드), ponytail, GSD(큰 일 쪼개기·기억), mcp-builder(새 외부 서비스 연결) |
+| 점검 | agent-browser(먼저), Playwright(반복·결제창 흐름 스크립트, MCP 는 0.0.83 고정), web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
 | 배포·운영 | Vercel·Supabase 커넥터, session-report(사용량 보고) |
 | 고객 | Gmail 커넥터, Supabase 커넥터(읽기), customer-support(문의 분류·답장 초안) |
 | 글 | graphify(글이 나오는 조건 찾기), `docs/` 의 냥신 말투 예시 |
@@ -108,6 +108,21 @@
 2. 이미 있는 냥신의 분위기(색, 글꼴, 고양이 캐릭터, 말투)는 유지한다. 새 디자인 체계로 통째로 바꾸지 않고, 찾은 규칙은 고칠 화면에만 맞춰 쓴다.
 3. 다 고친 뒤 점검 담당이 `web-design-guidelines` 와 휴대폰 폭(360·390px)으로 확인한다.
 4. 작은 문구·버튼 수정에는 쓰지 않는다(토큰 아끼기).
+
+### 영상 스킬 5개 쓰는 법 (2026-11-13 운영자 요청)
+
+"클로드 코드 최고의 스킬 5개" 영상대로 쓴다. 셋(agent-browser 실행 파일, GSD, mcp-builder)은 이날 새로 넣었다.
+
+| 스킬 | 언제 | 누가 | 어떻게 |
+| --- | --- | --- | --- |
+| agent-browser | 화면을 진짜 브라우저로 눌러 보고 끝까지 시험할 때 | 점검 | `agent-browser open <주소>` → `snapshot -i` → `click @e2`. 실행 파일은 세션 시작 때 자동 설치 |
+| find-skills | 이 일에 맞는 스킬이 있는지 찾을 때 | 모두 | `npx skills find <영어 낱말>`. 설치 전 운영자 확인 |
+| GSD | 여러 날 걸리는 큰 일을 잘게 쪼개고, 대화가 바뀌어도 잊지 않게 할 때 | 개발(총책임자가 맡김) | `/gsd:new-project` → `/gsd:discuss-phase` → `/gsd:plan-phase` → `/gsd:execute-phase`, 이어 할 땐 `/gsd:resume-work`. 기록은 `.planning/`(공개 저장소라 비밀 값 금지) |
+| taste | 뻔한 AI 디자인 말고 디자이너가 한 것 같은 화면·홍보물 | 홍보, 개발 | 홍보물·랜딩 화면을 만들거나 고칠 때 `design-taste-frontend` 스킬 |
+| mcp-builder | 커넥터 없는 외부 서비스를 이어야 할 때 | 개발 | 서비스 이름·할 일·API 문서만 주면 MCP 서버를 만든다 |
+
+- GSD 는 `standard` 묶음(스킬 19개, 하위 에이전트 6개)만 넣고, 모든 도구 호출마다 도는 감시 장치(hook 9개)는 뺐다(다른 담당까지 느려짐). `/gsd:update` 를 하면 `.claude/settings.json` 에 hook 이 다시 붙으니 지운다. 파일 안 경로가 `/home/user/nyangsin` 으로 박혀 있어, 저장소를 다른 경로로 열면 `npx get-shit-done-cc@1.42.3 --claude --local --profile=standard` 를 다시 한다.
+- mcp-builder 는 example-skills 플러그인 전체가 아니라 스킬 하나만 `.claude/skills/` 에 넣었다(`npx skills add anthropics/skills --skill mcp-builder`).
 
 ### 효율 설정 (2026-11-13)
 

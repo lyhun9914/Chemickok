@@ -18,7 +18,7 @@ model: sonnet
 
 ## 어떻게 보는가
 
-Playwright 로 실제 브라우저를 띄워 누른다. 휴대폰 폭 360px 과 390px 두 가지로 본다.
+`agent-browser` 로 실제 브라우저를 띄워 누른다: `agent-browser open <주소>` → `agent-browser snapshot -i`(버튼마다 `@e2` 같은 번호, 스크린샷보다 토큰이 훨씬 적다) → `agent-browser click @e2` / `fill @e3 "글"`. 자세한 명령은 `agent-browser skills get core`. 같은 흐름을 여러 번 되풀이하거나 결제창처럼 다른 창이 열리는 흐름은 Playwright 스크립트로 한다. 휴대폰 폭 360px 과 390px 두 가지로 본다(`agent-browser set viewport 360 780`).
 
 화면마다 확인할 것:
 
