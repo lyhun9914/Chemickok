@@ -1,12 +1,12 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { coinLots } from "@/lib/coinLots";
 import { reportError } from "@/services/server/errors";
-import { INVITE_LIMIT, chargeTag } from "@/lib/config";
+import { INVITE_LIMIT, PAYMENT_CLOSED_MESSAGE, chargeTag } from "@/lib/config";
 import { sellPack, type SellPack } from "@/lib/pricing";
 import { getSettings } from "@/services/server/settings";
 import { getDb } from "@/services/server/db";
 import { sessionUserId } from "@/services/server/session";
-import { confirmTossPayment, serverTestMode } from "@/services/server/tossConfirm";
+import { confirmTossPayment, serverPaymentClosed, serverTestMode } from "@/services/server/tossConfirm";
 
 /**
  * GET /api/coins — 복주머니: balance, recent history, how many friends joined through my link, and what is left of
@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
     if (!serverTestMode) return NextResponse.json({ error: "테스트 결제가 비활성화되어 있습니다." }, { status: 403 });
     orderId = `test-c${pack.coins}-${chargeTag(uid)}-${Date.now().toString(36)}`;
   } else if (body.method === "toss") {
+    if (serverPaymentClosed) return NextResponse.json({ error: PAYMENT_CLOSED_MESSAGE }, { status: 403 });
     if (!body.paymentKey || !body.orderId || body.amount !== pack.price || !body.orderId.startsWith(`c${pack.coins}-${chargeTag(uid)}-`)) {
       return NextResponse.json({ error: "가격이 방금 바뀌었어요. 화면을 새로고침한 뒤 다시 충전해 주세요. (결제는 되지 않았어요)" }, { status: 400 });
     }

@@ -151,6 +151,13 @@ export const FOOTER_FOLDED = process.env.NEXT_PUBLIC_FOOTER_FOLDED === "1";
 export const isTestMode = process.env.NEXT_PUBLIC_PAYMENT_TEST_MODE !== "false";
 
 export const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "";
+/**
+ * 결제 오픈 준비 중: real payments are on (test mode off) but the Toss key is still a test key (test_…), so a payment
+ * would "succeed" at Toss without real money. Swapping in live_ keys opens payments again; the server checks its own key.
+ */
+export const paymentClosed = (testMode: boolean, tossKey: string) => !testMode && tossKey.startsWith("test_");
+export const isPaymentClosed = paymentClosed(isTestMode, TOSS_CLIENT_KEY);
+export const PAYMENT_CLOSED_MESSAGE = "결제 오픈 준비 중이다냥. 지금은 무료 점괘를 즐겨라냥.";
 /** Kakao JavaScript key (public by design: it ships in the page and is locked to the registered web domains). */
 export const KAKAO_JS_KEY = process.env.NEXT_PUBLIC_KAKAO_JS_KEY || "25000b6441c29a58f1ce4ede8d0726f7";
 

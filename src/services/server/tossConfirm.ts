@@ -1,7 +1,10 @@
 import "server-only";
+import { paymentClosed } from "@/lib/config";
 
 /** Server-side test-mode gate. Must be explicitly "false" in production to require real payments. */
 export const serverTestMode = process.env.PAYMENT_TEST_MODE !== "false";
+/** 결제 오픈 준비 중 (테스트 모드가 아닌데 TOSS_SECRET_KEY 가 test_ 키): Toss 승인 전에 거절한다. */
+export const serverPaymentClosed = paymentClosed(serverTestMode, process.env.TOSS_SECRET_KEY ?? "");
 
 /**
  * Confirms a Toss Payments transaction (승인 API). Called after Toss redirects to successUrl.

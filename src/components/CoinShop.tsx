@@ -39,6 +39,16 @@ export function MethodPicker({ value, onChange }: { value: PaymentMethod; onChan
   );
 }
 
+/** 결제 오픈 전 (운영인데 토스 키가 아직 test_): 충전·결제 버튼 자리에 대신 보인다. */
+export function PayClosedNote() {
+  return (
+    <div className="rounded-2xl border border-dashed border-peach/40 bg-peach/5 p-4 text-center">
+      <p className="text-[15px] font-bold text-peach">🐾 결제 오픈 준비 중이다냥</p>
+      <p className="mt-1 text-[13px] text-muted">지금은 무료 점괘를 즐겨라냥 · 가진 냥은 그대로 쓸 수 있다냥</p>
+    </div>
+  );
+}
+
 export function TestModeNote() {
   return paymentService.isTestMode ? (
     <p className="mt-3 rounded-lg border border-dashed border-peach/40 p-2 text-center text-[12px] text-peach">🧪 TEST MODE — 실제 결제 없이 바로 처리돼요</p>
@@ -194,18 +204,24 @@ export function CoinShop({ need = 0, forReading = false, onCharged }: { need?: n
           );
         })}
       </div>
-      <MethodPicker value={method} onChange={setMethod} />
-      <label className="flex items-start gap-2 text-xs leading-relaxed text-muted">
-        <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-pink" />
-        <span>
-          냥으로 연 점괘는 바로 제공되는 디지털 콘텐츠라 <b className="text-ink">열람 후에는 환불되지 않아요.</b> 충전한 냥은 7일 안에 쓰지 않은 만큼만 청약철회할 수 있고,
-          7일이 지나면 결제일로부터 {COIN_VALID_TEXT} 안에 남은 유료 냥에서 수수료 10%를 빼고 환불돼요. 쓴 냥과 무료로 받은 냥은 환불되지 않고, 보너스 냥이 붙은 충전은 실제 결제 금액을 보너스까지 합친 냥 수로 나눠 계산해요. 유효기간은 충전일로부터 {COIN_VALID_TEXT}이고, 냥은 다른 회원에게 넘길 수 없어요.
-        </span>
-      </label>
-      {error && <p className="text-sm text-pink">{error}</p>}
-      <button onClick={charge} disabled={!agree || busy || pack.total < need} className="btn-primary w-full py-4 text-base">
-        {busy ? "냥신이 엽전 세는 중…" : `${nyang(pack.total)} 충전하기 · ${won(pack.price)}`}
-      </button>
+      {paymentService.isClosed ? (
+        <PayClosedNote />
+      ) : (
+        <>
+          <MethodPicker value={method} onChange={setMethod} />
+          <label className="flex items-start gap-2 text-xs leading-relaxed text-muted">
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 accent-pink" />
+            <span>
+              냥으로 연 점괘는 바로 제공되는 디지털 콘텐츠라 <b className="text-ink">열람 후에는 환불되지 않아요.</b> 충전한 냥은 7일 안에 쓰지 않은 만큼만 청약철회할 수 있고,
+              7일이 지나면 결제일로부터 {COIN_VALID_TEXT} 안에 남은 유료 냥에서 수수료 10%를 빼고 환불돼요. 쓴 냥과 무료로 받은 냥은 환불되지 않고, 보너스 냥이 붙은 충전은 실제 결제 금액을 보너스까지 합친 냥 수로 나눠 계산해요. 유효기간은 충전일로부터 {COIN_VALID_TEXT}이고, 냥은 다른 회원에게 넘길 수 없어요.
+            </span>
+          </label>
+          {error && <p className="text-sm text-pink">{error}</p>}
+          <button onClick={charge} disabled={!agree || busy || pack.total < need} className="btn-primary w-full py-4 text-base">
+            {busy ? "냥신이 엽전 세는 중…" : `${nyang(pack.total)} 충전하기 · ${won(pack.price)}`}
+          </button>
+        </>
+      )}
       <TestModeNote />
       <CouponBox onDone={(b) => onCharged(b)} />
     </div>
