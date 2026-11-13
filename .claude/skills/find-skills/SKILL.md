@@ -104,7 +104,7 @@ If the user wants to proceed, install it into this repository, never globally:
 npx skills add <owner/repo@skill> -y
 ```
 
-Do not use the `-g` flag: this repository keeps every Claude Code tool inside the repository so it works the same on every computer and cloud session. Installing runs someone else's code. Follow the install rule in `docs/agents/README.md` common rule 10: install without asking only when the skill is from an official company repository, has 1K+ installs, and its SKILL.md and scripts were read in full with nothing that sends secrets or files out or quietly changes settings; otherwise ask the user. Commit the new skill files to `dev`.
+Do not use the `-g` flag: this repository keeps every Claude Code tool inside the repository so it works the same on every computer and cloud session. Installing runs someone else's code. Before installing, check whether building a slim MCP server with the `mcp-builder` skill would be more efficient (criteria: `docs/agents/README.md` section 7 "새 연결 만들기"), and say which you chose and why. Follow the install rule in `docs/agents/README.md` common rule 10: install without asking only when the skill is from an official company repository, has 1K+ installs, and its SKILL.md and scripts were read in full with nothing that sends secrets or files out or quietly changes settings; otherwise ask the user. Commit the new skill files to `dev`.
 
 ## Common Skill Categories
 
