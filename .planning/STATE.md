@@ -16,11 +16,12 @@ Last activity: 2026-11-13 — PR #6(headroom 압축) 실제 사이트 배포, ag
 
 - [ ] **맡김(개발 담당)** `scripts/e2e-smoke.sh` — agent-browser 로 손님 핵심 흐름 끝까지 시험. 받으면: 두 사이트 PASS 확인 → 점검(시작 때)·개발(화면 고친 뒤)·배포(올린 직후) 담당 규칙에 연결 → 커밋
 - [ ] **mcp-builder 연결 (운영자 11/13)** 토스 조회·냥신 관리자 API, 둘 다 읽기 전용
-  - [ ] 맡김(개발 담당): `mcp/toss`, `mcp/nyangsin-admin` 서버 + `.mcp.json` 등록 + 관리자 GET 에 키 헤더 허용(admin.ts) + 새 연결 만드는 규칙 문서
-  - [ ] 받으면: 키 입력창 띄우기(토스 시크릿 키 Basic, 관리자 키 Bearer) → 담당 규칙·도구 표 연결
+  - [x] 개발 담당: `mcp/toss`(2 도구), `mcp/nyangsin-admin`(6 도구) + `.mcp.json` + 관리자 GET 키 헤더(admin.ts, 틀린 키는 감사 기록) + README 7번 "새 연결 만들기" (f9811e9)
+  - [ ] 키 입력창 띄우기: 토스 api.tosspayments.com Basic(사용자=시크릿 키, 비밀번호 비움) / 관리자 nyangsin-admin.vercel.app·nyangsin-test-admin.vercel.app Bearer(각 사이트 ADMIN_KEY)
+  - [ ] 새 대화에서 두 MCP 서버가 뜨는지(.mcp.json 의 ${CLAUDE_PROJECT_DIR:-.} 경로) 확인
   - [ ] 관리자 코드라 실제 사이트 배포는 운영자 확인 뒤
   - [x] 앞으로: 처음 하는 일은 있는 도구 → find-skills → mcp-builder 순서(공통 규칙 10, autopilot 9). skills.sh 네트워크 허용, 검색은 `NODE_USE_ENV_PROXY=1` 필요
-  - [ ] 개발 담당 끝나면: README 6번 표 "모두" 줄의 "설치 전 운영자 확인"을 규칙 10 기준으로 맞추기(지금 그 담당이 같은 표를 고치는 중이라 미룸)
+  - [x] README 6번 표 find-skills 설치 문구를 규칙 10 기준으로
 - [ ] **운영자 보류** 수능 부적 인스타 게시 (① 따로 예약 / ② 순회 때). 11/16 지나면 D-3 영상 다시 만들어야 할 수 있음
 - [ ] **운영자 작업(안내함)** 실제 사이트 "오픈 기념" 배너 끄기, 인스타 프로필 링크 `?open=bujeok`
 - [ ] **다음** 결제 오픈 당일 준비 — `docs/GUIDE.md` 2-4. 오픈 이벤트 기간·홍보 D+0 은 운영자 결정

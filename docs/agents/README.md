@@ -97,7 +97,7 @@
 | 고객 | Gmail 커넥터, Supabase 커넥터(읽기), `toss`·`nyangsin-admin` MCP(결제 확인·건의 읽기, 이메일·전화는 가려 나옴), customer-support(문의 분류·답장 초안) |
 | 글 | graphify(글이 나오는 조건 찾기), `docs/` 의 냥신 말투 예시 |
 | 홍보 | Canva·아트리스트 커넥터, taste·ui-ux-pro-max(7번 "규모별로 고른다" 표대로), Firecrawl(조사), Windsor.ai 커넥터(인스타 숫자·게시), marketing(캠페인·콘텐츠·성과), remotion-*(코드로 영상 만들기, 회사 3명 이하 무료) |
-| 모두 | task-observer(반복 작업·지적 기록), claude-md-management(규칙 문서 정리), find-skills(새 스킬 찾기, 설치 전 운영자 확인) |
+| 모두 | task-observer(반복 작업·지적 기록), claude-md-management(규칙 문서 정리), find-skills(새 스킬 찾기, 공통 규칙 10번 기준이면 바로 설치) |
 
 ## 7. 고치는 법
 
