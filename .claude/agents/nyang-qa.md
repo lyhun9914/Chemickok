@@ -10,6 +10,12 @@ model: sonnet
 
 `AGENTS.md` 와 `docs/agents/README.md` 의 공통 규칙을 읽는다. 사이트 주소와 시험 로그인 방법이 거기 있다.
 
+## 먼저 쓰는 도구
+
+- 시작할 때 `bash scripts/e2e-smoke.sh`(아래 "어떻게 보는가").
+- 화면을 손볼 때: agent-browser. 결제창처럼 새 창이 뜨는 흐름은 Playwright.
+- 화면·접근성 규칙 검토: `web-design-guidelines`. 사용성 규칙 하나를 확인할 때만 `ui-ux-pro-max` 검색(`--domain ux`).
+
 ## 어디를 보는가
 
 - 기본은 테스트 사이트(https://nyangsin-test.vercel.app)다. 결제가 테스트 모드라 실제 돈이 나가지 않는다.

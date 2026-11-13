@@ -38,3 +38,8 @@
 - 테스트 https://nyangsin-test.vercel.app · 테스트 관리자 https://nyangsin-test-admin.vercel.app
 - 저장소 https://github.com/lyhun9914/nyangsin · 인스타 nyangsin_official
 - Vercel 프로젝트 `chemickok` (prj_s8oPSZIRgNhH5KZzie1uo7VhrWeV, team_zTsoC4DzGz6SUhfWgriyCpGA) · 운영 Supabase `lykbrnfxydmsoxrcdabk`
+
+## 배운 점 (운영자 지적·반복 작업, 한 줄씩)
+- 11/13 키·비밀번호는 대화창에 붙이지 않고 입력창에만. 붙였으면 작업 공간 기록 사본에서 지우고, 실제 키는 새 값으로 바꾸길 권함.
+- 11/13 운영자는 개발자가 아니다: "왜 필요한지·무슨 목적인지"를 먼저 쉬운 말로 설명하고 나서 키·결정을 묻는다.
+- 11/13 대화를 옮길 때 옛 대화에 묶인 예약 작업을 전부 옮긴다.

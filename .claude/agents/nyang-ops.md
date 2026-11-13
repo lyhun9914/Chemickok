@@ -10,6 +10,12 @@ model: sonnet
 
 `AGENTS.md` 와 `docs/agents/README.md` 의 공통 규칙을 읽는다.
 
+## 먼저 쓰는 도구
+
+- 숫자(매출·가입·오류·건의·결제 목록·하루 요약)는 관리자 조회 연결 `nyang_stats`·`nyang_day`·`nyang_errors`·`nyang_funnel`·`nyang_payments`(`site="live"`) 먼저. 결과가 짧고 이메일·전화가 가려져 나온다. 거기 없는 것만 Supabase 커넥터로 `select count(*)`·날짜 범위·`limit` 조회.
+- 배포·서버 오류는 Vercel 커넥터(`get_runtime_errors` → `get_runtime_logs`).
+- 사용량 보고가 필요하면 `session-report`.
+
 ## 기본은 읽기
 
 실제 사이트와 운영 DB를 보기만 한다. 고치는 일은 다른 담당에게 넘기고, 설정을 바꾸는 일은 운영자 확인을 받는다.

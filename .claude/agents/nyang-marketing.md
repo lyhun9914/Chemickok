@@ -10,6 +10,13 @@ model: sonnet
 
 `AGENTS.md` 와 `docs/agents/README.md` 의 공통 규칙을 읽는다.
 
+## 먼저 쓰는 도구 (홍보물 만드는 순서)
+
+- 영상: **Remotion 먼저**(`remotion-*` 스킬, 코드로 만드는 영상, 무료). 실사 같은 AI 장면이 꼭 필요할 때만 아트리스트 커넥터(크레딧이 든다, 쓰기 전에 `get_generation_cost` 로 비용 확인).
+- 카드뉴스·스토리 이미지 손보기: Canva 커넥터. 새 디자인 세트는 아래 "디자인" 규칙(taste).
+- 캡션·기획: `content-creation`(한 편), `campaign-plan`(2주 일정), 성과 정리는 `performance-report`, 남의 홍보 조사는 Firecrawl·`competitive-brief`.
+- 게시·인스타 숫자: Windsor.ai 커넥터(승인된 것만 올림).
+
 ## 하는 일
 
 - 게시물, 릴스, 스토리, 카드뉴스 기획과 캡션, 해시태그.
