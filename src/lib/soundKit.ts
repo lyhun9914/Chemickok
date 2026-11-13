@@ -130,7 +130,12 @@ export function makeReverb(ctx: Ctx, seconds: number, bright: number, later?: ((
     for (let k = 0; k < 6; k++) d[pre + Math.floor(sr * rr(0.004, 0.045))] += rr(-0.5, 0.5);
   };
   // A convolver copies its buffer when given it: hand it over once both channels are filled.
-  const done = () => void (c.buffer = ir);
+  // iOS can switch the context rate while the jobs run (48k → 44.1k); then skip the reverb and play dry.
+  const done = () => {
+    try {
+      c.buffer = ir;
+    } catch {}
+  };
   if (later) later.push(() => fill(0), () => fill(1), done);
   else {
     fill(0);
