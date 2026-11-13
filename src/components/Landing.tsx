@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { streakNow } from "@/lib/daily";
 import { PRODUCTS, WELCOME_COINS, isFortune, nyang } from "@/lib/config";
+import { heroMode, openTarget } from "@/lib/home";
 import { liveProduct, sellPacks, useLive } from "@/lib/liveSettings";
 import { NoticeBanner } from "./NoticeBanner";
 import type { Mode } from "@/models/types";
@@ -24,10 +25,11 @@ import { InstallHelp } from "./InstallPrompt";
 import { AlbumQuest } from "./AlbumQuest";
 import { SuggestCard } from "./Feedback";
 
-const MENU: { title: string; sub: string; modes: Mode[] }[] = [
-  { title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
-  { title: "📜 사주 · 운세 감정", sub: "만세력으로 원국을 세워 십성 · 용신 · 신살 · 대운까지 짚는 정통 감정서", modes: ["newyear", "saju", "daeun"] },
+const MENU: { id: Tab; tab: string; title: string; sub: string; modes: Mode[] }[] = [
+  { id: "love", tab: "💞 연애", title: "💞 연애 점괘", sub: "그 사람, 그 인연, 다시 올 사람까지", modes: ["solo", "couple", "reunion", "spouse"] },
+  { id: "fortune", tab: "📜 사주·운세", title: "📜 사주 · 운세 감정", sub: "만세력으로 원국을 세워 십성 · 용신 · 신살 · 대운까지 짚는 정통 감정서", modes: ["newyear", "saju", "daeun"] },
 ];
+type Tab = "love" | "fortune" | "free";
 
 
 /** 가볍게 한 점: one card per row, in this order (고양이 도감 모으기 lives in the top bar as a daily quest) */
@@ -60,8 +62,10 @@ export function Landing() {
   const [linkId, setLinkId] = useState<string | null>(null);
   // Opened from a link: the 맞궁합 신청서 or a mini game (the gift sheet reads its own).
   const deepLink = useAppStore((s) => s.deepLink);
+  const meLoaded = useAppStore((s) => s.meLoaded);
   useEffect(() => {
-    if (!deepLink) return;
+    // ?open= starts the interview: wait for the saved 기본 정보 or it asks name/birth again
+    if (!deepLink || (deepLink.open && !meLoaded)) return;
     if (deepLink.pair) setPairId(deepLink.pair);
     if (deepLink.game && LINKABLE.includes(deepLink.game as MiniGame)) setGame(deepLink.game as MiniGame);
     // 단톡방 케미표 · 퀴즈 links open their game on that room / quiz
@@ -69,10 +73,13 @@ export function Landing() {
       setLinkId(deepLink.room ?? deepLink.quiz ?? null);
       setGame(deepLink.room ? "room" : "quiz");
     }
-    if (deepLink.pair || deepLink.game || deepLink.room || deepLink.quiz) useAppStore.setState({ deepLink: deepLink.gift ? { gift: deepLink.gift } : null });
-  }, [deepLink]);
-  const k = new Date(Date.now() + 9 * 3600 * 1000);
-  const todayLabel = `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일`;
+    if (deepLink.open) {
+      const t = openTarget(deepLink.open);
+      if ("mode" in t) start(t.mode);
+      else if (LINKABLE.includes(t.game as MiniGame)) setGame(t.game as MiniGame);
+    }
+    if (deepLink.pair || deepLink.game || deepLink.room || deepLink.quiz || deepLink.open) useAppStore.setState({ deepLink: deepLink.gift ? { gift: deepLink.gift } : null });
+  }, [deepLink, meLoaded]);
   // 출석 streak lives in this browser only; read after mount and whenever a mini game closes.
   const [{ streak, checkedToday }, setStreak] = useState({ streak: 0, checkedToday: false });
   useEffect(() => setStreak(streakNow()), [game]);
@@ -92,8 +99,25 @@ export function Landing() {
   };
 
   const live = useLive();
-  const others = (Object.keys(live.pricing.costs) as Mode[]).filter((m) => m !== "couple").map((m) => live.pricing.costs[m]);
-  const oneCost = Math.min(...others);
+  const hero = heroMode(live.home);
+  const heroPr = hero ? liveProduct(live, hero) : null;
+  const [tab, setTab] = useState<Tab>("love");
+  const tabs: [Tab, string, number][] = [...MENU.map((g): [Tab, string, number] => [g.id, g.tab, g.modes.length]), ["free", "🎴 무료", MINI.length]];
+  const goMenu = (t: Tab) => {
+    setTab(t);
+    document.getElementById("menu")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  // Old links point at #menu-love / #menu-fortune: open that tab on the new #menu.
+  useEffect(() => {
+    const onHash = () => {
+      const t = location.hash.match(/^#menu-(love|fortune)$/)?.[1] as Tab | undefined;
+      if (t) goMenu(t);
+    };
+    onHash();
+    addEventListener("hashchange", onHash);
+    return () => removeEventListener("hashchange", onHash);
+  }, []);
+  const minCost = Math.min(...Object.values(live.pricing.costs));
   const unit = live.pricing.packs[0].price / live.pricing.packs[0].coins;
   const maxSave = Math.max(0, ...sellPacks({ ...live, sale: null }).map((p) => Math.round((1 - p.price / p.coins / unit) * 100)));
 
@@ -147,11 +171,14 @@ export function Landing() {
           <br />
           <span className="text-gradient">냥신은 이미 보고 있다냥</span>
         </h1>
-        <p className="mt-3 text-[15.5px] leading-relaxed text-muted">
-          연애 · 궁합 · 재회 · 배우자 · 사주 · 대운
-          <br />
-          생년월일로 원국을 세우고, 면담으로 맞춰 본다냥
-        </p>
+        {/* with a 시즌 주인공 the card below takes this line's place on the first screen */}
+        {!heroPr && (
+          <p className="mt-3 text-[15.5px] leading-relaxed text-muted">
+            연애 · 궁합 · 재회 · 배우자 · 사주 · 대운
+            <br />
+            생년월일로 원국을 세우고, 면담으로 맞춰 본다냥
+          </p>
+        )}
       </div>
 
       {lastReading && (
@@ -169,14 +196,40 @@ export function Landing() {
           </span>
         </button>
       )}
-      <button onClick={() => start()} className="btn-primary glow shine mt-8 w-full py-4 text-[17px]">
+      {hero && heroPr && (
+        // 시즌 주인공 (관리자 → 공지·쿠폰 → 홈 첫 화면 주인공): the one big door on the first screen
+        <button
+          onClick={() => start(hero)}
+          className="fade-up relative mt-5 w-full overflow-hidden rounded-2xl border-2 border-peach/60 bg-gradient-to-br from-[#3a1a12] via-[#22120c] to-surface p-4 text-left shadow-[0_0_28px_-8px_rgba(212,80,63,0.6)] active:scale-[0.98]"
+        >
+          <span className="flex items-center gap-3">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-peach/30 bg-black/30 text-[32px]">{heroPr.emoji}</span>
+            <span className="min-w-0 flex-1">
+              <span className="inline-block rounded-sm bg-pink px-1.5 py-0.5 text-[10.5px] font-bold text-white">{hero === "newyear" ? "NEW · 시즌" : "냥신 추천"}</span>
+              <span className="mt-1 block text-[19px] font-extrabold leading-tight text-peach">{heroPr.name}</span>
+            </span>
+          </span>
+          <span className="mt-2 block text-[13px] leading-relaxed text-muted">{heroPr.pitch}</span>
+          <span className="btn-primary glow shine mt-3 block w-full py-3.5 text-center text-[16px]">
+            {heroPr.emoji} 바로 보기 · 맛보기는 무료
+          </span>
+        </button>
+      )}
+      <button
+        onClick={() => start()}
+        className={
+          hero
+            ? "mt-3 w-full rounded-2xl border border-peach/50 bg-surface/80 py-3.5 text-[15.5px] font-bold text-ink active:scale-[0.98]"
+            : "btn-primary glow shine mt-8 w-full py-4 text-[17px]"
+        }
+      >
         🕯️ 연애 점괘 바로 보기 (무료)
       </button>
       <button
-        onClick={() => document.getElementById("menu-fortune")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onClick={() => goMenu(hero === "newyear" ? "love" : "fortune")}
         className="mt-3 w-full rounded-2xl border border-violet/40 bg-surface/70 py-3.5 text-[15px] font-semibold text-peach active:scale-[0.98]"
       >
-        📜 사주 · 대운 감정 보러 가기 ↓
+        {hero === "newyear" ? "🔮 다른 점괘 · 무료 한 점 보기 ↓" : "📜 사주 · 대운 감정 보러 가기 ↓"}
       </button>
       <p className="mt-3 text-center text-[13px] text-muted">⏱ 약 3~4분 · 회원가입 없이 · 기본 점괘는 무료</p>
       {!me && WELCOME_COINS > 0 && providers.some((p) => p !== "email") && (
@@ -195,108 +248,99 @@ export function Landing() {
         </button>
       )}
 
-      <button
-        onClick={() => setGame("today")}
-        className="fade-up mt-6 flex w-full items-center gap-3 rounded-2xl border border-peach/40 bg-peach/5 px-4 py-3.5 text-left active:scale-[0.98]"
-      >
-        <span className="text-2xl">🗓️</span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-bold text-peach">오늘의 운세 · {todayLabel}</span>
-          <span className="block text-[13px] text-muted">
-            {checkedToday ? `오늘 도장 완료 · 연속 ${streak}일째 🐾` : streak ? `연속 ${streak}일째 출석 중 · 오늘 도장 받아 가라냥` : "하루 한 번, 오늘의 일진을 짚어 준다냥"}
-          </span>
-        </span>
-        <span className="text-muted" aria-hidden>
-          →
-        </span>
-      </button>
-
-      <p className="fade-up mt-8 rounded-xl border border-violet/25 bg-white/[0.03] px-3.5 py-2.5 text-center text-[12.5px] leading-relaxed text-muted">
-        <Coin /> 복채는 <b className="text-peach">냥</b>(엽전)으로 낸다냥 · 점괘 하나 {nyang(oneCost)}, 궁합은 {nyang(live.pricing.costs.couple)}
+      <p className="fade-up mt-6 rounded-xl border border-violet/25 bg-white/[0.03] px-3.5 py-2.5 text-center text-[12.5px] leading-relaxed text-muted">
+        <Coin /> 복채는 <b className="text-peach">냥</b>(엽전)으로 낸다냥
+        {/* the code defaults are not the live prices: name a price only once /api/settings has answered */}
+        {live.loaded && <> · 점괘 하나 {nyang(minCost)}부터</>}
         {live.sale ? <> · 🎉 지금 충전 세일 중이다냥</> : maxSave > 0 && <> · 묶음으로 채우면 최대 {maxSave}% 싸다냥</>}
       </p>
 
-      {MENU.map((group, gi) => (
-        <section
-          key={group.title}
-          id={gi ? "menu-fortune" : "menu-love"}
-          className={`fade-up scroll-mt-4 ${gi ? "mt-9" : "mt-6"}`}
-          style={{ animationDelay: `${0.1 + gi * 0.05}s` }}
-        >
-          <h2 className="text-[17px]">{group.title}</h2>
-          <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{group.sub}</p>
-          <p className="mb-3 mt-1.5 text-[12.5px] font-semibold text-peach">👆 누르면 바로 냥신 면담이 시작된다냥</p>
-          <div className="space-y-3">
-            {(Object.keys(PRODUCTS) as Mode[])
-              .filter((m) => group.modes.includes(m))
-              .map((m) => {
-                const pr = liveProduct(live, m);
-                return (
-                  // A door, not a panel: lit edge, gradient, and a real "보기" button on the right.
-                  <button
-                    key={m}
-                    onClick={() => start(m)}
-                    className="group relative flex w-full items-center gap-3.5 overflow-hidden rounded-2xl border border-peach/30 bg-gradient-to-r from-[#2a1510] via-surface to-surface py-4 pl-5 pr-3.5 text-left shadow-[0_10px_28px_-16px_rgba(0,0,0,0.95)] transition hover:border-peach/60 active:scale-[0.98]"
-                  >
-                    <span className="absolute inset-y-3 left-0 w-1 rounded-r bg-gradient-to-b from-peach to-pink" aria-hidden />
-                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-peach/20 bg-black/25 text-[30px]">{pr.emoji}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[17px] font-bold">
-                        {pr.name}
-                        {m === "newyear" && <span className="ml-1.5 inline-block whitespace-nowrap rounded-sm bg-pink px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-white">NEW · 시즌</span>}
-                      </span>
-                      <span className="mt-1 block text-[13px] leading-relaxed text-muted">{pr.pitch}</span>
-                      {/* the price stays on one line (on a 360px phone "1냥" used to drop below on its own) */}
-                      <span className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
-                        <span className="whitespace-nowrap rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
-                        <span className="whitespace-nowrap font-semibold text-peach">
-                          {isFortune(m) ? "전체 감정서" : "전체 풀이"} <Coin /> {nyang(pr.coins)}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 flex-col items-center gap-1">
-                      <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-pink to-[#8c1c13] text-[20px] font-bold leading-none text-white shadow-[0_0_14px_rgba(212,80,63,0.5)] transition group-hover:translate-x-0.5">
-                        ›
-                      </span>
-                      <span className="text-[11px] font-bold text-peach">보기</span>
-                    </span>
-                  </button>
-                );
-              })}
-          </div>
-        </section>
-      ))}
-
-      <section className="fade-up mt-8" style={{ animationDelay: "0.15s" }}>
-        <h2 className="text-[17px]">🎴 가볍게 한 점 · 매일 무료</h2>
-        <p className="mb-3 mt-1 text-[13.5px] text-muted">하루 한 번 들르면 출석 도장을 찍어 준다냥</p>
-        <div className="grid gap-2.5">
-          {MINI.map((g) => (
+      {/* 유료 7 · 무료 10: one tab at a time instead of one long list */}
+      <section id="menu" className="fade-up mt-8 scroll-mt-4" style={{ animationDelay: "0.1s" }}>
+        <div role="tablist" aria-label="점괘 고르기" className="grid grid-cols-3 gap-1 rounded-2xl border border-line bg-surface/80 p-1">
+          {tabs.map(([id, label, n]) => (
             <button
-              key={g.id}
-              onClick={() => openGame(g.id)}
-              className="flex items-center gap-4 rounded-2xl border border-violet/40 bg-surface px-4 py-3.5 text-left transition hover:border-peach/50 active:scale-[0.98]"
+              key={id}
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => (sound().play("slide"), setTab(id))}
+              className={`rounded-xl border py-2.5 text-[13px] font-bold min-[380px]:text-[14px] ${tab === id ? "border-peach/50 bg-peach/15 text-peach" : "border-transparent text-muted"}`}
             >
-              <span className="w-9 shrink-0 text-center text-3xl" aria-hidden>
-                {g.emoji}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[16px] font-bold">
-                  {g.name}
-                  {g.id === "exam" && dday !== null && (
-                    <span className="ml-1.5 rounded-sm bg-pink px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-white">수능 D-{dday}</span>
-                  )}
-                </span>
-                <span className="mt-0.5 block text-[13px] text-muted">
-                  {g.id === "today" && streak ? `🐾 출석 ${streak}일째 · ${checkedToday ? "오늘 도장 완료" : "오늘 도장 받으러 가기"}` : g.sub}
-                </span>
-              </span>
-              <span className="shrink-0 text-lg text-peach" aria-hidden>
-                ›
-              </span>
+              {label} <span className="text-[11px] font-semibold opacity-70">{n}</span>
             </button>
           ))}
         </div>
+        {MENU.filter((g) => g.id === tab).map((group) => (
+          <div key={group.id} role="tabpanel" className="mt-4">
+            <h2 className="text-[17px]">{group.title}</h2>
+            <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{group.sub}</p>
+            <p className="mb-3 mt-1.5 text-[12.5px] font-semibold text-peach">👆 누르면 바로 냥신 면담이 시작된다냥</p>
+            <div className="space-y-3">
+              {(Object.keys(PRODUCTS) as Mode[])
+                .filter((m) => group.modes.includes(m))
+                .map((m) => {
+                  const pr = liveProduct(live, m);
+                  return (
+                    // A door, not a panel: lit edge, gradient, and a real "보기" button on the right.
+                    <button
+                      key={m}
+                      onClick={() => start(m)}
+                      className="group relative flex w-full items-center gap-3.5 overflow-hidden rounded-2xl border border-peach/30 bg-gradient-to-r from-[#2a1510] via-surface to-surface py-4 pl-5 pr-3.5 text-left shadow-[0_10px_28px_-16px_rgba(0,0,0,0.95)] transition hover:border-peach/60 active:scale-[0.98]"
+                    >
+                      <span className="absolute inset-y-3 left-0 w-1 rounded-r bg-gradient-to-b from-peach to-pink" aria-hidden />
+                      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-peach/20 bg-black/25 text-[30px]">{pr.emoji}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[17px] font-bold">
+                          {pr.name}
+                          {m === "newyear" && <span className="ml-1.5 inline-block whitespace-nowrap rounded-sm bg-pink px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-white">NEW · 시즌</span>}
+                        </span>
+                        <span className="mt-1 block text-[13px] leading-relaxed text-muted">{pr.pitch}</span>
+                        {/* the price stays on one line (on a 360px phone "1냥" used to drop below on its own) */}
+                        <span className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
+                          <span className="whitespace-nowrap rounded-sm border border-violet/40 px-2 py-0.5 font-semibold text-violet">기본 무료</span>
+                          <span className="whitespace-nowrap font-semibold text-peach">
+                            {isFortune(m) ? "전체 감정서" : "전체 풀이"} <Coin /> {nyang(pr.coins)}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 flex-col items-center gap-1">
+                        <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-pink to-[#8c1c13] text-[20px] font-bold leading-none text-white shadow-[0_0_14px_rgba(212,80,63,0.5)] transition group-hover:translate-x-0.5">
+                          ›
+                        </span>
+                        <span className="text-[11px] font-bold text-peach">보기</span>
+                      </span>
+                    </button>
+                  );
+              })}
+            </div>
+          </div>
+        ))}
+        {tab === "free" && (
+          <div role="tabpanel" className="mt-4">
+            <h2 className="text-[17px]">🎴 가볍게 한 점 · 매일 무료</h2>
+            <p className="mb-3 mt-1 text-[13.5px] text-muted">하루 한 번 들르면 출석 도장을 찍어 준다냥</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {MINI.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => openGame(g.id)}
+                  className="flex flex-col items-start rounded-2xl border border-violet/40 bg-surface p-3 text-left transition hover:border-peach/50 active:scale-[0.98]"
+                >
+                  <span className="flex w-full items-center justify-between">
+                    <span className="text-[26px]" aria-hidden>
+                      {g.emoji}
+                    </span>
+                    {g.id === "exam" && dday !== null && <span className="rounded-sm bg-pink px-1.5 py-0.5 text-[10.5px] font-bold text-white">수능 D-{dday}</span>}
+                  </span>
+                  <span className="mt-1 block text-[14.5px] font-bold leading-snug">{g.name}</span>
+                  <span className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-muted">
+                    {g.id === "today" && streak ? `🐾 출석 ${streak}일째 · ${checkedToday ? "오늘 도장 완료" : "오늘 도장 받으러 가기"}` : g.sub}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="fade-up mt-10" style={{ animationDelay: "0.25s" }}>
@@ -316,9 +360,15 @@ export function Landing() {
         </button>
       </section>
 
-      <section className="fade-up mt-10" style={{ animationDelay: "0.3s" }}>
-        <h2 className="text-[17px]">📜 감정서에 담기는 것</h2>
-        <ul className="mt-3 divide-y divide-line border-y border-line">
+      {/* 감정서 · 감정법: still on the page, folded until asked for */}
+      <details className="fade-up group mt-10 rounded-2xl border border-line bg-surface/60 px-4" style={{ animationDelay: "0.3s" }}>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-3.5 text-[15px] font-bold [&::-webkit-details-marker]:hidden">
+          📜 감정서에 담기는 것 · 냥신이 보는 법
+          <span className="text-muted transition group-open:rotate-180" aria-hidden>
+            ⌄
+          </span>
+        </summary>
+        <ul className="mt-1 divide-y divide-line border-y border-line">
           {[
             ["🕯️", "촛불 앞 면담", "이상해 보이는 질문마다 이유가 있다냥. 답이 해석의 근거가 된다냥"],
             ["🀄", "원국과 감정 근거", "원국 · 십성 · 용신 · 신살 · 대운을 표로 적어 준다냥"],
@@ -337,9 +387,8 @@ export function Landing() {
             </li>
           ))}
         </ul>
-      </section>
-
-      <MethodSection />
+        <MethodSection />
+      </details>
 
       <SuggestCard />
 

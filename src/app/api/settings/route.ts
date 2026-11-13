@@ -8,7 +8,7 @@ export async function GET() {
   await connection();
   const s = await getSettings();
   return NextResponse.json(
-    { pricing: s.pricing, sale: saleLive(s.sale) ? s.sale : null, banner: s.banner.on ? s.banner : null, feedback: s.feedback },
+    { pricing: s.pricing, sale: saleLive(s.sale) ? s.sale : null, banner: s.banner.on ? s.banner : null, feedback: s.feedback, home: s.home },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

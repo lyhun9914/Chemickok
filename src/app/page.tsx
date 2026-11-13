@@ -59,6 +59,8 @@ export default function Home() {
     // 단톡방 케미표 · "나를 얼마나 아냥?" 퀴즈 links
     const room = q.get("room") ?? undefined;
     const quiz = q.get("quiz") ?? undefined;
+    // 인스타 바로가기: ?open=tarot|bujeok|ilju|newyear|couple … (see openTarget)
+    const open = q.get("open")?.slice(0, 20) || undefined;
     let giftId = q.get("present") ?? undefined;
     try {
       // A gift waits here through a login round-trip until it's claimed.
@@ -67,9 +69,11 @@ export default function Home() {
     } catch {
       /* storage unavailable */
     }
-    if (pair || giftId || game || room || quiz)
-      useAppStore.setState({ deepLink: { pair, gift: giftId, game, room, quiz }, ...(pair || q.get("present") || game || room || quiz ? { screen: "landing" } : {}) });
-    if (login || ref || reset || pair || game || room || quiz || q.get("present")) window.history.replaceState(null, "", "/");
+    if (pair || giftId || game || room || quiz || open)
+      useAppStore.setState({ deepLink: { pair, gift: giftId, game, room, quiz, open }, ...(pair || q.get("present") || game || room || quiz || open ? { screen: "landing" } : {}) });
+    // the utm_* marks stay in the address (the visit is already counted; analytics may read them again)
+    const utm = new URLSearchParams([...q].filter(([k]) => k.startsWith("utm_"))).toString();
+    if (login || ref || reset || pair || game || room || quiz || open || q.get("present")) window.history.replaceState(null, "", utm ? `/?${utm}` : "/");
     const reason = q.get("reason");
     if (login && LOGIN_NOTICE[login]) setNotice(LOGIN_NOTICE[login] + (reason ? ` (원인: ${reason.slice(0, 40)})` : ""));
     const gift = Number(q.get("gift"));

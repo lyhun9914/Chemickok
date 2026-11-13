@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PRODUCTS } from "@/lib/config";
+import { heroMode, type HomeSettings } from "@/lib/home";
 import type { Banner } from "@/lib/pricing";
+import type { Mode } from "@/models/types";
 import { Note, Section, call, ghost, small, useConfirm, when } from "./ui";
 
 type Coupon = { code: string; coins: number; max_uses: number | null; used: number; expires_at: string | null; social_only: boolean; active: boolean; note: string | null; created_at: string };
@@ -14,10 +17,15 @@ const TONES: { id: Banner["tone"]; label: string; icon: string }[] = [
 const state = (c: Coupon) =>
   !c.active ? ["꺼짐", "text-muted"] : c.expires_at && Date.parse(c.expires_at) < Date.now() ? ["기간 끝", "text-muted"] : c.max_uses !== null && c.used >= c.max_uses ? ["소진", "text-muted"] : ["사용 중", "text-peach"];
 
+const HEROES: HomeSettings["hero"][] = ["auto", "off", ...(Object.keys(PRODUCTS) as Mode[])];
+const heroLabel = (h: HomeSettings["hero"]) => (h === "auto" ? "자동 (12~1월엔 신년운세)" : h === "off" ? "없음" : `${PRODUCTS[h].emoji} ${PRODUCTS[h].name}`);
+
 /** 공지 · 쿠폰 탭. */
 export function PromoTab() {
   const [banner, setBanner] = useState<Banner | null>(null);
   const [saved, setSaved] = useState<Banner | null>(null);
+  const [home, setHome] = useState<HomeSettings | null>(null);
+  const [homeSaved, setHomeSaved] = useState<HomeSettings | null>(null);
   const [coupons, setCoupons] = useState<Coupon[] | null>(null);
   const [c, setC] = useState({ code: "", coins: "1", maxUses: "", expires: "", socialOnly: true, note: "" });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -27,8 +35,8 @@ export function PromoTab() {
 
   const loadCoupons = () => call<{ coupons: Coupon[] }>("/api/admin/coupons").then((r) => setCoupons(r.coupons));
   useEffect(() => {
-    call<{ banner: Banner }>("/api/admin/settings")
-      .then((r) => (setBanner(r.banner), setSaved(r.banner)))
+    call<{ banner: Banner; home: HomeSettings }>("/api/admin/settings")
+      .then((r) => (setBanner(r.banner), setSaved(r.banner), setHome(r.home), setHomeSaved(r.home)))
       .catch((e: Error) => setMsg({ ok: false, text: e.message }));
     loadCoupons().catch((e: Error) => setMsg({ ok: false, text: e.message }));
   }, []);
@@ -50,6 +58,32 @@ export function PromoTab() {
       setBanner(r.banner);
       setSaved(r.banner);
       setMsg({ ok: true, text: on ? "공지를 홈에 띄웠어요." : "공지를 내렸어요." });
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    }
+    setBusy(false);
+  };
+
+  const saveHome = async () => {
+    if (!home) return;
+    const now = heroMode(home);
+    const ok = await ask({
+      title: "홈 첫 화면 주인공을 바꿀까요?",
+      rows: [
+        ["고른 것", heroLabel(home.hero)],
+        ["지금 홈에 보일 것", now ? PRODUCTS[now].name : "주인공 없음 (연애 점괘 버튼이 맨 위)"],
+      ],
+      message: "손님 화면에는 15초 안에 바뀌어요.",
+      confirm: "바꾸기",
+    });
+    if (!ok) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await call<{ home: HomeSettings }>("/api/admin/settings", { method: "POST", body: JSON.stringify({ key: "home", value: home }) });
+      setHome(r.home);
+      setHomeSaved(r.home);
+      setMsg({ ok: true, text: "홈 첫 화면 주인공을 바꿨어요." });
     } catch (e) {
       setMsg({ ok: false, text: (e as Error).message });
     }
@@ -162,6 +196,29 @@ export function PromoTab() {
                 </button>
               )}
             </div>
+          </div>
+        )}
+      </Section>
+
+      <Section
+        title="🌟 홈 첫 화면 주인공"
+        sub="홈 맨 위에 크게 띄울 점괘예요. 자동이면 12월~1월엔 신년운세, 그 밖엔 주인공 없이 연애 점괘 버튼이 맨 위예요."
+        right={<span className="shrink-0 rounded-full bg-white/5 px-2.5 py-1 text-[12px] font-bold text-peach">{homeSaved ? heroLabel(homeSaved.hero).replace(/ \(.*\)$/, "") : "…"}</span>}
+      >
+        {!home ? (
+          <p className="text-[13px] text-muted">불러오는 중…</p>
+        ) : (
+          <div className="flex gap-2">
+            <select value={home.hero} onChange={(e) => setHome({ hero: e.target.value as HomeSettings["hero"] })} className={small} aria-label="홈 첫 화면 주인공">
+              {HEROES.map((h) => (
+                <option key={h} value={h}>
+                  {heroLabel(h)}
+                </option>
+              ))}
+            </select>
+            <button onClick={saveHome} disabled={busy || home.hero === homeSaved?.hero} className="btn-primary shrink-0 px-4 py-2">
+              저장
+            </button>
           </div>
         )}
       </Section>

@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import type { Mode } from "@/models/types";
 import { DEFAULT_FEEDBACK, type FeedbackSettings } from "./feedback";
+import { DEFAULT_HOME, type HomeSettings } from "./home";
 import { DEFAULT_PRICING, packForIn, productIn, sellPack, type Banner, type Pricing, type Sale, type SellPack } from "./pricing";
 
 /**
@@ -14,10 +15,11 @@ export interface Live {
   sale: Sale | null;
   banner: Banner | null;
   feedback: FeedbackSettings;
+  home: HomeSettings;
   loaded: boolean;
 }
 
-let state: Live = { pricing: DEFAULT_PRICING, sale: null, banner: null, feedback: DEFAULT_FEEDBACK, loaded: false };
+let state: Live = { pricing: DEFAULT_PRICING, sale: null, banner: null, feedback: DEFAULT_FEEDBACK, home: DEFAULT_HOME, loaded: false };
 const subs = new Set<() => void>();
 let inflight: Promise<void> | null = null;
 
@@ -26,7 +28,7 @@ export function loadLive(force = false): Promise<void> {
   inflight = fetch("/api/settings", { cache: "no-store" })
     .then((r) => (r.ok ? r.json() : null))
     .then((b: Omit<Live, "loaded"> | null) => {
-      if (b?.pricing?.packs?.length) state = { pricing: b.pricing, sale: b.sale ?? null, banner: b.banner ?? null, feedback: b.feedback ?? DEFAULT_FEEDBACK, loaded: true };
+      if (b?.pricing?.packs?.length) state = { pricing: b.pricing, sale: b.sale ?? null, banner: b.banner ?? null, feedback: b.feedback ?? DEFAULT_FEEDBACK, home: b.home ?? DEFAULT_HOME, loaded: true };
       else state = { ...state, loaded: true };
       subs.forEach((f) => f());
     })
