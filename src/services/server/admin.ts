@@ -37,7 +37,7 @@ export function clearAdmin(res: NextResponse) {
 export const isAdmin = (req: NextRequest) => adminConfigured() && Boolean(unseal<{ admin: boolean }>(req.cookies.get(ADMIN_COOKIE)?.value)?.admin);
 
 /** `Authorization: Bearer <ADMIN_KEY>` on a GET: the read-only MCP server (mcp/nyangsin-admin). Changes stay cookie-only. */
-const bearerKey = (req: NextRequest) => (req.method === "GET" ? req.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1] : undefined);
+const bearerKey = (req: NextRequest) => (req.method === "GET" ? req.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1]?.trim() : undefined);
 
 /**
  * 401 unless the request carries the admin cookie, or (GET only) the admin key as a Bearer header. A wrong key header
