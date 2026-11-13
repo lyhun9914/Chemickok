@@ -27,6 +27,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 -c 'import headroom' >/dev/null 2>&1 || pip install -q \"headroom-ai==0.44.0\" >/dev/null 2>&1; exit 0",
+            "timeout": 150
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "command -v graphify >/dev/null 2>&1 || pip install -q \"graphifyy[sql]\" >/dev/null 2>&1 || python3 -m pip install -q \"graphifyy[sql]\" >/dev/null 2>&1; command -v typescript-language-server >/dev/null 2>&1 || npm install -g --silent typescript-language-server typescript >/dev/null 2>&1; command -v agent-browser >/dev/null 2>&1 || npm install -g --silent agent-browser@0.43.0 >/dev/null 2>&1; command -v gsd-sdk >/dev/null 2>&1 || npm install -g --silent get-shit-done-cc@1.42.3 >/dev/null 2>&1; cd \"$CLAUDE_PROJECT_DIR\" && [ ! -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1 && graphify update . >/dev/null 2>&1; exit 0",
             "timeout": 180
           }
@@ -39,6 +48,18 @@
             "type": "command",
             "command": "graphify hook-guard compact",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/headroom-hook.py\"",
+            "timeout": 30
           }
         ]
       }
