@@ -86,12 +86,12 @@
 
 | 담당 | 도구 |
 | --- | --- |
-| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max(화면·디자인 업그레이드), agent-skills, ponytail |
-| 점검 | Playwright MCP, agent-browser, web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
+| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max(화면·디자인 업그레이드), ponytail |
+| 점검 | Playwright(설치된 라이브러리로 스크립트, MCP 는 0.0.83 고정), agent-browser, web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
 | 배포·운영 | Vercel·Supabase 커넥터, session-report(사용량 보고) |
 | 고객 | Gmail 커넥터, Supabase 커넥터(읽기), customer-support(문의 분류·답장 초안) |
-| 글 | graphify(글이 나오는 조건 찾기), brand-voice(냥신 말투 지키기) |
-| 홍보 | Canva·아트리스트 커넥터, taste-skill, Firecrawl(조사), Windsor.ai 커넥터(인스타 숫자·게시), marketing(캠페인·콘텐츠·성과), design(디자인 검토), remotion-*(코드로 영상 만들기, 회사 3명 이하 무료) |
+| 글 | graphify(글이 나오는 조건 찾기), `docs/` 의 냥신 말투 예시 |
+| 홍보 | Canva·아트리스트 커넥터, taste-skill, Firecrawl(조사), Windsor.ai 커넥터(인스타 숫자·게시), marketing(캠페인·콘텐츠·성과), remotion-*(코드로 영상 만들기, 회사 3명 이하 무료) |
 | 모두 | task-observer(반복 작업·지적 기록), claude-md-management(규칙 문서 정리), find-skills(새 스킬 찾기, 설치 전 운영자 확인) |
 
 ## 7. 고치는 법
@@ -108,3 +108,11 @@
 2. 이미 있는 냥신의 분위기(색, 글꼴, 고양이 캐릭터, 말투)는 유지한다. 새 디자인 체계로 통째로 바꾸지 않고, 찾은 규칙은 고칠 화면에만 맞춰 쓴다.
 3. 다 고친 뒤 점검 담당이 `web-design-guidelines` 와 휴대폰 폭(360·390px)으로 확인한다.
 4. 작은 문구·버튼 수정에는 쓰지 않는다(토큰 아끼기).
+
+### 효율 설정 (2026-11-13)
+
+- **안 쓰는 플러그인은 켜 두지 않는다**: 켜진 플러그인마다 스킬 목록이 매 대화에 실려 토큰을 먹고, 딸린 원격 서버 연결이 실패하며 시작이 느려진다. 그래서 brand-voice, design, example-skills, claude-code-setup, agent-skills 를 뺐다(다른 도구와 겹침). 새 플러그인은 "자주 쓸 일이 있고, 지금 것과 안 겹칠 때"만 더한다.
+- **담당 모델**: 개발만 큰 모델, 나머지 담당(점검·배포·운영·고객·글·홍보)은 `sonnet`. 총책임자는 지시와 판단만 하고, 긴 작업은 담당에게 넘긴다(담당은 빈 상태로 시작해 필요한 것만 읽으므로 싸다).
+- **동시에**: 서로 관계없는 담당 일은 백그라운드로 함께 돌린다.
+- **도구 버전 고정**: `.mcp.json` 의 Playwright MCP 는 버전을 고정해 매번 새로 받지 않는다.
+- **새 대화는 이 저장소 하나만 골라 연다**: 다른 저장소를 같이 열면 그 저장소의 규칙 문서와 플러그인도 같이 실려 토큰이 는다.
