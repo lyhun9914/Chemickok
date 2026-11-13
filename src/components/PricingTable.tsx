@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { BUSINESS, COIN_VALID_TEXT, PRODUCTS, WELCOME_COINS, nyang, won } from "@/lib/config";
-import { sellPacks, useLive } from "@/lib/liveSettings";
+import { sellPacks, useLive, type Live } from "@/lib/liveSettings";
 import { MODES } from "@/lib/pricing";
 import { Nyang } from "./Nyang";
 
 /** 요금 안내: what each reading costs and what the 냥 packs cost, from the live prices (관리자 화면에서 바꾼 값). */
-export function PricingTable() {
-  const live = useLive();
+export function PricingTable({ initial }: { initial?: Pick<Live, "pricing" | "sale"> }) {
+  const l = useLive();
+  // until /api/settings answers, show the prices the server read (the code defaults are not the live prices)
+  const live = l.loaded || !initial ? l : { ...l, ...initial };
   const packs = sellPacks(live);
   const direct = (coins: number) => live.pricing.packs.find((p) => p.coins === coins)?.price ?? coins * Math.round(live.pricing.packs[0].price / live.pricing.packs[0].coins);
   const cell = "px-3 py-2.5";
