@@ -87,12 +87,12 @@
 
 | 담당 | 도구 |
 | --- | --- |
-| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max(화면·디자인 업그레이드), ponytail, GSD(큰 일 쪼개기·기억), mcp-builder(새 외부 서비스 연결) |
+| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max·taste(화면 디자인, 7번 "규모별로 고른다" 표대로), ponytail, GSD(큰 일 쪼개기·기억), mcp-builder(새 외부 서비스 연결) |
 | 점검 | agent-browser(먼저), Playwright(반복·결제창 흐름 스크립트, MCP 는 0.0.83 고정), web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
 | 배포·운영 | Vercel·Supabase 커넥터, session-report(사용량 보고) |
 | 고객 | Gmail 커넥터, Supabase 커넥터(읽기), customer-support(문의 분류·답장 초안) |
 | 글 | graphify(글이 나오는 조건 찾기), `docs/` 의 냥신 말투 예시 |
-| 홍보 | Canva·아트리스트 커넥터, taste-skill, Firecrawl(조사), Windsor.ai 커넥터(인스타 숫자·게시), marketing(캠페인·콘텐츠·성과), remotion-*(코드로 영상 만들기, 회사 3명 이하 무료) |
+| 홍보 | Canva·아트리스트 커넥터, taste·ui-ux-pro-max(7번 "규모별로 고른다" 표대로), Firecrawl(조사), Windsor.ai 커넥터(인스타 숫자·게시), marketing(캠페인·콘텐츠·성과), remotion-*(코드로 영상 만들기, 회사 3명 이하 무료) |
 | 모두 | task-observer(반복 작업·지적 기록), claude-md-management(규칙 문서 정리), find-skills(새 스킬 찾기, 설치 전 운영자 확인) |
 
 ## 7. 고치는 법
@@ -101,14 +101,21 @@
 - 새 담당을 만들려면 같은 폴더에 파일을 하나 더 만들고, 이 문서의 표와 `AGENTS.md` 의 표에 한 줄씩 더한다.
 - 고친 내용은 새로 여는 대화부터 적용된다. 새 대화는 보통 `main` 에서 시작하므로, 실제 사이트에 배포된 뒤에야 모든 곳에서 보인다.
 
-### 화면·디자인을 업그레이드할 때 (운영자 요청)
+### 화면·디자인을 바꿀 때: 규모별로 고른다 (운영자 요청, 11/13)
 
-냥신 점괘의 화면을 새로 만들거나 크게 고칠 때는 개발 담당이 `ui-ux-pro-max` 를 먼저 쓴다.
+`ui-ux-pro-max` 는 필요한 규칙만 검색해 몇 줄 꺼내 쓰므로 싸다. `taste` 는 설명서만 31KB 에 자료 40MB, 브라우저 검사 → 고치기를 통과할 때까지 되풀이하므로 비싸다. 그래서 바꾸는 규모로 고른다. 개발·홍보·점검 담당 모두 이 표를 따른다.
 
-1. 업종·분위기(고양이 점집, 밤, 신비, 귀여움)와 기술(`--stack nextjs`)로 디자인 규칙을 찾는다.
-2. 이미 있는 냥신의 분위기(색, 글꼴, 고양이 캐릭터, 말투)는 유지한다. 새 디자인 체계로 통째로 바꾸지 않고, 찾은 규칙은 고칠 화면에만 맞춰 쓴다.
-3. 다 고친 뒤 점검 담당이 `web-design-guidelines` 와 휴대폰 폭(360·390px)으로 확인한다.
-4. 작은 문구·버튼 수정에는 쓰지 않는다(토큰 아끼기).
+| 규모 | 예 | 쓸 것 |
+| --- | --- | --- |
+| 1. 아주 작음 | 문구, 색 하나, 간격, 버튼 글자, 아이콘 하나 | **안 씀.** 바로 옆 화면의 스타일을 그대로 따른다 |
+| 2. 부분 | 버튼·카드 하나, 휴대폰에서 깨진 칸, 접근성·사용성 문제 하나, 기존 카드뉴스 한 장 손보기 | **ui-ux-pro-max 검색만**: `search.py "<문제>" --domain <ux·color·typography 등>` 1~2번. 설명서 전체와 reference 는 읽지 않는다 |
+| 3. 화면 하나를 크게 | 결과 화면·충전 화면 배치 바꾸기, 탭 정리, 화면 하나의 색·글꼴 정리 | **ui-ux-pro-max `--design-system`**: "고양이 점집 밤 신비 귀여움" + `--stack nextjs` 로 규칙을 뽑아 그 화면에만 맞춘다 |
+| 4. 새로 만들기·통째로 | 새 시즌 특집 페이지, 홈 전면 개편, 새 랜딩, 새 카드뉴스·스토리·릴스 커버 세트 | **taste** (`taste-skill:design-taste-frontend`, 확인 단계까지) |
+
+- 한 일에 둘을 같이 쓰지 않는다. 가장 큰 부분의 규모로 하나만 고른다. 애매하면 한 단계 작은 쪽(싼 쪽)을 고른다.
+- "AI가 만든 티가 난다", "뻔하다"는 지적을 받으면 규모와 관계없이 taste 의 검사 단계만 돌려 고칠 곳을 찾는다.
+- 어느 쪽이든 냥신의 분위기(색, 글꼴, 고양이 캐릭터, 말투)는 유지한다. 새 디자인 체계로 통째로 바꾸는 것은 운영자가 시킬 때만 한다.
+- 3·4 는 다 고친 뒤 점검 담당이 `web-design-guidelines` 와 휴대폰 폭(360·390px)으로 확인한다.
 
 ### 영상 스킬 5개 쓰는 법 (2026-11-13 운영자 요청)
 
@@ -119,7 +126,7 @@
 | agent-browser | 화면을 진짜 브라우저로 눌러 보고 끝까지 시험할 때 | 점검 | `agent-browser open <주소>` → `snapshot -i` → `click @e2`. 실행 파일은 세션 시작 때 자동 설치 |
 | find-skills | 처음 하는 종류의 일을 시작하기 전 | 모두 | 공통 규칙 10번: `npx skills find <영어 낱말>` 로 찾아 보고, 설치는 운영자 확인 |
 | GSD | 여러 날 걸리는 큰 일을 잘게 쪼개고, 대화가 바뀌어도 잊지 않게 할 때 | 개발(총책임자가 맡김) | `/gsd:new-project` → `/gsd:discuss-phase` → `/gsd:plan-phase` → `/gsd:execute-phase`, 이어 할 땐 `/gsd:resume-work`. 기록은 `.planning/`(공개 저장소라 비밀 값 금지) |
-| taste | 뻔한 AI 디자인 말고 디자이너가 한 것 같은 홍보물 | 홍보 | 카드뉴스·스토리·커버를 새로 만들거나 크게 고칠 때 `taste-skill:design-taste-frontend` (사이트 화면은 위의 ui-ux-pro-max 먼저) |
+| taste | 뻔한 AI 디자인 말고 디자이너가 한 것 같은 결과물 | 홍보, 개발 | 위 "규모별로 고른다" 표의 4번(새로 만들기·통째로)일 때만 |
 | mcp-builder | 커넥터 없는 외부 서비스를 이어야 할 때 | 개발 | 서비스 이름·할 일·API 문서만 주면 MCP 서버를 만든다 |
 
 - GSD 는 `standard` 묶음(스킬 19개, 하위 에이전트 6개)만 넣고, 모든 도구 호출마다 도는 감시 장치(hook 9개)는 뺐다(다른 담당까지 느려짐). `/gsd:update` 를 하면 `.claude/settings.json` 에 hook 이 다시 붙으니 지운다. 파일 안 경로가 `/home/user/nyangsin` 으로 박혀 있어, 저장소를 다른 경로로 열면 `npx get-shit-done-cc@1.42.3 --claude --local --profile=standard` 를 다시 한다.
