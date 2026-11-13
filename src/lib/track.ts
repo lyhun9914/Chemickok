@@ -54,6 +54,7 @@ function sourceOf(search: string): string {
   if (q.get("present")) return "냥 선물 링크";
   if (q.get("ref")) return "친구 초대 링크";
   if (q.get("game")) return "게임 링크";
+  if (q.get("open")) return `바로가기 링크 (${q.get("open")!.slice(0, 20)})`;
   try {
     const ref = document.referrer ? new URL(document.referrer) : null;
     if (ref && ref.host === location.host) return /^\/(ilju|tti)/.test(ref.pathname) ? "일주·띠 페이지" : "사이트 안";

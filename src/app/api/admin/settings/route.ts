@@ -1,6 +1,7 @@
 import { NextResponse, after, type NextRequest } from "next/server";
-import { won } from "@/lib/config";
+import { PRODUCTS, won } from "@/lib/config";
 import { cleanFeedbackSettings } from "@/lib/feedback";
+import { cleanHome, type HomeSettings } from "@/lib/home";
 import { DEFAULT_PRICING, cleanBanner, cleanPricing, cleanSale, type Banner, type Pricing, type Sale } from "@/lib/pricing";
 import { followUpMail, priceFollowUps, type FollowUp } from "@/lib/priceFollowUps";
 import { adminOnly } from "@/services/server/admin";
@@ -20,9 +21,10 @@ const sumPricing = (p: Pricing) =>
   `묶음 ${p.packs.map((x) => `${x.coins}냥 ${won(x.price)}`).join(", ")} / 점괘 ${Object.entries(p.costs).map(([m, c]) => `${m} ${c}냥`).join(", ")}`;
 const sumSale = (s: Sale) =>
   s.on ? `켬 · ${s.label || "충전 세일"} · 할인 ${s.discountPct}% · 보너스 ${s.bonusPct}% · ${s.from || "지금"} ~ ${s.to || "끝 없음"}` : "끔";
+const sumHome = (h: HomeSettings) => (h.hero === "auto" ? "자동(12~1월 신년운세)" : h.hero === "off" ? "없음" : PRODUCTS[h.hero].name);
 const sumBanner = (b: Banner) => (b.on ? `켬 · ${b.tone} · ${b.text}${b.link ? ` (${b.link})` : ""}` : "끔");
 
-/** POST /api/admin/settings { key: "pricing" | "sale" | "banner" | "feedback", value } — saves after the same checks the app uses. */
+/** POST /api/admin/settings { key: "pricing" | "sale" | "banner" | "feedback" | "home", value } — saves after the same checks the app uses. */
 export async function POST(req: NextRequest) {
   const denied = adminOnly(req);
   if (denied) return denied;
@@ -63,12 +65,19 @@ export async function POST(req: NextRequest) {
       summary = [`채택 선물 ${before.feedback.adoptReward}냥`, `채택 선물 ${r.value.adoptReward}냥`];
       break;
     }
+    case "home": {
+      const r = cleanHome(body.value);
+      if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 });
+      value = r.value;
+      summary = [sumHome(before.home), sumHome(r.value)];
+      break;
+    }
     default:
       return NextResponse.json({ error: "바꿀 설정이 없어요." }, { status: 400 });
   }
   await db.setSetting(body.key, value);
   dropSettingsCache();
-  const name = { pricing: "가격 변경", sale: "세일 설정", banner: "공지 배너", feedback: "건의 채택 선물" }[body.key];
+  const name = { pricing: "가격 변경", sale: "세일 설정", banner: "공지 배너", feedback: "건의 채택 선물", home: "홈 시즌 주인공" }[body.key];
   after(() => audit(name, body.key ?? null, `전: ${summary[0]}\n후: ${summary[1]}`));
   // 사이트 밖에 적어 둔 가격(인스타 DM 답변, 릴스 캡션, 토스 결제경로): the 관리자 gets the list by mail as well
   const to = process.env.ADMIN_EMAIL;

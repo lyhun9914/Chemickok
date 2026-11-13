@@ -51,7 +51,7 @@ interface AppState {
   /** the 맞궁합 once both sides answered (shown on the result) */
   pairView: PairView | null;
   /** opened from a link (?pair= · ?present= · ?game=): the landing opens the matching sheet once */
-  deepLink: { pair?: string; gift?: string; game?: string; room?: string; quiz?: string } | null;
+  deepLink: { pair?: string; gift?: string; game?: string; room?: string; quiz?: string; open?: string } | null;
   /** 이용 흐름: this interview's random id (lib/track) */
   runId: string | null;
   /** the paid reading on screen, as saved in 내 점괘함 (its 점괘 평가 is kept per reading) */
@@ -106,7 +106,7 @@ const initial = {
   story: null as StoryShare | null,
   pair: null as { id: string; from: string } | null,
   pairView: null as PairView | null,
-  deepLink: null as { pair?: string; gift?: string; game?: string; room?: string; quiz?: string } | null,
+  deepLink: null as { pair?: string; gift?: string; game?: string; room?: string; quiz?: string; open?: string } | null,
   runId: null as string | null,
   readingId: null as string | null,
 };
