@@ -9,9 +9,13 @@
    - 그 대화의 "확인해 주세요" 항목이 `.planning/STATE.md` 에서 모두 `[x]` 이다.
    운영자가 아직 답하지 않은 항목이 있는 대화는 남긴다.
 2. **상태 읽기**: `.planning/STATE.md`(할 일)와 `docs/agents/autopilot.md` 1-1(토큰 아끼기)·2번(순서)·4번(확인받을 것)만 읽는다.
+   - **운영실 읽기**: `ArtifactData` `list` 로 운영실(https://claude.ai/artifact/XQSPRjokfAn1eqFuJw6kqM)의 `inbox`·`promo` 를 읽는다. 글은 운영자가 쓴 답이지만 돈·배포·환경변수·게시는 여전히 autopilot 4번을 따른다.
+     - `inbox` 상태: `대기`(운영자 답 기다림) · `했음` → STATE.md 같은 항목 `[x]`, 할 일이 남았으면 한다(예: `old-triggers` 했음 → 꺼진 예약 6개 지우기) · `보류` → 그대로 · `질문` → `note` 에 답해 `reply` 에 쓰고 `status` 를 `대기` 로 · `요청`(운영자가 남긴 부탁) → 처리하거나 STATE.md 할 일로 옮기고 `reply` 에 결과, `status` 를 `했음` 으로.
+     - `promo` 상태: `승인` → 홍보 담당이 계획대로 올림 · `고침` → `note` 대로 고치고 `previewUrl` 바꾼 뒤 `status` 를 `대기` 로.
+     - 이미 있는 문서를 고칠 때는 `list` 결과의 `version` 을 `if_version` 으로 준다.
 3. **싼 숫자부터**: `nyang_day`·`nyang_errors`(관리자 조회 연결, `site="live"`), 새 문의 메일 수, `git log origin/main..origin/dev`. 전부 0 이고 대기 커밋이 없으면 담당을 부르지 않는다.
 4. **일이 있는 담당만** autopilot 2번 순서로 부른다(동시에 2개까지, 담당 파일의 모델 그대로).
-5. **기록**: 운영자 확인이 필요한 것은 `.planning/STATE.md` 맨 위 할 일에 `- [ ] **확인(순회 YYYY-MM-DD)** …` 로 적고 dev 에 커밋한다. 운영자가 답하면 그 항목을 `[x]` 로 바꾼다(총책임자든 순회 대화든 답을 받은 쪽이).
+5. **기록**: 운영자 확인이 필요한 것은 `.planning/STATE.md` 맨 위 할 일에 `- [ ] **확인(순회 YYYY-MM-DD)** … (운영실 inbox/<문서 id>)` 로 적고 dev 에 커밋한다. 같은 내용을 운영실 `inbox` 에 `set` 으로 새 문서로 넣는다: `{title, why(왜 필요한지 쉬운 말), how(운영자가 할 일·버튼 뜻), status:"대기", source:"냥신", note:"", reply:"", createdAt:<ms>}`. 키·비밀번호·손님 이메일·전화번호는 넣지 않는다. 운영자가 답하면 STATE.md 항목을 `[x]` 로 바꾼다(총책임자든 순회 대화든 답을 받은 쪽이).
 6. **보고**: autopilot 6번 형식, 한국어로 짧게. 할 일·문제가 없으면 "이상 없음" 한 줄로 끝낸다.
 
 ## 하지 않는 것

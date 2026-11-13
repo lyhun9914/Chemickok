@@ -57,3 +57,4 @@
 - 11/13 중계기(proxy) 방식 도구(headroom proxy, OmniRoute)는 이 클라우드에서 API 주소가 고정돼 안 통한다.
 - 11/14 예약(send_later·create_trigger)으로 보낸 `/compact` 는 명령으로 실행되지 않고 글로만 온다. 자동 요약은 `autoCompactWindow` 설정으로.
 - 11/14 운영자가 직접 쳐서 쓸 수 있는 유용한 명령(`/compact` 등)은 필요해지기 전에 미리 알려 준다.
+- 11/14 운영자 할 일·질문은 대화 대신 운영실(https://claude.ai/artifact/XQSPRjokfAn1eqFuJw6kqM) 확인함(`inbox`)에 넣고 답도 거기서 읽는다. 아티팩트 화면 DOM id 에 한국어 값을 넣으면 `_` 로 뭉개져 겹치니 ASCII 이름을 쓴다.
