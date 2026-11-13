@@ -35,6 +35,13 @@
 - 위 "이어받기 첫 일"은 운영자가 앱에서 새 총책임자 대화를 직접 열 때만 쓴다(큰 개편 때).
 - 날마다 새 순회 대화는 예약에 연결을 붙일 수 없어 막힘. 순회는 총책임자 대화에서 돈다.
 
+## 운영자가 쓰는 명령 (대화 입력창에 그대로)
+- `/compact` — 대화를 요약해 줄인다(20만 토큰 넘으면 총책임자가 부탁). 내가 답하는 중이면 취소되니 답이 끝난 뒤에. `/compact 할 일과 운영 결정 위주로` 처럼 뒤에 요약 기준을 붙일 수 있다.
+- `/context` — 지금 대화가 얼마나 찼는지 본다.
+- `/model` — 이 대화의 모델을 바꾼다.
+- `/gsd:progress` — 할 일 목록(`.planning/STATE.md`) 진행 상황 요약.
+- `/ponytail-help`, `/ponytail-gain` — ponytail 사용법·절감 숫자.
+
 ## 링크
 - 실제 https://nyangsin.vercel.app · 관리자 https://nyangsin-admin.vercel.app
 - 테스트 https://nyangsin-test.vercel.app · 테스트 관리자 https://nyangsin-test-admin.vercel.app
@@ -47,3 +54,4 @@
 - 11/13 대화를 옮길 때 옛 대화에 묶인 예약 작업을 전부 옮긴다.
 - 11/13 담당을 기다리게 두면 깨어날 때마다 총책임자도 깨어나 긴 기록을 다시 읽는다. 결과를 받으면 바로 끝내게 하고, 나중 확인은 예약 한 번으로.
 - 11/13 중계기(proxy) 방식 도구(headroom proxy, OmniRoute)는 이 클라우드에서 API 주소가 고정돼 안 통한다.
+- 11/14 운영자가 직접 쳐서 쓸 수 있는 유용한 명령(`/compact` 등)은 필요해지기 전에 미리 알려 준다.
