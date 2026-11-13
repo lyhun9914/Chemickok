@@ -28,9 +28,12 @@ def shrink(text, tool):
     out = r.messages[-1]["content"][0]["content"]
     if not isinstance(out, str) or r.tokens_after > 0.8 * r.tokens_before:
         return None
-    os.makedirs(ORIG_DIR, exist_ok=True)
+    # originals can hold customer mail or DB rows: owner-only dir and files, never follow a planted symlink
+    os.makedirs(ORIG_DIR, mode=0o700, exist_ok=True)
+    os.chmod(ORIG_DIR, 0o700)
     path = f"{ORIG_DIR}/{hashlib.sha1(text.encode()).hexdigest()[:12]}.txt"
-    with open(path, "w") as f:
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w") as f:
         f.write(text)
     return f"{out}\n[headroom: {r.tokens_before}→{r.tokens_after} tokens. 원본 전체: {path}]"
 
