@@ -18,7 +18,10 @@ Last activity: 2026-11-13 — PR #6(headroom 압축) 실제 사이트 배포, ag
 - [ ] **운영자 확인 필요** 시험 중 발견: 같은 면담 답이면 생년월일이 달라도 이미 산 점괘로 보고 냥이 안 빠짐(`inputHash` 가 답으로만 만들어짐). 다른 사람 생일로 보면 공짜가 되는지 개발 담당이 확인할 일
 - [ ] **mcp-builder 연결 (운영자 11/13)** 토스 조회·냥신 관리자 API, 둘 다 읽기 전용
   - [x] 개발 담당: `mcp/toss`(2 도구), `mcp/nyangsin-admin`(6 도구) + `.mcp.json` + 관리자 GET 키 헤더(admin.ts, 틀린 키는 감사 기록) + README 7번 "새 연결 만들기" (f9811e9)
-  - [ ] 키 입력창 띄우기: 토스 api.tosspayments.com Basic(사용자=시크릿 키, 비밀번호 비움) / 관리자 nyangsin-admin.vercel.app·nyangsin-test-admin.vercel.app Bearer(각 사이트 ADMIN_KEY)
+  - [x] 테스트 사이트 ADMIN_KEY 를 실제 사이트와 같은 값으로(운영자 요청 11/13, Vercel preview·dev). 실제 관리자 키는 네트워크 비밀에 저장됨
+  - [ ] 테스트 관리자 키 입력창 다시(이제 16자라 저장됨) → 테스트 사이트에서 nyang_* 도구 확인
+  - [ ] 토스 키: 운영자가 준 것은 결제위젯 키(gsk). 사이트는 'API 개별 연동' 시크릿 키(test_sk_/live_sk_)를 씀 → 그 키로 입력창 다시. 급하지 않음(결제 오픈 때)
+  - [ ] 운영자에게 권함: 대화에 붙여 넣은 실제 관리자 키는 결제 오픈 전 새 값으로 교체
   - [ ] 새 대화에서 두 MCP 서버가 뜨는지(.mcp.json 의 ${CLAUDE_PROJECT_DIR:-.} 경로) 확인
   - [ ] 관리자 코드라 실제 사이트 배포는 운영자 확인 뒤
   - [x] 앞으로: 처음 하는 일은 있는 도구 → find-skills → mcp-builder 순서(공통 규칙 10, autopilot 9). skills.sh 네트워크 허용, 검색은 `NODE_USE_ENV_PROXY=1` 필요
