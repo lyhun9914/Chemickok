@@ -211,7 +211,7 @@ export function Landing() {
           </span>
           <span className="mt-2 block text-[13px] leading-relaxed text-muted">{heroPr.pitch}</span>
           <span className="btn-primary glow shine mt-3 block w-full py-3.5 text-center text-[16px]">
-            {heroPr.emoji} 바로 보기 · 기본 무료
+            {heroPr.emoji} 바로 보기 · 맛보기는 무료
           </span>
         </button>
       )}
