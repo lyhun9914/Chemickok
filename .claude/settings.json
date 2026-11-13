@@ -50,6 +50,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "compact|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' '[GSD] 대화가 요약됐거나 다시 시작됐다. 아래 진행 상태(.planning/STATE.md)의 할 일부터 이어 간다. .planning/.continue-here.md 가 있으면 그것도 읽는다(/gsd:resume-work).'; sed -n '1,60p' \"$CLAUDE_PROJECT_DIR/.planning/STATE.md\" 2>/dev/null; exit 0",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
