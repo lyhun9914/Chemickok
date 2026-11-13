@@ -62,8 +62,11 @@ export function validateFortune(raw: unknown): QuestionnaireInput | null {
 }
 
 export function fortuneHash(i: QuestionnaireInput): string {
+  const n = normalizeFortune(i as QuestionnaireInput & { mode: FortuneMode });
+  // 신년운세 is sold per year, so next year's is a new purchase; up to 2027 the hash stays as it was (this season's buyers keep theirs).
+  const year = n.mode === "newyear" ? newYearOf() : 0;
   return createHash("sha256")
-    .update(JSON.stringify(normalizeFortune(i as QuestionnaireInput & { mode: FortuneMode })))
+    .update(JSON.stringify(year > 2027 ? { ...n, year } : n))
     .digest("hex")
     .slice(0, 16);
 }
