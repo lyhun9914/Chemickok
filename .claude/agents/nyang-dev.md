@@ -1,5 +1,6 @@
 ---
 name: nyang-dev
+model: opus
 description: "냥신 점괘 개발 담당. 기능 추가, 버그 수정, 화면 변경, DB 구조 추가처럼 src/ 코드나 supabase/migrations 를 바꾸는 일을 맡는다. 테스트 사이트(dev)까지만 올리고 실제 사이트 배포는 하지 않는다."
 ---
 

@@ -91,7 +91,7 @@
 
 | 담당 | 도구 |
 | --- | --- |
-| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(올리기 전 검토), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max·taste(화면 디자인, 7번 "규모별로 고른다" 표대로), ponytail, GSD(큰 일 쪼개기·기억), mcp-builder(새 외부 서비스 연결) |
+| 개발 | graphify(코드 지도), typescript-lsp(타입·참조 찾기), security-guidance(보안 경고), code-review(결제·로그인·관리자·약관·DB 코드가 든 배포만, 배포 담당이 합치기 전), supabase·postgres-best-practices(DB), vercel-react-best-practices(React·Next.js 성능), ui-ux-pro-max·taste(화면 디자인, 7번 "규모별로 고른다" 표대로), ponytail, GSD(큰 일 쪼개기·기억), mcp-builder(새 외부 서비스 연결) |
 | 점검 | agent-browser(먼저), Playwright(반복·결제창 흐름 스크립트, MCP 는 0.0.83 고정), web-design-guidelines(화면·접근성 검토), ui-ux-pro-max(UX 규칙 확인) |
 | 배포·운영 | `nyangsin-admin` MCP(관리자 숫자·오류·건의·결제 목록, 읽기만) 먼저, Vercel·Supabase 커넥터, e2e-smoke(배포 직후), session-report(사용량 보고). `toss` 조회는 결제 오픈 때까지 등록 해제(인증 방식 문제, 코드는 `mcp/toss`) |
 | 고객 | Gmail 커넥터, `nyangsin-admin` MCP(결제 확인·건의 읽기, 이메일·전화는 가려 나옴), Supabase 커넥터(읽기), ticket-triage·draft-response·customer-research·customer-escalation·kb-article(문의 분류·답장 초안·조사·개발 넘기기·안내문) |
@@ -164,7 +164,7 @@
 ### 효율 설정 (2026-11-13)
 
 - **안 쓰는 플러그인은 켜 두지 않는다**: 켜진 플러그인마다 스킬 목록이 매 대화에 실려 토큰을 먹고, 딸린 원격 서버 연결이 실패하며 시작이 느려진다. 그래서 brand-voice, design, example-skills, claude-code-setup, agent-skills 를 뺐다(다른 도구와 겹침). 새 플러그인은 "자주 쓸 일이 있고, 지금 것과 안 겹칠 때"만 더한다.
-- **담당 모델**: 개발만 큰 모델, 나머지 담당(점검·배포·운영·고객·글·홍보)은 `sonnet`. 총책임자는 지시와 판단만 하고, 긴 작업은 담당에게 넘긴다(담당은 빈 상태로 시작해 필요한 것만 읽으므로 싸다).
+- **담당 모델 (11/13 다시 정함)**: 개발은 `opus`(결제·로그인 코드, 실수 비용이 큼), 점검·배포·운영·고객·글·홍보는 `sonnet`, 명령 하나 돌리고 결과만 받는 단순 확인은 `haiku`(총책임자가 맡길 때 `model: haiku`). GSD 는 `balanced`(계획만 opus, 실행은 sonnet). 총책임자는 지시와 판단만 하고, 긴 작업은 담당에게 넘긴다(담당은 빈 상태로 시작해 필요한 것만 읽으므로 싸다).
 - **동시에**: 서로 관계없는 담당 일은 백그라운드로 함께 돌린다.
 - **도구 버전 고정**: `.mcp.json` 의 Playwright MCP 는 버전을 고정해 매번 새로 받지 않는다.
 - **headroom (도구 결과 압축, 11/13)**: Bash·커넥터 결과가 6,000자를 넘으면 `scripts/headroom-hook.py` 가 headroom 으로 줄여서 모델에 넘긴다(20% 넘게 줄 때만). 반복 로그·큰 JSON 이 크게 준다(시험: 반복 로그 2,038→74, 대화 기록 JSON 18,531→6,115 토큰). 원본은 출력 끝에 적힌 `/tmp/headroom-originals/…` 파일에 있어 `cat` 하면 그대로 나온다(`Retrieve more: hash=` 줄도 그 파일로 대신한다). Read·Edit·Grep 결과는 손대지 않는다(고칠 때 정확한 글이 필요). 중계기(proxy) 방식은 클라우드 대화가 API 주소를 서비스 쪽에서 고정해서 통하지 않는다(11/13 시험에서 통과 0건). 검사: `bash scripts/check-headroom-hook.sh`.
