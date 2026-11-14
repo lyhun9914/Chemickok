@@ -3,9 +3,8 @@
 새 총책임자 대화는 이 문서 → `.planning/STATE.md`(지금 할 일, GSD) → `AGENTS.md` → `docs/agents/autopilot.md`(1-1, 4, 9번) 순서로 읽고 이어서 한다. 운영자에게는 한국어로, 쉽게, 짧게. 읽은 뒤 아래 "이어받기 첫 일"부터 한다.
 
 ## 이어받기 첫 일 (새 총책임자가 바로)
-1. `list_triggers` 로 옛 총책임자 대화 `session_01TLH2dxnfHDqPeNp2Eu5L2r` 에 묶인 예약을 **전부** 이 대화로 다시 만들고(`create_trigger`, 같은 이름·시각·내용) 옛 것은 `update_trigger enabled=false`. 지금 4개:
+1. `list_triggers` 로 옛 총책임자 대화 `session_01TLH2dxnfHDqPeNp2Eu5L2r` 에 묶인 예약을 **전부** 이 대화로 다시 만들고(`create_trigger`, 같은 이름·시각·내용) 옛 것은 `update_trigger enabled=false`. 지금 3개:
    - 매일 순회 `CRON_TZ=Asia/Seoul 7 9 * * *` (`docs/agents/daily-routine.md` 대로)
-   - 11/21 10:00 KST 케미콕 구글 계정 삭제 재시도 알림
    - 11/25 10:00 KST 토스 카드사·네이버페이 심사 확인(결제 오픈 순서표 `docs/GUIDE.md` 2-4)
    - 12/1 09:10 KST 오픈 기념 배너 점검
 2. 이 문서와 `docs/agents/autopilot.md` 9번의 총책임자 대화 번호를 새 번호로 고치고 dev 에 커밋.
@@ -16,12 +15,13 @@
 - 실제 사이트(main) = PR #8(11/13 12:54 UTC)까지. 배포 직후·30분 뒤 확인 오류 0.
 - 결제: 토스 카드사 심사 중(12/1 전후 예상). 실제 사이트는 토스 테스트 키라 충전·단건 결제 자리에 "결제 오픈 준비 중" 안내(e0fefaf). `live_` 키(클라이언트·시크릿 둘 다)로 바꾸면 자동으로 열림.
 - 토스 예전 MID 가입비 환불: **입금 확인됨(11/14 운영자)**. 알림 예약 지움.
+- 케미콕 구글 계정(옛 고객센터 메일): **삭제 끝(11/14 운영자)**. 사이트는 nyangsin.cs 만 씀. 알림 예약 지움.
 - 담당: 개발 opus, 나머지 sonnet, 단순 확인 haiku. 배포 뒤 확인은 직후 1번 + 30분 뒤 예약 1번. 결제·로그인·관리자·약관·DB 코드가 든 배포만 합치기 전 code-review.
 - 도구: graphify(`.graphifyrc` 800 토큰), headroom 도구 결과 압축 hook, agent-browser 끝까지 시험 `scripts/e2e-smoke.sh`, GSD(`.planning/`), find-skills(`NODE_USE_ENV_PROXY=1`), mcp-builder(설치 때 비교), 관리자 조회 `nyangsin-admin`. 토스 조회는 인증 방식 문제로 보류.
 
 ## 운영자 결정 대기
 1. 수능 부적 인스타 게시: **보류**(11/16 지나면 D-3 영상 다시 만들어야 할 수 있음).
-2. 실제 관리자 키: Vercel `ADMIN_KEY` 는 새 값(11/14). 남은 것: 이 환경 네트워크 시크릿의 `nyangsin-admin.vercel.app` 값도 새 키로(운영자 작업, 운영실 inbox/admin-key-secret). 그 전엔 `nyang_*`(site=live) 가 401.
+2. 실제 관리자 키: Vercel `ADMIN_KEY` 는 새 값(11/14). 테스트도 같은 값(dev 전용 값 끔). 남은 것: 이 환경 네트워크 시크릿 `nyangsin-admin.vercel.app`·`nyangsin-test-admin.vercel.app` 두 줄 다 새 키로(운영자 작업, 운영실 inbox/admin-key-secret). 그 전엔 `nyang_*` live·test 가 401.
 3. "오픈 기념" 배너는 꺼짐 확인(11/14). 인스타 프로필 링크 `?open=bujeok` 은 확인 못 함.
 4. 토스 조회용 네트워크 시크릿: 지움(11/14 운영자).
 
@@ -62,3 +62,4 @@
 - 11/14 운영자 할 일·질문은 대화 대신 운영실(https://claude.ai/artifact/XQSPRjokfAn1eqFuJw6kqM) 확인함(`inbox`)에 넣고 답도 거기서 읽는다. 아티팩트 화면 DOM id 에 한국어 값을 넣으면 `_` 로 뭉개져 겹치니 ASCII 이름을 쓴다.
 - 11/14 네트워크 시크릿 창(실제 화면 글자): 호스트 줄마다 ↻(값 바꾸기)·휴지통, 아래 "시크릿 추가"·"취소"·"변경사항 저장", 빨간 "환경 보관" 은 누르면 안 됨(안내에 꼭 적기).
 - 11/14 정리 허락(운영자 "지워도 되는 예약은 앞으로도 알아서, 불필요한 내용도 제거"): 이 프로젝트의 꺼진·끝난 예약, 끝난 운영실 카드, 작업 공간 임시 파일, 낡은 문서 줄은 묻지 않고 지운다. 운영 DB·손님 정보·Vercel 환경변수·돈, 다른 프로젝트(TickTax·리밸런서·출금 알림) 예약·대화는 그대로 확인받는다.
+- 11/14 Vercel 환경변수는 브랜치 전용 값이 공용 값을 이긴다: dev 전용 ADMIN_KEY 가 남아 있어 실제 키를 바꿔도 테스트는 옛 키였다. 지금은 공용 하나만 씀. 민감(sensitive) 값은 MCP 로 이름을 못 바꾸고 지우는 도구도 없어, 없는 브랜치는 거절되니 안 쓰는 브랜치로 옮겨 끈다.

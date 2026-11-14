@@ -10,7 +10,7 @@ See: .planning/PROJECT.md (updated 2026-11-13)
 ## Current Position
 
 Status: In progress
-Last activity: 2026-11-14 — 운영실 했음 4건 처리: 꺼진 옛 예약 6개 지움, 토스 네트워크 시크릿 지운 것 확인, "오픈 기념" 배너 꺼진 것 확인, Vercel ADMIN_KEY 새 값 확인. 남은 것: 네트워크 시크릿의 실제 관리자 키도 새 값으로(운영실 inbox/admin-key-secret, 그 전엔 nyang_* live 401). 정리 허락 문서화(README 4-11, 순회 6번)
+Last activity: 2026-11-14 — 운영실 했음 4건 처리: 꺼진 옛 예약 6개 지움, 토스 네트워크 시크릿 지운 것 확인, "오픈 기념" 배너 꺼진 것 확인, Vercel ADMIN_KEY 새 값 확인. 테스트 관리자 키도 같은 새 값으로(dev 전용 옛 ADMIN_KEY 를 안 쓰는 브랜치 `claude/more-tools` 로 옮김, 운영자 "테스트관리자키도 똑같이"). 남은 것: 네트워크 시크릿 두 줄(실제·테스트 관리자) 새 키로(운영실 inbox/admin-key-secret, 그 전엔 nyang_* live·test 401). 정리 허락 문서화(README 4-11, 순회 6번)
 
 ## 할 일 (총책임자가 하나 끝날 때마다 고친다)
 
@@ -26,7 +26,7 @@ Last activity: 2026-11-14 — 운영실 했음 4건 처리: 꺼진 옛 예약 6�
 - [ ] 작은 것: e2e 5단계는 같은 회원이라 답이 우연히 같으면 실패할 수 있음 / 재회는 성별만 바꾸면 같은 풀이에 냥이 한 번 더 빠짐(드묾)
 - [ ] **mcp-builder 연결 (운영자 11/13)** 토스 조회·냥신 관리자 API, 둘 다 읽기 전용
   - [x] 개발 담당: `mcp/toss`(2 도구), `mcp/nyangsin-admin`(6 도구) + `.mcp.json` + 관리자 GET 키 헤더(admin.ts, 틀린 키는 감사 기록) + README 7번 "새 연결 만들기" (f9811e9)
-  - [x] 테스트 사이트 ADMIN_KEY 를 실제 사이트와 같은 값으로(운영자 요청 11/13, Vercel preview·dev). 실제 관리자 키는 네트워크 비밀에 저장됨
+  - [x] 테스트 사이트 ADMIN_KEY 를 실제 사이트와 같은 값으로(운영자 요청 11/13). 11/14 부터 dev 전용 값 없이 실제와 같은 ADMIN_KEY(production+preview) 하나를 씀 → 키를 바꾸면 둘 다 바뀜. 옛 dev 전용 값은 `claude/more-tools` 브랜치로 옮겨 둠(안 쓰임, Vercel 에서 지워도 됨)
   - [x] 테스트 관리자 키 저장 → 테스트 사이트 /api/admin 200, nyang_stats(site=test) 정상(239자)
   - [ ] **보류** 토스 조회: 개별 연동 test_sk 키를 Basic(사용자 이름=키)으로 저장해도 401. 네트워크 비밀 목록에 토스만 헤더 이름이 없어 Basic 방식이 요청에 안 붙는 것으로 보임. 결제 오픈 때 다시(토스 네트워크 시크릿은 11/14 운영자가 지움)
   - [ ] 새 대화에서 두 MCP 서버가 뜨는지(.mcp.json 의 ${CLAUDE_PROJECT_DIR:-.} 경로) 확인
@@ -46,7 +46,7 @@ Last activity: 2026-11-14 — 운영실 했음 4건 처리: 꺼진 옛 예약 6�
   - [ ] c 매일 순회 새 대화: **막힘** — 예약으로 열린 대화에 Claude Code Remote 연결이 없어 새 대화를 못 엶(11/13 시험 2번 실패, 실패 알림 푸시됨). 도구로 연결을 붙이는 기능이 이 계정에 없음 → 운영자가 루틴 화면에서 만들거나, 순회는 총책임자 대화에 두고 총책임자를 20만 토큰마다 옮김(지금 방식). 기존 09:07 예약은 살아 있음
   - [x] d 새 대화로 옮기기 대신 `/compact` 로 줄이기로(11/14 운영자와 정함). 시험으로 연 새 대화는 연결 이름이 달라 보이고 첫 지시를 운영자 말로 안 받아 멈춤 → 보관
   - [x] e 자동 요약: `.claude/settings.json` `autoCompactWindow: 200000`(11/14). 예약으로 보낸 /compact 는 글로만 와서 실패 → 예약 지움. 이 대화엔 운영자가 `/autocompact 200k` 입력 → threshold 165600(source settings) 확인 11/14
-- [ ] **운영자 작업** 실제 관리자 키: Vercel ADMIN_KEY 새 값 됨(11/14). 남은 것: 클라우드 환경 네트워크 시크릿 `nyangsin-admin.vercel.app` 도 새 키로(↻ → 붙여넣기 → 변경사항 저장). 운영자가 했다고 하면 `nyang_day(site=live)` 200 확인 (운영실 inbox/admin-key-secret)
+- [ ] **운영자 작업** 실제 관리자 키: Vercel ADMIN_KEY 새 값 됨(11/14). 테스트도 같은 값(11/14). 남은 것: 클라우드 환경 네트워크 시크릿 `nyangsin-admin.vercel.app`·`nyangsin-test-admin.vercel.app` 두 줄 다 새 키로(↻ → 붙여넣기 → 변경사항 저장). 11/14 01:10 운영자 했음 눌렀지만 live 여전히 401(값이 안 바뀐 듯). 했다고 하면 `nyang_day` live·test 200 확인 (운영실 inbox/admin-key-secret)
 - [ ] **운영자 보류** 수능 부적 인스타 게시 (① 따로 예약 / ② 순회 때). 11/16 지나면 D-3 영상 다시 만들어야 할 수 있음 (운영실 inbox/suneung-post)
 - [x] "오픈 기념" 배너 끄기: 실제 사이트 banner null 확인(11/14). 인스타 프로필 링크는 확인 못 함
 - [ ] **다음** 결제 오픈 당일 준비 — `docs/GUIDE.md` 2-4. 오픈 이벤트 기간·홍보 D+0 은 운영자 결정
@@ -60,7 +60,7 @@ PROJECT.md Key Decisions 참고.
 
 ### Pending Todos
 
-예약 작업(이 총책임자 대화에 묶임): 매일 09:07 순회 · 11/21 케미콕 구글 계정 삭제 · 11/25 카드사 심사 확인 · 12/1 오픈 배너 점검. 11/17 토스 환불 확인은 입금 확인돼 지움
+예약 작업(이 총책임자 대화에 묶임): 매일 09:07 순회 · 11/25 카드사 심사 확인 · 12/1 오픈 배너 점검. 11/17 토스 환불 확인은 입금 확인돼 지움, 11/21 케미콕 구글 계정 삭제 알림은 운영자가 11/14 삭제 끝내 지움
 
 ### Blockers/Concerns
 
