@@ -15,7 +15,7 @@ Last activity: 2026-11-14 — 운영실 했음 4건 처리: 꺼진 옛 예약 6�
 ## 할 일 (총책임자가 하나 끝날 때마다 고친다)
 
 - [x] **운영실 아티팩트 (운영자 "추천하는 방식으로 완벽하게" 11/14)** https://claude.ai/artifact/XQSPRjokfAn1eqFuJw6kqM (비공개·고정). 탭: 운영자 확인함(`inbox`, 했음·보류·질문 + 부탁 남기기, 누르면 예약 trig_01HVgAdNDA2mpCy7EDeQL8Q6 으로 총책임자에게 바로 알림) · 홍보 승인판(`promo`, 승인·고쳐줘) · 아침 상황판(숫자만, 읽기) · 바로가기. 운영자만 읽고 씀(보기·참여 권한 쓰기 거절 확인). 키·비밀번호·손님 이메일·전화 안 넣음. 순회가 매일 읽고 씀(`docs/agents/daily-routine.md` 2·5번). 연결마다 처음 한 번 허락 창이 뜸. 못 본 것: 휴대폰 앱 화면, Vercel 오류가 있을 때의 글 모양
-  - 확인함: `admin-key`·`toss-secret`·`old-triggers`·`banner-insta`·`admin-key-secret` 끝(11/14) · `suneung-post` 대기
+  - 확인함: `admin-key`·`toss-secret`·`old-triggers`·`banner-insta`·`admin-key-secret` 끝(11/14) · `suneung-post` 끝남(운영자 승인 11/14, 11/16 19:30 게시 예약)
   - [ ] **다음** 결제 오픈 체크리스트 탭(12/1 쯤)
 - [x] `scripts/e2e-smoke.sh` (7e1685e): 테스트 5단계 PASS(약 2분 50초), 실제 읽기 2단계 PASS(8초). 점검(시작 때)·개발(흐름 고친 뒤)·배포(올린 직후) 규칙에 연결
 - [x] 면담 중복 판단 확인: 버그 아님(개발용 로그인이 늘 같은 회원·저장된 생일이라 시험이 같은 입력이 됨). 생일·성별·상대 하나라도 다르면 냥 다시 빠짐, 회원끼리 안 섞임
@@ -47,7 +47,7 @@ Last activity: 2026-11-14 — 운영실 했음 4건 처리: 꺼진 옛 예약 6�
   - [x] d 새 대화로 옮기기 대신 `/compact` 로 줄이기로(11/14 운영자와 정함). 시험으로 연 새 대화는 연결 이름이 달라 보이고 첫 지시를 운영자 말로 안 받아 멈춤 → 보관
   - [x] e 자동 요약: `.claude/settings.json` `autoCompactWindow: 200000`(11/14). 예약으로 보낸 /compact 는 글로만 와서 실패 → 예약 지움. 이 대화엔 운영자가 `/autocompact 200k` 입력 → threshold 165600(source settings) 확인 11/14
 - [x] 실제 관리자 키(11/14): Vercel ADMIN_KEY 새 값, 테스트도 같은 값, 네트워크 시크릿 두 줄 Bearer 붙여 다시 저장(request_credential prefix Bearer) → `nyang_day` live·test 200
-- [ ] **운영자 보류** 수능 부적 인스타 게시 (① 따로 예약 / ② 순회 때). 11/16 지나면 D-3 영상 다시 만들어야 할 수 있음 (운영실 inbox/suneung-post)
+- [ ] 수능 부적 릴스: 운영자 승인 11/14. Windsor 는 예약 게시 불가 → trig_019pjd9tN63EixfofGmvPnTr 가 11/16(월) 19:30 KST 에 총책임자 대화로 알림, 그때 create_video_post. 올린 뒤 계획표·운영실 카드 고치기
 - [x] "오픈 기념" 배너 끄기: 실제 사이트 banner null 확인(11/14). 인스타 프로필 링크는 확인 못 함
 - [ ] **다음** 결제 오픈 당일 준비 — `docs/GUIDE.md` 2-4. 오픈 이벤트 기간·홍보 D+0 은 운영자 결정
 - [ ] **다음** 신년운세 시즌 점검(12/1 전) — 테스트 사이트 결제~감정서, 로그인 회원, 관리자 "홈 첫 화면 주인공"

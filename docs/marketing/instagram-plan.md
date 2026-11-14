@@ -18,7 +18,7 @@
 | 날짜 | 종류 | 파일 | 승인 | 상태 |
 | --- | --- | --- | --- | --- |
 | 11/14(금) | 릴스 · 할까? 말까? 타로 | `reel-tarot.mp4`, 커버 `reel-tarot-cover.jpg` | 보류 | - |
-| 11/16(월) | 릴스 · 수능 합격 부적 (수능 D-3) | `reel-bujeok-suneung.mp4` (영상 안 D-3), 커버 `reel-bujeok-suneung-cover.jpg` | 승인 대기 (11/13 예외) | - |
+| 11/16(월) | 릴스 · 수능 합격 부적 (수능 D-3) | `reel-bujeok-suneung.mp4` (영상 안 D-3), 커버 `reel-bujeok-suneung-cover.jpg` | 승인됨 (운영자 11/14) | 11/16 19:30 예약 알림 |
 | 11/18(수) | 스토리 · 수능 합격 부적 (D-1) | `story-bujeok-suneung-d1.mp4` (영상 안 D-1, 60초 이하) | 승인 대기 (11/13 예외) | - |
 | 11/20(금) | 릴스 · 일주 고양이 도감 | `reel-ilju.mp4`, 커버 `reel-ilju-cover.jpg` | 보류 | - |
 | 11/23(월) | 카드뉴스 · 2027 띠별 운세 9장 | `cardnews-2027-1.jpg` ~ `cardnews-2027-9.jpg` | 보류 | - |

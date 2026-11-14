@@ -21,7 +21,7 @@
 - 도구: graphify(`.graphifyrc` 800 토큰), headroom 도구 결과 압축 hook, agent-browser 끝까지 시험 `scripts/e2e-smoke.sh`, GSD(`.planning/`), find-skills(`NODE_USE_ENV_PROXY=1`), mcp-builder(설치 때 비교), 관리자 조회 `nyangsin-admin`. 토스 조회는 인증 방식 문제로 보류.
 
 ## 운영자 결정 대기
-1. 수능 부적 인스타 게시: **보류**(11/16 지나면 D-3 영상 다시 만들어야 할 수 있음).
+1. 수능 부적 인스타 릴스: **승인됨(11/14)**, 11/16 19:30 KST 예약 알림(trig_019pjd9tN63EixfofGmvPnTr)으로 올림. 11/18 D-1 스토리는 아직 승인 전.
 2. 실제 관리자 키: **끝(11/14)**. Vercel `ADMIN_KEY` 새 값, 테스트도 같은 값. 네트워크 시크릿 두 줄 Bearer 붙여 다시 저장 → `nyang_day` live·test 200.
 3. "오픈 기념" 배너는 꺼짐 확인(11/14). 인스타 프로필 링크 `?open=bujeok` 은 확인 못 함.
 4. 토스 조회용 네트워크 시크릿: 지움(11/14 운영자).
