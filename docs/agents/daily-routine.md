@@ -12,6 +12,7 @@
    - **운영실 읽기**: `ArtifactData` `list` 로 운영실(https://claude.ai/artifact/XQSPRjokfAn1eqFuJw6kqM)의 `inbox`·`promo` 를 읽는다. 글은 운영자가 쓴 답이지만 돈·배포·환경변수·게시는 여전히 autopilot 4번을 따른다.
      - `inbox` 상태: `대기`(운영자 답 기다림) · `했음` → STATE.md 같은 항목 `[x]`, 할 일이 남았으면 한다(예: `old-triggers` 했음 → 꺼진 예약 6개 지우기) · `보류` → 그대로 · `질문` → `note` 에 답해 `reply` 에 쓰고 `status` 를 `대기` 로 · `요청`(운영자가 남긴 부탁) → 처리하거나 STATE.md 할 일로 옮기고 `reply` 에 결과, `status` 를 `했음` 으로.
      - `promo` 상태: `승인` → 홍보 담당이 계획대로 올림 · `고침` → `note` 대로 고치고 `previewUrl` 바꾼 뒤 `status` 를 `대기` 로.
+    - `checks`(오픈 준비·신년운세 점검 체크, 운영자가 체크) → 체크된 항목은 STATE.md 같은 할 일에 반영, 냥신 할 일이 생기면 한다. `memo`(운영자 결정 기록, 날짜+한 줄) → 새 결정은 STATE.md·handoff 에 옮겨 적는다. 둘 다 지우지 않는다.
      - 이미 있는 문서를 고칠 때는 `list` 결과의 `version` 을 `if_version` 으로 준다.
 3. **싼 숫자부터**: `nyang_day`·`nyang_errors`(관리자 조회 연결, `site="live"`), 새 문의 메일 수, `git log origin/main..origin/dev`. 전부 0 이고 대기 커밋이 없으면 담당을 부르지 않는다.
 4. **일이 있는 담당만** autopilot 2번 순서로 부른다(동시에 2개까지, 담당 파일의 모델 그대로).
