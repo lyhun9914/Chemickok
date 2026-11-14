@@ -18,8 +18,8 @@
 | 날짜 | 종류 | 파일 | 승인 | 상태 |
 | --- | --- | --- | --- | --- |
 | 11/14(금) | 릴스 · 할까? 말까? 타로 | `reel-tarot.mp4`, 커버 `reel-tarot-cover.jpg` | 보류 | - |
-| 11/16(월) | 릴스 · 수능 합격 부적 (수능 D-3) | `reel-bujeok-suneung.mp4` (영상 안 D-3), 커버 `reel-bujeok-suneung-cover.jpg` | 승인됨 (운영자 11/14) | 11/16 19:30 예약 알림 |
-| 11/18(수) | 스토리 · 수능 합격 부적 (D-1) | `story-bujeok-suneung-d1.mp4` (영상 안 D-1, 60초 이하) | 승인 대기 (11/13 예외) | - |
+| 11/16(월) | 릴스 · 수능 합격 부적 (수능 D-3) | `reel-bujeok-suneung.mp4` (영상 안 D-3), 커버 `reel-bujeok-suneung-cover.jpg` | 승인됨 (운영자 11/14) | 11/16 19:30 예약 알림 (게시 전 파일 크기 확인) |
+| 11/18(수) | 스토리 · 수능 합격 부적 (D-1) | `story-bujeok-suneung-d1.mp4` (영상 안 D-1, 60초 이하) | 승인됨 (운영자 11/14) | 11/18 18:30 예약 알림 |
 | 11/20(금) | 릴스 · 일주 고양이 도감 | `reel-ilju.mp4`, 커버 `reel-ilju-cover.jpg` | 보류 | - |
 | 11/23(월) | 카드뉴스 · 2027 띠별 운세 9장 | `cardnews-2027-1.jpg` ~ `cardnews-2027-9.jpg` | 보류 | - |
 
@@ -190,7 +190,19 @@
 
 ---
 
-## 하이라이트 (2026-11-14 초안 · 승인 전)
+## 하이라이트 (2026-11-14 초안 · 승인됨)
+
+게시 결과(2026-11-14, 운영자 "지금 올려서 만들자" 지시로 예약 대신 즉시 게시, 6장 모두 성공, 캡션 없음):
+1. story-bujeok-1.jpg: media id 18140308348645279
+2. story-bujeok-2.jpg: media id 17936856105142857
+3. story-jumgwae-tarot.jpg: media id 18097018472679130
+4. story-jumgwae-ilju.jpg: media id 17981139570137206
+5. story-yongbang-howto.jpg: media id 18099368825446623
+6. story-yongbang-contact.jpg: media id 18104068901370138
+
+11/15·11/16·11/17 12:30 하이라이트 스토리 예약 3개는 지움. 릴스(11/16 19:30)와 D-1 스토리(11/18 18:30) 예약은 그대로. 하이라이트 묶기는 운영자가 앱에서(스토리는 24시간 뒤 보관함으로 감).
+**11/14 19:58 완료(운영자 화면 녹화 확인):** 프로필 왼쪽부터 부적(符) · 점괘(卦) · 이용방법(발바닥), 커버는 정사각 새 커버(2a5b25b). 새 커버는 dev 에만 있고 실제 사이트 `/promo/highlights/` 는 다음 배포 때 바뀜.
+
 
 **API 로 되는 것과 안 되는 것 (확인한 날 2026-11-14)**
 - 확인함: Windsor.ai `instagram` 커넥터 행동은 `create_story`(스토리 올리기), 피드·릴스·캐러셀 게시, 댓글 달기·답글·숨기기·삭제뿐이다. **하이라이트 만들기, 스토리를 하이라이트에 넣기, 커버 바꾸기는 목록에 없다.**
@@ -208,6 +220,26 @@
 | 후기 | 나중 | 같은 원, 글자 `心` | 실제 손님이 허락한 후기만. 지금은 허락받은 후기가 없어 만들지 않는다 |
 
 규칙: 점괘 하이라이트에는 지금 무료인 타로·일주만 넣는다. 궁합·신년운세·가격·할인·충전 이야기는 결제가 열린 뒤 "소식"에만 넣는다.
+
+### 2026-11-14 운영자 승인 · 게시 예약 (모두 Windsor 로 올림, 올리기 전 주소 200·파일 크기 확인)
+
+| 날짜(KST) | 올릴 것 | 예약 |
+| --- | --- | --- |
+| 11/15(일) 12:30 | 스토리 부적 2장 `highlights/story-bujeok-1.jpg`, `story-bujeok-2.jpg` | trig_01R4gdKfHZwwj4xMwtKtcECS |
+| 11/16(월) 12:30 | 스토리 점괘 2장 `highlights/story-jumgwae-tarot.jpg`, `story-jumgwae-ilju.jpg` (타로·일주 도감은 11/14 코드에서 확인) | trig_01NpEKjF5bEwr8Hs9qtBRS1Y |
+| 11/16(월) 19:30 | 릴스 수능 부적 | trig_019pjd9tN63EixfofGmvPnTr |
+| 11/17(화) 12:30 | 스토리 이용방법 2장 `highlights/story-yongbang-howto.jpg`, `story-yongbang-contact.jpg` | trig_01QnNqytNXkpTHR3deycYcpv |
+| 11/18(수) 18:30 | 스토리 수능 D-1 영상 `story-bujeok-suneung-d1.mp4` | trig_01VCKwwXJmh1aYxD7c6EXwrv |
+
+**운영자가 휴대폰 인스타 앱에서 누를 순서 (스토리가 올라간 뒤, 보관함에 있을 때)**
+커버 파일(`public/promo/highlights/`, 배포 뒤 `https://nyangsin.vercel.app/promo/highlights/<파일>`): 부적 `cover-bujeok.jpg`, 점괘 `cover-jumgwae.jpg`, 이용방법 `cover-yongbang.jpg`. 휴대폰 사진첩에 먼저 저장해 둔다. (`cover-open-later.jpg`, `cover-review-later.jpg` 는 나중용이라 지금 안 쓴다.)
+1. 오른쪽 아래 프로필 사진 > 내 프로필
+2. 프로필 소개 아래 하이라이트 줄의 동그란 `+ 신규`
+3. 보관함에서 해당 스토리 두 장을 눌러 고르기 > `다음`
+4. `커버 수정` > 아래 왼쪽 사진 아이콘 > 위 커버 사진 고르기 > `완료`
+5. 이름 칸에 `부적` / `점괘` / `이용방법` 쓰기 > `추가` (안드로이드는 `완료`)
+6. 부적(11/15 스토리 뒤) > 점괘(11/16 뒤) > 이용방법(11/17 뒤) 순서로 3~5 반복. 수능 D-1 스토리는 하이라이트에 넣지 않는다.
+(메뉴 글자는 앱 버전에 따라 조금 다를 수 있다.)
 
 **11/18 수능 D-1 스토리 (택1)**
 - 안 A(이미 있음, 승인 대기): `story-bujeok-suneung-d1.mp4`.

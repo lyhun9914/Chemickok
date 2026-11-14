@@ -8,6 +8,7 @@ import { accountApi, coinApi, type CoinHistoryRow, type ReadingSummary, type Wal
 import { shareService } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
 import { useBack } from "@/lib/back";
+import { costLine } from "@/lib/pricing";
 import { useLive } from "@/lib/liveSettings";
 import { WalletSheet, useSocialLabel } from "./CoinShop";
 import { GiftSendSheet, takeGiftDraft } from "./GiftSheet";
@@ -66,7 +67,6 @@ function WalletSection() {
   const [giftNote, setGiftNote] = useState<string | null>(null);
   const social = useSocialLabel();
   const { costs } = useLive().pricing;
-  const oneCost = Math.min(...(Object.keys(costs) as Mode[]).filter((m) => m !== "couple").map((m) => costs[m]));
   useEffect(() => {
     if (!open) coinApi.wallet().then(setWallet).catch(() => null);
     shareService.prepareKakao().catch(() => null);
@@ -104,7 +104,7 @@ function WalletSection() {
         </div>
         <div className="mt-2 flex items-center justify-between">
           <p className="text-[12px] text-muted">
-            점괘 하나 {nyang(oneCost)} · 궁합 {nyang(costs.couple)}
+            {costLine(costs)}
           </p>
           {GIFTS_ON && (
             <button onClick={() => setGiftOpen(true)} className="rounded-full border border-peach/40 px-3 py-1 text-[12px] font-semibold text-peach">

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useBack } from "@/lib/back";
 import { COIN_VALID_TEXT, WELCOME_COINS, nyang, won } from "@/lib/config";
 import { livePackFor, sellPacks, useLive } from "@/lib/liveSettings";
-import type { SellPack } from "@/lib/pricing";
+import { costLine, type SellPack } from "@/lib/pricing";
 import { coinApi } from "@/services/apiClient";
 import type { PaymentMethod } from "@/models/types";
 import { paymentService } from "@/services/PaymentService";
@@ -228,20 +228,10 @@ export function CoinShop({ need = 0, forReading = false, onCharged }: { need?: n
   );
 }
 
-/** "점괘 하나 1냥 / 궁합은 2냥", from the live costs. */
+/** "점괘 1냥 · 궁합·신년운세·사주 2냥", from the live costs. */
 function CostNote() {
   const { pricing } = useLive();
-  const c = pricing.costs;
-  const others = Object.entries(c).filter(([m]) => m !== "couple").map(([, n]) => n);
-  const one = Math.min(...others);
-  return (
-    <p className="text-right text-[12px] leading-relaxed text-muted">
-      점괘 하나 {nyang(one)}
-      {Math.max(...others) !== one ? "부터" : ""}
-      <br />
-      궁합은 {nyang(c.couple)}
-    </p>
-  );
+  return <p className="text-right text-[12px] leading-relaxed text-muted">{costLine(pricing.costs)}</p>;
 }
 
 /**

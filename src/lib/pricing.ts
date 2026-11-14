@@ -34,6 +34,26 @@ export interface Banner {
 
 export const MODES: Mode[] = ["solo", "couple", "reunion", "spouse", "newyear", "saju", "daeun"];
 
+/** Short names for price lines. */
+export const SHORT: Record<Mode, string> = {
+  solo: "연애 팔자",
+  couple: "궁합",
+  reunion: "재회운",
+  spouse: "배우자운",
+  newyear: "신년운세",
+  saju: "사주",
+  daeun: "대운",
+};
+
+/** "점괘 1냥 · 궁합·신년운세·사주 2냥", straight from the live costs (so it can never drift from what is charged). */
+export function costLine(costs: Record<Mode, number>): string {
+  const tiers = [...new Set(MODES.map((m) => costs[m]))].sort((a, b) => a - b);
+  if (tiers.length === 1) return `모든 점괘 ${tiers[0]}냥`;
+  return tiers
+    .map((c, i) => `${i === 0 ? "점괘" : MODES.filter((m) => costs[m] === c).map((m) => SHORT[m]).join("·")} ${c}냥`)
+    .join(" · ");
+}
+
 export const DEFAULT_PRICING: Pricing = {
   packs: COIN_PACKS,
   costs: Object.fromEntries(MODES.map((m) => [m, PRODUCTS[m].coins])) as Record<Mode, number>,
