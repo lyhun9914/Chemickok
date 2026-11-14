@@ -18,8 +18,8 @@
 | 날짜 | 종류 | 파일 | 승인 | 상태 |
 | --- | --- | --- | --- | --- |
 | 11/14(금) | 릴스 · 할까? 말까? 타로 | `reel-tarot.mp4`, 커버 `reel-tarot-cover.jpg` | 보류 | - |
-| 11/16(월) | 릴스 · 수능 합격 부적 (수능 D-3) | `reel-bujeok-suneung.mp4` (영상 안 D-3), 커버 `reel-bujeok-suneung-cover.jpg` | 승인됨 (운영자 11/14) | 11/16 19:30 예약 알림 |
-| 11/18(수) | 스토리 · 수능 합격 부적 (D-1) | `story-bujeok-suneung-d1.mp4` (영상 안 D-1, 60초 이하) | 승인 대기 (11/13 예외) | - |
+| 11/16(월) | 릴스 · 수능 합격 부적 (수능 D-3) | `reel-bujeok-suneung.mp4` (영상 안 D-3), 커버 `reel-bujeok-suneung-cover.jpg` | 승인됨 (운영자 11/14) | 11/16 19:30 예약 알림 (게시 전 파일 크기 확인) |
+| 11/18(수) | 스토리 · 수능 합격 부적 (D-1) | `story-bujeok-suneung-d1.mp4` (영상 안 D-1, 60초 이하) | 승인됨 (운영자 11/14) | 11/18 18:30 예약 알림 |
 | 11/20(금) | 릴스 · 일주 고양이 도감 | `reel-ilju.mp4`, 커버 `reel-ilju-cover.jpg` | 보류 | - |
 | 11/23(월) | 카드뉴스 · 2027 띠별 운세 9장 | `cardnews-2027-1.jpg` ~ `cardnews-2027-9.jpg` | 보류 | - |
 
@@ -208,6 +208,26 @@
 | 후기 | 나중 | 같은 원, 글자 `心` | 실제 손님이 허락한 후기만. 지금은 허락받은 후기가 없어 만들지 않는다 |
 
 규칙: 점괘 하이라이트에는 지금 무료인 타로·일주만 넣는다. 궁합·신년운세·가격·할인·충전 이야기는 결제가 열린 뒤 "소식"에만 넣는다.
+
+### 2026-11-14 운영자 승인 · 게시 예약 (모두 Windsor 로 올림, 올리기 전 주소 200·파일 크기 확인)
+
+| 날짜(KST) | 올릴 것 | 예약 |
+| --- | --- | --- |
+| 11/15(일) 12:30 | 스토리 부적 2장 `highlights/story-bujeok-1.jpg`, `story-bujeok-2.jpg` | trig_01R4gdKfHZwwj4xMwtKtcECS |
+| 11/16(월) 12:30 | 스토리 점괘 2장 `highlights/story-jumgwae-tarot.jpg`, `story-jumgwae-ilju.jpg` (타로·일주 도감은 11/14 코드에서 확인) | trig_01NpEKjF5bEwr8Hs9qtBRS1Y |
+| 11/16(월) 19:30 | 릴스 수능 부적 | trig_019pjd9tN63EixfofGmvPnTr |
+| 11/17(화) 12:30 | 스토리 이용방법 2장 `highlights/story-yongbang-howto.jpg`, `story-yongbang-contact.jpg` | trig_01QnNqytNXkpTHR3deycYcpv |
+| 11/18(수) 18:30 | 스토리 수능 D-1 영상 `story-bujeok-suneung-d1.mp4` | trig_01VCKwwXJmh1aYxD7c6EXwrv |
+
+**운영자가 휴대폰 인스타 앱에서 누를 순서 (스토리가 올라간 뒤, 보관함에 있을 때)**
+커버 파일(`public/promo/highlights/`, 배포 뒤 `https://nyangsin.vercel.app/promo/highlights/<파일>`): 부적 `cover-bujeok.jpg`, 점괘 `cover-jumgwae.jpg`, 이용방법 `cover-yongbang.jpg`. 휴대폰 사진첩에 먼저 저장해 둔다. (`cover-open-later.jpg`, `cover-review-later.jpg` 는 나중용이라 지금 안 쓴다.)
+1. 오른쪽 아래 프로필 사진 > 내 프로필
+2. 프로필 소개 아래 하이라이트 줄의 동그란 `+ 신규`
+3. 보관함에서 해당 스토리 두 장을 눌러 고르기 > `다음`
+4. `커버 수정` > 아래 왼쪽 사진 아이콘 > 위 커버 사진 고르기 > `완료`
+5. 이름 칸에 `부적` / `점괘` / `이용방법` 쓰기 > `추가` (안드로이드는 `완료`)
+6. 부적(11/15 스토리 뒤) > 점괘(11/16 뒤) > 이용방법(11/17 뒤) 순서로 3~5 반복. 수능 D-1 스토리는 하이라이트에 넣지 않는다.
+(메뉴 글자는 앱 버전에 따라 조금 다를 수 있다.)
 
 **11/18 수능 D-1 스토리 (택1)**
 - 안 A(이미 있음, 승인 대기): `story-bujeok-suneung-d1.mp4`.

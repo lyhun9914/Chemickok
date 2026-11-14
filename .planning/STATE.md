@@ -47,7 +47,7 @@ Last activity: 2026-11-14 — 운영실 했음 4건 처리: 꺼진 옛 예약 6�
   - [x] d 새 대화로 옮기기 대신 `/compact` 로 줄이기로(11/14 운영자와 정함). 시험으로 연 새 대화는 연결 이름이 달라 보이고 첫 지시를 운영자 말로 안 받아 멈춤 → 보관
   - [x] e 자동 요약: `.claude/settings.json` `autoCompactWindow: 200000`(11/14). 예약으로 보낸 /compact 는 글로만 와서 실패 → 예약 지움. 이 대화엔 운영자가 `/autocompact 200k` 입력 → threshold 165600(source settings) 확인 11/14
 - [x] 실제 관리자 키(11/14): Vercel ADMIN_KEY 새 값, 테스트도 같은 값, 네트워크 시크릿 두 줄 Bearer 붙여 다시 저장(request_credential prefix Bearer) → `nyang_day` live·test 200
-- [ ] 수능 부적 릴스: 운영자 승인 11/14. Windsor 는 예약 게시 불가 → trig_019pjd9tN63EixfofGmvPnTr 가 11/16(월) 19:30 KST 에 총책임자 대화로 알림, 그때 create_video_post. 올린 뒤 계획표·운영실 카드 고치기
+- [ ] 수능 부적: 운영자 전부 승인 11/14(새 릴스·D-1 스토리·하이라이트 스토리 6장). 예약(총책임자 대화로 알림→Windsor 게시): 11/15 12:30 부적2, 11/16 12:30 점괘2, 11/16 19:30 릴스(trig_019pjd9tN63EixfofGmvPnTr), 11/17 12:30 이용방법2, 11/18 18:30 D-1 스토리. 배포는 다른 담당. 하이라이트 묶기는 운영자가 앱에서(순서는 docs/marketing/instagram-plan.md)
 - [x] "오픈 기념" 배너 끄기: 실제 사이트 banner null 확인(11/14). 인스타 프로필 링크 확인됨(11/14)
 - [ ] **다음** 결제 오픈 당일 준비 — `docs/GUIDE.md` 2-4. 오픈 이벤트 기간·홍보 D+0 은 운영자 결정
 - [ ] **다음** 신년운세 시즌 점검(12/1 전) — 테스트 사이트 결제~감정서, 로그인 회원, 관리자 "홈 첫 화면 주인공"
