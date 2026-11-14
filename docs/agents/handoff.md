@@ -3,10 +3,11 @@
 새 총책임자 대화는 이 문서 → `.planning/STATE.md`(지금 할 일, GSD) → `AGENTS.md` → `docs/agents/autopilot.md`(1-1, 4, 9번) 순서로 읽고 이어서 한다. 운영자에게는 한국어로, 쉽게, 짧게. 읽은 뒤 아래 "이어받기 첫 일"부터 한다.
 
 ## 이어받기 첫 일 (새 총책임자가 바로)
-1. `list_triggers` 로 옛 총책임자 대화 `session_01TLH2dxnfHDqPeNp2Eu5L2r` 에 묶인 예약을 **전부** 이 대화로 다시 만들고(`create_trigger`, 같은 이름·시각·내용) 옛 것은 `update_trigger enabled=false`. 지금 3개:
+1. `list_triggers` 로 옛 총책임자 대화 `session_01TLH2dxnfHDqPeNp2Eu5L2r` 에 묶인 예약을 **전부** 이 대화로 다시 만들고(`create_trigger`, 같은 이름·시각·내용) 옛 것은 `update_trigger enabled=false`. 지금 4개:
    - 매일 순회 `CRON_TZ=Asia/Seoul 7 9 * * *` (`docs/agents/daily-routine.md` 대로)
    - 11/25 10:00 KST 토스 카드사·네이버페이 심사 확인(결제 오픈 순서표 `docs/GUIDE.md` 2-4)
    - 12/1 09:10 KST 오픈 기념 배너 점검
+   - "운영실 버튼 → 냥신 바로 확인"(일정 없음, 대화에 묶임). 새로 만들면 운영실 HTML `poke()` 의 trigger_id 도 새 값으로 바꿔 다시 게시
 2. 이 문서와 `docs/agents/autopilot.md` 9번의 총책임자 대화 번호를 새 번호로 고치고 dev 에 커밋.
 3. 새 대화에 Gmail·Vercel·Supabase·Windsor 커넥터와 `nyangsin-admin` 연결(`nyang_*`)이 보이는지 확인.
 4. 운영자에게 "이어받았다" 한 줄 보고 → 운영자 확인 뒤 옛 대화를 `archive_session`.
@@ -21,7 +22,7 @@
 
 ## 운영자 결정 대기
 1. 수능 부적 인스타 게시: **보류**(11/16 지나면 D-3 영상 다시 만들어야 할 수 있음).
-2. 실제 관리자 키: Vercel `ADMIN_KEY` 는 새 값(11/14). 테스트도 같은 값(dev 전용 값 끔). 남은 것: 이 환경 네트워크 시크릿 `nyangsin-admin.vercel.app`·`nyangsin-test-admin.vercel.app` 두 줄 다 새 키로(운영자 작업, 운영실 inbox/admin-key-secret). 그 전엔 `nyang_*` live·test 가 401.
+2. 실제 관리자 키: Vercel `ADMIN_KEY` 새 값(11/14), 테스트도 같은 값. 키는 맞음(운영자 로그인 OK). 남은 것: 네트워크 시크릿 두 줄 값 앞에 `Bearer ` 가 빠져 401 → 운영자가 ↻ 로 `Bearer 키` 모양으로 다시 넣기(운영실 inbox/admin-key-secret). 그 전엔 `nyang_*` live·test 401.
 3. "오픈 기념" 배너는 꺼짐 확인(11/14). 인스타 프로필 링크 `?open=bujeok` 은 확인 못 함.
 4. 토스 조회용 네트워크 시크릿: 지움(11/14 운영자).
 
@@ -63,3 +64,6 @@
 - 11/14 네트워크 시크릿 창(실제 화면 글자): 호스트 줄마다 ↻(값 바꾸기)·휴지통, 아래 "시크릿 추가"·"취소"·"변경사항 저장", 빨간 "환경 보관" 은 누르면 안 됨(안내에 꼭 적기).
 - 11/14 정리 허락(운영자 "지워도 되는 예약은 앞으로도 알아서, 불필요한 내용도 제거"): 이 프로젝트의 꺼진·끝난 예약, 끝난 운영실 카드, 작업 공간 임시 파일, 낡은 문서 줄은 묻지 않고 지운다. 운영 DB·손님 정보·Vercel 환경변수·돈, 다른 프로젝트(TickTax·리밸런서·출금 알림) 예약·대화는 그대로 확인받는다.
 - 11/14 Vercel 환경변수는 브랜치 전용 값이 공용 값을 이긴다: dev 전용 ADMIN_KEY 가 남아 있어 실제 키를 바꿔도 테스트는 옛 키였다. 지금은 공용 하나만 씀. 민감(sensitive) 값은 MCP 로 이름을 못 바꾸고 지우는 도구도 없어, 없는 브랜치는 거절되니 안 쓰는 브랜치로 옮겨 끈다.
+- 11/14 네트워크 시크릿 값은 헤더 전체(`Bearer 키`)다. ↻ 칸은 적은 그대로 붙으니 운영자가 `Bearer ` 를 같이 쳐야 한다. `request_credential`(prefix Bearer)은 그 호스트에 값이 이미 있으면 덮어쓰지 않고 "saved" 만 돌려준다. 진단: `curl -w %{time_total}` 로 /api/admin/day 401 이 0.3초대면 Bearer 없음, 1초 넘으면 키가 틀림.
+- 11/14 요약 뒤 Artifact 를 file_path 로만 게시하면 새 아티팩트가 생긴다. 운영실은 꼭 원래 `url` 로 다시 게시.
+- 11/14 운영실 버튼(했음·보류·질문·부탁)은 예약 trig_01HVgAdNDA2mpCy7EDeQL8Q6 을 바로 불러 총책임자를 깨운다. 붙는 글(`inbox/<id>: 했음`)은 알림일 뿐, 카드를 직접 읽고 판단한다.
