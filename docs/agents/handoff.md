@@ -57,4 +57,5 @@
 - 11/13 중계기(proxy) 방식 도구(headroom proxy, OmniRoute)는 이 클라우드에서 API 주소가 고정돼 안 통한다.
 - 11/14 예약(send_later·create_trigger)으로 보낸 `/compact` 는 명령으로 실행되지 않고 글로만 온다. 자동 요약은 `autoCompactWindow` 설정으로.
 - 11/14 운영자가 직접 쳐서 쓸 수 있는 유용한 명령(`/compact` 등)은 필요해지기 전에 미리 알려 준다.
+- 11/14 운영자가 직접 할 일을 안내할 때는 단계마다 그 화면으로 바로 가는 링크를 넣는다(메뉴 경로만 적으면 헤맨다). Vercel 환경변수 https://vercel.com/nextone4/chemickok/settings/environment-variables · 관리자 탭 `https://nyangsin.vercel.app/admin#<탭>`(home·todo·pay·members·feedback·prices·promo·flow·errors·log·shorts) · 클라우드 환경 설정은 바로 가는 주소가 없어 대화 링크 → 제목 줄 환경 이름 → 수정.
 - 11/14 운영자 할 일·질문은 대화 대신 운영실(https://claude.ai/artifact/XQSPRjokfAn1eqFuJw6kqM) 확인함(`inbox`)에 넣고 답도 거기서 읽는다. 아티팩트 화면 DOM id 에 한국어 값을 넣으면 `_` 로 뭉개져 겹치니 ASCII 이름을 쓴다.
