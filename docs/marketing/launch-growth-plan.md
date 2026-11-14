@@ -266,3 +266,11 @@ Claude 가 **직접 올릴 수 있는 곳은 인스타 + (연결하면) Threads*
 - Pinterest 접근 등급: https://developers.pinterest.com/docs/key-concepts/access-tiers/
 - 당근 광고(대행사 글, 공식 아님): https://www.i-boss.co.kr/ab-2987-422315
 - 내부: `src/lib/track.ts`, `src/app/api/track/route.ts`, `src/app/api/share/card/route.tsx`, `src/components/ShareButtons.tsx`, `src/lib/config.ts`, `docs/marketing/instagram-plan.md`
+
+## 운영자 결정 (11/14)
+
+- 오픈일: 토스 심사가 끝나는 대로 운영자가 알려 주면 그때 일정을 바로 고친다.
+- 광고비: 최대한 보수적으로. 매출이 어느 정도 나오면 그때 공격적으로 늘린다.
+- 채널: 1순위 쓰레드, 2순위 틱톡·유튜브 쇼츠, 3순위 네이버 블로그.
+- 사이트 바이럴 기능: 나눠서 만든다. 오픈 전에는 측정 기록, 스토리 카드, 초대 보상을, D+7쯤에는 신년 밈 카드와 친구 태그 궁합을 만든다.
+- 나중(성과가 나오면): 해외 결제를 열고 K-문화 느낌으로 해외 바이럴을 한다. 실제로 진행할 때 만든다.
