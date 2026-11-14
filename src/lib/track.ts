@@ -85,7 +85,8 @@ export function trackVisit(search: string) {
   } catch {
     return; // without storage every reload would count again
   }
-  beacon("/api/track", { t: "visit", id, source: sourceOf(search), device: deviceOf() });
+  const q = new URLSearchParams(search);
+  beacon("/api/track", { t: "visit", id, source: sourceOf(search), device: deviceOf(), medium: q.get("utm_medium"), campaign: q.get("utm_campaign") });
 }
 
 export type Step = "start" | "q" | "result" | "paysheet" | "paid" | "game";
@@ -94,6 +95,15 @@ export type Step = "start" | "q" | "result" | "paysheet" | "paid" | "game";
 export function track(t: Step, run: string | null | undefined, extra: { product?: string; status?: string; n?: number; total?: number } = {}) {
   if (!run || typeof window === "undefined") return;
   beacon("/api/track", { t, run, visit: visitId(), ...extra });
+}
+
+export type ShareSurface = "result" | "handoff" | "game" | "invite";
+export type ShareChannel = "kakao" | "story" | "qr" | "copy";
+
+/** A share button pressed: on which page, for which reading (mode, or game:<id>), through which channel. */
+export function trackShare(surface: ShareSurface, channel: ShareChannel, mode?: string | null) {
+  if (typeof window === "undefined") return;
+  beacon("/api/track", { t: "share", visit: visitId(), surface, channel, mode: mode ?? null });
 }
 
 // ───────────── 화면 오류 ─────────────

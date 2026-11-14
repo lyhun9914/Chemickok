@@ -75,7 +75,7 @@ def nyang_day(site: Site = "live") -> str:
 
 @mcp.tool(annotations=READ)
 def nyang_funnel(site: Site = "live", days: int = 7, product: str = "") -> str:
-    """이용 흐름(방문→시작→결과→결제표→결제), 최근 days일(1=오늘, 최대 90). product 로 좁히기."""
+    """이용 흐름(방문→시작→결과→결제표→결제) + 공유 단추(shareBy: 화면×채널, shareModes) + utm 캠페인(campaigns), 최근 days일(1=오늘, 최대 90). product 로 좁히기."""
     return out(get(site, "funnel", days=days, product=product))
 
 

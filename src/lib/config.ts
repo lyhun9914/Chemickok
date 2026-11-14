@@ -33,6 +33,19 @@ export const WELCOME_COINS = 1;
 /** 친구 초대: both get this when a friend's first social login came through your link; at most INVITE_LIMIT friends. */
 export const INVITE_COINS = 1;
 export const INVITE_LIMIT = 20;
+/** 초대 단계 보상: badges only, no extra 냥 (counted from the invites already in the ledger, so nothing is stored). */
+export const INVITE_MILESTONES = [
+  { at: 3, badge: "🏮 단골 배지" },
+  { at: 10, badge: "🐾 수제자 배지" },
+] as const;
+
+/** Badges earned so far and the line under 친구 초대: "친구 2명 왔다냥 · 1명 더 오면 🏮 단골 배지". */
+export function inviteProgress(invites: number) {
+  const earned = INVITE_MILESTONES.filter((m) => invites >= m.at).map((m) => m.badge);
+  const next = INVITE_MILESTONES.find((m) => invites < m.at);
+  const line = `친구 ${invites}명 왔다냥 · ${next ? `${next.at - invites}명 더 오면 ${next.badge}` : "배지 다 모았다냥"}`;
+  return { earned, next: next ?? null, line };
+}
 /** 출석: every STREAK_EVERY-th day in a row (logged in) adds STREAK_COINS. */
 export const STREAK_EVERY = 7;
 export const STREAK_COINS = 1;

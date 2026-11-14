@@ -209,7 +209,22 @@ export interface Funnel {
   sources: { source: string; n: number }[];
   devices: { device: string; n: number }[];
   days: { day: string; visits: number; started: number; paid: number }[];
+  /** 공유 단추 누름 · utm 캠페인 (0012; empty before that migration) */
+  shares: number;
+  shareBy: { surface: string; channel: string; n: number }[];
+  shareModes: { mode: string; n: number }[];
+  campaigns: { source: string; medium: string | null; campaign: string | null; n: number }[];
 }
+
+/** 공유 단추 한 번 누름 */
+export interface TrackShare {
+  visit: string | null;
+  surface: string;
+  mode: string | null;
+  channel: string;
+}
+
+export type TrackVisit = { id: string; source: string; device: string; medium?: string | null; campaign?: string | null };
 
 export interface ErrorLog {
   source: "client" | "server" | "api";
@@ -339,8 +354,9 @@ export interface Db {
   markRefund(orderId: string, r: { amount: number; coins: number; note: string }): Promise<boolean>;
 
   /** 이용 흐름 */
-  trackVisit(v: { id: string; source: string; device: string }): Promise<void>;
+  trackVisit(v: TrackVisit): Promise<void>;
   trackRun(e: TrackRun): Promise<void>;
+  trackShare(e: TrackShare): Promise<void>;
   adminFunnel(since: string, product?: string, status?: string): Promise<Funnel>;
 
   /** 오류 기록: true when this kind of error is new in the last day */
@@ -692,8 +708,13 @@ function supabase(url: string, key: string): Db {
       });
       return rows.length > 0;
     },
-    async trackVisit(v) {
-      await rest("visits?on_conflict=id", { method: "POST", prefer: "resolution=ignore-duplicates", body: JSON.stringify(v) });
+    async trackVisit({ medium, campaign, ...v }) {
+      // medium · campaign only when the link has them, so plain visits keep landing even before 0012
+      const row = { ...v, ...(medium ? { medium } : {}), ...(campaign ? { campaign } : {}) };
+      await rest("visits?on_conflict=id", { method: "POST", prefer: "resolution=ignore-duplicates", body: JSON.stringify(row) });
+    },
+    async trackShare(e) {
+      await rest("shares", { method: "POST", body: JSON.stringify({ visit_id: e.visit, surface: e.surface, mode: e.mode, channel: e.channel }) });
     },
     async trackRun(e) {
       await rest("rpc/track_run", {
@@ -702,7 +723,12 @@ function supabase(url: string, key: string): Db {
       });
     },
     async adminFunnel(since, product, status) {
-      return rest("rpc/admin_funnel", { method: "POST", body: JSON.stringify({ p_since: since, p_product: product ?? null, p_status: status ?? null }) });
+      const [f, v] = await Promise.all([
+        rest<Funnel>("rpc/admin_funnel", { method: "POST", body: JSON.stringify({ p_since: since, p_product: product ?? null, p_status: status ?? null }) }),
+        // before 0012 the 공유 part is just empty, not an error for the whole panel
+        rest<Pick<Funnel, "shares" | "shareBy" | "shareModes" | "campaigns">>("rpc/admin_viral", { method: "POST", body: JSON.stringify({ p_since: since }) }).catch(() => null),
+      ]);
+      return { ...f, ...(v ?? { shares: 0, shareBy: [], shareModes: [], campaigns: [] }) };
     },
     async logError(e) {
       return rest("rpc/log_error", {
@@ -774,6 +800,32 @@ function supabase(url: string, key: string): Db {
 
 const kstDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 
+/** The memory DB's admin_viral (0012): shares by page × channel and by mode, visits by utm source × medium × campaign. */
+function viralOf(since: string, visits: { source: string; medium?: string | null; campaign?: string | null }[], all: (TrackShare & { day: string })[]): Pick<Funnel, "shares" | "shareBy" | "shareModes" | "campaigns"> {
+  const s = all.filter((x) => x.day >= since);
+  const tally = <T,>(xs: T[], key: (x: T) => string) => {
+    const out = new Map<string, { x: T; n: number }>();
+    for (const x of xs) {
+      const k = key(x);
+      const e = out.get(k);
+      if (e) e.n++;
+      else out.set(k, { x, n: 1 });
+    }
+    return [...out.values()].sort((a, b) => b.n - a.n).slice(0, 20);
+  };
+  return {
+    shares: s.length,
+    shareBy: tally(s, (x) => `${x.surface}|${x.channel}`).map(({ x, n }) => ({ surface: x.surface, channel: x.channel, n })),
+    shareModes: tally(s.filter((x) => x.mode), (x) => x.mode!).map(({ x, n }) => ({ mode: x.mode!, n })),
+    campaigns: tally(visits.filter((x) => x.medium || x.campaign), (x) => `${x.source}|${x.medium}|${x.campaign}`).map(({ x, n }) => ({
+      source: x.source,
+      medium: x.medium ?? null,
+      campaign: x.campaign ?? null,
+      n,
+    })),
+  };
+}
+
 function memory(): Db {
   type Mem = {
     users: DbUser[];
@@ -784,7 +836,8 @@ function memory(): Db {
     attendance: Set<string>;
     gifts: GiftRow[];
     pairs: PairRow[];
-    visits: { id: string; day: string; source: string; device: string }[];
+    visits: { id: string; day: string; source: string; device: string; medium?: string | null; campaign?: string | null }[];
+    shares?: (TrackShare & { day: string })[];
     runs: { id: string; visit_id: string | null; day: string; product: string; status: string | null; total_q: number; max_q: number; result_at: string | null; paysheet_at: string | null; paid_at: string | null }[];
     errors: (ErrorLog & { created_at: string })[];
     settings: Record<string, unknown>;
@@ -1180,6 +1233,9 @@ function memory(): Db {
     async trackVisit(v) {
       if (!m.visits.some((x) => x.id === v.id)) m.visits.push({ ...v, day: kstDay() });
     },
+    async trackShare(e) {
+      (m.shares ??= []).push({ ...e, day: kstDay() });
+    },
     async trackRun(e) {
       let r = m.runs.find((x) => x.id === e.run);
       if (!r) {
@@ -1223,6 +1279,7 @@ function memory(): Db {
         sources: Object.entries(count(v, (x) => x.source)).map(([source, xs]) => ({ source, n: xs.length })).sort((a, b) => b.n - a.n).slice(0, 10),
         devices: Object.entries(count(v, (x) => x.device)).map(([device, xs]) => ({ device, n: xs.length })).sort((a, b) => b.n - a.n),
         days,
+        ...viralOf(since, v, m.shares ?? []),
       };
     },
     async logError(e) {

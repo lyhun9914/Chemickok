@@ -1,14 +1,20 @@
 import { isFortuneCard, type ShareableCard, type StoryCard } from "@/models/types";
 
 /**
- * The Instagram-story image (1080×1920), drawn straight onto a canvas: a lacquered talisman card in a dark,
- * candle-lit frame. Drawing takes a few milliseconds, unlike screenshotting the DOM, which froze phones for
- * seconds and sometimes failed (cross-origin font CSS).
+ * The Instagram / Threads story image (1080×1920), drawn straight onto a canvas: one big result line, the 냥신 himself
+ * large in the middle, a hanji slip with the detail, and a "너도 해보라냥" call to action with the site address.
+ * Everything sits between y 250 and 1670: the story app's own bars cover the top and bottom 250px.
+ * Drawing takes a few milliseconds, unlike screenshotting the DOM, which froze phones for seconds.
  */
 const W = 1080;
 const H = 1920;
+/** story apps draw their bars over the top and bottom 250px */
+export const STORY_SAFE = 250;
 const RITUAL = "'Song Myung', 'Nanum Myeongjo', serif";
 const SANS = "'Pretendard Variable', Pretendard, system-ui, sans-serif";
+const EMOJI = `"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+const GOLD = "#e0b866";
+const CREAM = "#f7e6bd";
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -20,12 +26,11 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-/** Centered text that wraps to `maxW`; returns the y after the last line. */
-function wrapCenter(ctx: CanvasRenderingContext2D, text: string, cx: number, y: number, maxW: number, lineH: number, maxLines = 3) {
-  const words = text.split(" ");
+/** Words into lines no wider than `maxW` (a single long word still gets its own line). */
+function linesOf(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
   const lines: string[] = [];
   let cur = "";
-  for (const w of words) {
+  for (const w of text.split(" ")) {
     const t = cur ? `${cur} ${w}` : w;
     if (ctx.measureText(t).width > maxW && cur) {
       lines.push(cur);
@@ -33,33 +38,28 @@ function wrapCenter(ctx: CanvasRenderingContext2D, text: string, cx: number, y: 
     } else cur = t;
   }
   if (cur) lines.push(cur);
-  lines.slice(0, maxLines).forEach((l, i) => ctx.fillText(l, cx, y + i * lineH));
-  return y + Math.min(lines.length, maxLines) * lineH;
+  return lines;
 }
 
-/** Left-aligned text on at most two lines (the hanji slip, clear of the seal). */
-function wrapLeft(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number) {
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let cur = "";
-  for (const w of words) {
-    const t = cur ? `${cur} ${w}` : w;
-    if (ctx.measureText(t).width > maxW && cur) {
-      lines.push(cur);
-      cur = w;
-    } else cur = t;
+/** The biggest font (from `max` down to `min`) at which `text` fits `maxLines` lines of `maxW`. */
+function fit(ctx: CanvasRenderingContext2D, text: string, font: (px: number) => string, max: number, min: number, maxW: number, maxLines: number) {
+  for (let px = max; ; px -= 4) {
+    ctx.font = font(px);
+    const lines = linesOf(ctx, text, maxW);
+    const wide = lines.some((l) => ctx.measureText(l).width > maxW);
+    const ok = lines.length <= maxLines && !wide;
+    if (ok || px <= min) return { px, lines: lines.slice(0, maxLines), ok };
   }
-  if (cur) lines.push(cur);
-  lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, x, y + i * lineH));
 }
 
-/** 냥신 mascot: reuse the SVG already on the page. */
-async function catImage(): Promise<HTMLImageElement | null> {
-  const svg = document.querySelector('svg[aria-label="냥신"]');
-  if (!svg) return null;
-  const xml = new XMLSerializer().serializeToString(svg).replace(/width="\d+"/, 'width="240"').replace(/height="\d+"/, 'height="240"');
+/** The 냥신 SVG as an image, at twice the size it's drawn so it stays sharp. */
+async function catImage(svg: SVGSVGElement | null, px: number): Promise<HTMLImageElement | null> {
+  const el = svg ?? document.querySelector<SVGSVGElement>('svg[aria-label="냥신"]');
+  if (!el) return null;
+  let xml = new XMLSerializer().serializeToString(el).replace(/width="\d+"/, `width="${px * 2}"`).replace(/height="\d+"/, `height="${px * 2}"`);
+  if (!xml.includes("xmlns=")) xml = xml.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
   const img = new Image();
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml.includes("xmlns=") ? xml : xml.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"'))}`;
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`;
   try {
     await img.decode();
     return img;
@@ -68,224 +68,202 @@ async function catImage(): Promise<HTMLImageElement | null> {
   }
 }
 
-export async function drawStoryImage(card: ShareableCard, myName: string, partnerName: string): Promise<Blob> {
-  // 사주·대운·재회·배우자 cards carry their own lines; love cards are drawn from the type and the match.
-  const f = isFortuneCard(card) ? card : null;
-  const teaser = card as StoryCard;
-  await Promise.all([document.fonts?.load(`80px ${RITUAL}`), document.fonts?.load(`40px ${SANS}`)].map((p) => p?.catch(() => null)));
+/** What goes on the card, for a love reading (궁합 or 연애 유형) or a 사주·운세 one. */
+function contentOf(card: ShareableCard, me: string, partner: string) {
+  if (isFortuneCard(card))
+    return { eyebrow: card.label, hook: card.headline, sub: card.sub, emoji: card.emoji, slip: { label: card.slipLabel, value: card.slipValue, text: card.slipText } };
+  const t = card as StoryCard;
+  if (t.couple)
+    return {
+      eyebrow: `${me} · ${partner} 궁합`,
+      hook: `궁합 ${t.couple.matchScore}점`,
+      sub: t.couple.coupleTitle,
+      emoji: t.myType.emoji,
+      slip: { label: `${me}의 연애 유형`, value: undefined, text: `${t.myType.emoji} ${t.myType.name}` },
+    };
+  return {
+    eyebrow: `${me}의 연애 유형은`,
+    hook: t.myType.name,
+    sub: `“${t.myType.tagline}”`,
+    emoji: t.myType.emoji,
+    slip: { label: "냥신이 점지한 인연", value: undefined, text: `${t.match.bestType.emoji} ${t.match.bestType.name}` },
+  };
+}
+
+export async function drawStoryImage(card: ShareableCard, myName: string, partnerName: string, cat: SVGSVGElement | null = null): Promise<Blob> {
+  const c = contentOf(card, myName, partnerName);
+  await Promise.all([document.fonts?.load(`80px ${RITUAL}`), document.fonts?.load(`700 40px ${SANS}`)].map((p) => p?.catch(() => null)));
   const cv = document.createElement("canvas");
   cv.width = W;
   cv.height = H;
   const ctx = cv.getContext("2d")!;
+  const glowAt = (x: number, y: number, r0: number, r1: number, from: string, to: string) => {
+    const g = ctx.createRadialGradient(x, y, r0, x, y, r1);
+    g.addColorStop(0, from);
+    g.addColorStop(1, to);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  };
 
-  // Room: soot black, candlelight from below, red haze above, vignette.
-  ctx.fillStyle = "#0a0605";
+  // Room: soot black, red haze from the top, candlelight behind the cat, embers, vignette.
+  ctx.fillStyle = "#0b0605";
   ctx.fillRect(0, 0, W, H);
-  let g = ctx.createRadialGradient(W / 2, H * 1.02, 50, W / 2, H, H * 0.75);
-  g.addColorStop(0, "rgba(255,150,60,0.35)");
-  g.addColorStop(1, "rgba(255,150,60,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-  g = ctx.createRadialGradient(W / 2, -100, 50, W / 2, 0, 900);
-  g.addColorStop(0, "rgba(150,30,24,0.4)");
-  g.addColorStop(1, "rgba(150,30,24,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-  // drifting embers
-  for (let i = 0; i < 70; i++) {
+  glowAt(W / 2, -120, 60, 1000, "rgba(160,34,26,0.55)", "rgba(160,34,26,0)");
+  glowAt(W / 2, 1010, 40, 760, "rgba(255,160,70,0.34)", "rgba(255,150,60,0)");
+  glowAt(W / 2, H + 80, 40, 900, "rgba(255,140,50,0.28)", "rgba(255,140,50,0)");
+  for (let i = 0; i < 60; i++) {
     const x = (i * 397) % W;
     const y = (i * 911) % H;
     const r = 1.5 + ((i * 7) % 5);
     const eg = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
-    eg.addColorStop(0, `rgba(255,180,90,${0.15 + ((i * 13) % 40) / 100})`);
+    eg.addColorStop(0, `rgba(255,190,100,${0.12 + ((i * 13) % 35) / 100})`);
     eg.addColorStop(1, "rgba(255,140,60,0)");
     ctx.fillStyle = eg;
     ctx.fillRect(x - r * 3, y - r * 3, r * 6, r * 6);
   }
-  g = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.75);
-  g.addColorStop(0, "rgba(0,0,0,0)");
-  g.addColorStop(1, "rgba(0,0,0,0.75)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+  glowAt(W / 2, H / 2, H * 0.32, H * 0.78, "rgba(0,0,0,0)", "rgba(0,0,0,0.7)");
 
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#c9a25a";
-  ctx.font = `44px ${RITUAL}`;
-  ctx.fillText("神   골목 끝 점집   神", W / 2, 190);
 
-  // Card: lacquer frame, brass rim, dark inner panel with a warm glow.
-  const cx = 110;
-  const cy = 260;
-  const cw = W - 220;
-  const ch = 1380;
-  roundRect(ctx, cx, cy, cw, ch, 56);
-  g = ctx.createLinearGradient(cx, cy, cx + cw, cy + ch);
-  g.addColorStop(0, "#3a1a0e");
-  g.addColorStop(0.55, "#140806");
-  g.addColorStop(1, "#2a0d08");
-  ctx.fillStyle = g;
-  ctx.shadowColor = "rgba(0,0,0,0.85)";
-  ctx.shadowBlur = 60;
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = "rgba(201,162,90,0.75)";
-  ctx.stroke();
-  roundRect(ctx, cx + 26, cy + 26, cw - 52, ch - 52, 36);
-  g = ctx.createRadialGradient(W / 2, cy + 520, 40, W / 2, cy + 520, 700);
-  g.addColorStop(0, "#3a2214");
-  g.addColorStop(1, "#0e0807");
-  ctx.fillStyle = g;
+  // Eyebrow: who and what, in a thin brass pill.
+  ctx.font = `600 38px ${SANS}`;
+  const ew = Math.min(W - 160, ctx.measureText(c.eyebrow).width + 96);
+  roundRect(ctx, (W - ew) / 2, 262, ew, 72, 36);
+  ctx.fillStyle = "rgba(224,184,102,0.10)";
   ctx.fill();
   ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(201,162,90,0.35)";
+  ctx.strokeStyle = "rgba(224,184,102,0.55)";
   ctx.stroke();
+  ctx.fillStyle = GOLD;
+  ctx.fillText(c.eyebrow, W / 2, 312, W - 220);
 
-  ctx.font = `34px ${RITUAL}`;
-  ctx.fillStyle = "#c9a25a";
-  ctx.textAlign = "left";
-  ctx.fillText("神", cx + 52, cy + 92);
-  ctx.textAlign = "right";
-  ctx.fillText("占", cx + cw - 52, cy + 92);
-  ctx.textAlign = "center";
+  // Hook: the result, on one line if it fits big enough (no lone word on a second line), else two.
+  const hookFont = (px: number) => `${px}px ${RITUAL}`;
+  const one = fit(ctx, c.hook, hookFont, 128, 96, W - 140, 1);
+  const hook = one.ok ? one : fit(ctx, c.hook, hookFont, 128, 84, W - 140, 2);
+  const lh = Math.round(hook.px * 1.12);
+  let y = 384 + hook.px;
+  ctx.fillStyle = CREAM;
+  ctx.shadowColor = "rgba(240,150,60,0.6)";
+  ctx.shadowBlur = 36;
+  hook.lines.forEach((l, i) => ctx.fillText(l, W / 2, y + i * lh));
+  ctx.shadowBlur = 0;
+  y += (hook.lines.length - 1) * lh;
 
-  const cat = await catImage();
-  if (cat) ctx.drawImage(cat, W / 2 - 150, cy + 50, 64, 64);
-  ctx.font = `36px ${RITUAL}`;
-  ctx.fillStyle = "#c9a25a";
-  ctx.fillText("냥 신   점 괘", W / 2 + 30, cy + 96);
+  // Sub line: one line under a two-line hook, so neither reaches the cat.
+  const sub = fit(ctx, c.sub, (px) => `500 ${px}px ${SANS}`, 44, 32, W - 200, hook.lines.length > 1 ? 1 : 2);
+  ctx.fillStyle = "#d6c3a0";
+  const subLh = Math.round(sub.px * 1.3);
+  sub.lines.forEach((l, i) => ctx.fillText(l, W / 2, y + 88 + i * subLh, W - 160));
+  const textEnd = y + 88 + (sub.lines.length - 1) * subLh + 16;
 
-  ctx.font = `34px ${SANS}`;
-  ctx.fillStyle = "#a8977e";
-  ctx.fillText(f ? f.label : `${myName}의 연애 팔자`, W / 2, cy + 200);
-
-  // Emoji in a brass ring with candle glow.
-  const ey = cy + 400;
-  g = ctx.createRadialGradient(W / 2, ey, 20, W / 2, ey, 200);
-  g.addColorStop(0, "rgba(255,170,80,0.45)");
-  g.addColorStop(1, "rgba(255,120,40,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(W / 2 - 220, ey - 220, 440, 440);
+  // The 냥신, big and centered on a candle-lit disc with a brass ring; the reading's emoji as a seal on the ring.
+  // centered in the room left between the text and the slip: bigger when the hook took one line
+  // the slip below takes a second line for a long text, and then starts higher
+  const slipFont = (px: number) => `700 ${px}px ${SANS}`;
+  ctx.font = `68px ${RITUAL}`;
+  const valueW = c.slip.value ? ctx.measureText(c.slip.value).width + 32 : 0;
+  const slipW = W - 240 - 88 - valueW;
+  const slipOne = fit(ctx, c.slip.text, slipFont, 44, 34, slipW, 1);
+  const slip = slipOne.ok ? slipOne : fit(ctx, c.slip.text, slipFont, 38, 28, slipW, 2);
+  const slipLh = Math.round(slip.px * 1.3);
+  const sh = 124 + (slip.lines.length - 1) * slipLh;
+  const sy = 1476 - sh;
+  const R = Math.min(300, Math.round((sy - textEnd) / 2 - 44));
+  const cy = Math.round((textEnd + sy) / 2);
   ctx.beginPath();
-  ctx.arc(W / 2, ey, 140, 0, Math.PI * 2);
-  g = ctx.createRadialGradient(W / 2, ey, 10, W / 2, ey, 140);
-  g.addColorStop(0, "rgba(255,180,90,0.3)");
-  g.addColorStop(1, "rgba(60,15,8,0.85)");
-  ctx.fillStyle = g;
+  ctx.arc(W / 2, cy, R, 0, Math.PI * 2);
+  const disc = ctx.createRadialGradient(W / 2, cy - 60, 30, W / 2, cy, R);
+  disc.addColorStop(0, "rgba(255,196,120,0.42)");
+  disc.addColorStop(0.65, "rgba(120,40,20,0.35)");
+  disc.addColorStop(1, "rgba(40,12,8,0.6)");
+  ctx.fillStyle = disc;
   ctx.fill();
   ctx.lineWidth = 6;
-  ctx.strokeStyle = "rgba(201,162,90,0.8)";
+  ctx.strokeStyle = "rgba(224,184,102,0.85)";
   ctx.stroke();
-  ctx.font = `150px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+  ctx.beginPath();
+  ctx.arc(W / 2, cy, R + 22, 0, Math.PI * 2);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(224,184,102,0.35)";
+  ctx.stroke();
+  const size = Math.round(R * 1.84);
+  const img = await catImage(cat, size);
+  if (img) {
+    ctx.shadowColor = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 18;
+    ctx.drawImage(img, W / 2 - size / 2, cy - size / 2 - 10, size, size);
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+  }
+  const bx = W / 2 + R * Math.cos(Math.PI / 4);
+  const by = cy + R * Math.sin(Math.PI / 4);
+  ctx.beginPath();
+  ctx.arc(bx, by, 64, 0, Math.PI * 2);
+  ctx.fillStyle = "#a3261b";
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 20;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = GOLD;
+  ctx.stroke();
+  ctx.font = `64px ${EMOJI}`;
   ctx.textBaseline = "middle";
-  ctx.fillText(f ? f.emoji : teaser.myType.emoji, W / 2, ey + 8);
+  ctx.fillText(c.emoji, bx, by + 4);
   ctx.textBaseline = "alphabetic";
 
-  ctx.font = `92px ${RITUAL}`;
-  ctx.fillStyle = "#f3dfae";
-  ctx.shadowColor = "rgba(230,140,50,0.55)";
-  ctx.shadowBlur = 30;
-  let y = wrapCenter(ctx, f ? f.headline : teaser.myType.name, W / 2, ey + 270, cw - 140, 104, 2);
-  ctx.shadowBlur = 0;
-  ctx.font = `40px ${SANS}`;
-  ctx.fillStyle = "#c8b79a";
-  y = wrapCenter(ctx, f ? f.sub : `“${teaser.myType.tagline}”`, W / 2, y + 20, cw - 160, 54, 2);
-  const meta = f
-    ? f.meta
-    : [teaser.myType.code, teaser.match.myMbti, teaser.saju && `${teaser.saju.dayMaster.hangul}${teaser.saju.dayMaster.hanja}일간`].filter(Boolean).join("  ·  ");
-  ctx.font = `30px ${SANS}`;
-  ctx.fillStyle = "#8f7d63";
-  ctx.fillText(meta, W / 2, y + 30);
-
-  // Hanji slip with the match or the couple score, and a red seal.
-  const sx = cx + 70;
-  const sw = cw - 140;
-  const sh = f ? 260 : teaser.couple ? 270 : 230;
-  const sy = cy + ch - sh - 90;
-  roundRect(ctx, sx, sy, sw, sh, 16);
-  g = ctx.createLinearGradient(0, sy, 0, sy + sh);
-  g.addColorStop(0, "#e9dcbd");
-  g.addColorStop(1, "#d6c49c");
-  ctx.fillStyle = g;
+  // Hanji slip: the detail (찰떡 인연 · 연애 유형 · the reading's own slip).
+  const sx = 120;
+  const sw = W - 240;
+  roundRect(ctx, sx, sy, sw, sh, 20);
+  const paper = ctx.createLinearGradient(0, sy, 0, sy + sh);
+  paper.addColorStop(0, "#efe2c2");
+  paper.addColorStop(1, "#dac79e");
+  ctx.fillStyle = paper;
   ctx.fill();
-  ctx.textAlign = "left";
-  if (f) {
-    ctx.font = `32px ${SANS}`;
-    ctx.fillStyle = "#6b4a2a";
-    ctx.fillText(f.slipLabel, sx + 44, sy + 70);
-    if (f.slipValue) {
-      ctx.font = `76px ${RITUAL}`;
-      ctx.fillStyle = "#8e1f17";
-      ctx.textAlign = "right";
-      ctx.fillText(f.slipValue, sx + sw - 120, sy + 92);
-      ctx.textAlign = "left";
-    }
-    ctx.font = `bold 40px ${SANS}`;
-    ctx.fillStyle = "#2a1a10";
-    wrapLeft(ctx, f.slipText, sx + 44, sy + 160, sw - 190, 54);
-  } else if (teaser.couple) {
-    ctx.font = `32px ${SANS}`;
-    ctx.fillStyle = "#6b4a2a";
-    ctx.fillText(`${myName} · ${partnerName} 궁합`, sx + 44, sy + 70);
-    ctx.font = `84px ${RITUAL}`;
+  // centered like the rest, unless a value sits on the right
+  const tx = c.slip.value ? sx + 44 : W / 2;
+  ctx.textAlign = c.slip.value ? "left" : "center";
+  ctx.font = `600 32px ${SANS}`;
+  ctx.fillStyle = "#7a5330";
+  ctx.fillText(c.slip.label, tx, sy + 46, sw - 88);
+  if (c.slip.value) {
+    ctx.font = `68px ${RITUAL}`;
     ctx.fillStyle = "#8e1f17";
     ctx.textAlign = "right";
-    ctx.fillText(`${teaser.couple.matchScore}점`, sx + sw - 120, sy + 92);
-    ctx.textAlign = "left";
-    ctx.font = `bold 40px ${SANS}`;
-    ctx.fillStyle = "#2a1a10";
-    // Long couple titles wrap onto a second line, clear of the seal in the corner.
-    const words = teaser.couple.coupleTitle.split(" ");
-    const lines: string[] = [];
-    let cur = "";
-    for (const w of words) {
-      const t = cur ? `${cur} ${w}` : w;
-      if (ctx.measureText(t).width > sw - 190 && cur) {
-        lines.push(cur);
-        cur = w;
-      } else cur = t;
-    }
-    if (cur) lines.push(cur);
-    lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, sx + 44, sy + 160 + i * 54));
-  } else {
-    ctx.font = `32px ${SANS}`;
-    ctx.fillStyle = "#6b4a2a";
-    ctx.fillText("냥신이 점지한 인연", sx + 44, sy + 64);
-    ctx.font = `52px ${RITUAL}`;
-    ctx.fillStyle = "#2a1a10";
-    ctx.fillText(`${teaser.match.bestType.emoji} ${teaser.match.bestType.name}`, sx + 44, sy + 136);
-    ctx.font = `30px ${SANS}`;
-    ctx.fillStyle = "#6b4a2a";
-    ctx.fillText(
-      [teaser.match.bestMbti.join("·"), teaser.match.goodAnimals.slice(0, 2).map((a) => `${a}띠`).join("·")].filter(Boolean).join("  |  "),
-      sx + 44,
-      sy + 190,
-    );
+    ctx.fillText(c.slip.value, sx + sw - 44, sy + 94);
   }
-  ctx.save();
-  ctx.translate(sx + sw - 30, sy + sh - 10);
-  ctx.rotate(0.14);
-  roundRect(ctx, -70, -70, 140, 140, 14);
-  ctx.fillStyle = "#a3261b";
-  ctx.shadowColor = "rgba(0,0,0,0.4)";
-  ctx.shadowBlur = 12;
+  ctx.font = slipFont(slip.px);
+  ctx.fillStyle = "#2a1a10";
+  ctx.textAlign = c.slip.value ? "left" : "center";
+  slip.lines.forEach((l, i) => ctx.fillText(l, tx, sy + 98 + i * slipLh, slipW));
+  ctx.textAlign = "center";
+
+  // Call to action and the address, ending above the bottom safe area.
+  const bw = 700;
+  const bh = 96;
+  const btnY = 1502;
+  roundRect(ctx, (W - bw) / 2, btnY, bw, bh, bh / 2);
+  const btn = ctx.createLinearGradient((W - bw) / 2, 0, (W + bw) / 2, 0);
+  btn.addColorStop(0, "#c2361f");
+  btn.addColorStop(1, "#e2702f");
+  ctx.fillStyle = btn;
+  ctx.shadowColor = "rgba(226,112,47,0.55)";
+  ctx.shadowBlur = 40;
   ctx.fill();
   ctx.shadowBlur = 0;
-  ctx.fillStyle = "#f6dcc0";
-  ctx.textAlign = "center";
-  ctx.font = `40px ${RITUAL}`;
-  ctx.fillText("냥신", 0, -8);
-  ctx.fillText("之印", 0, 42);
-  ctx.restore();
-
-  ctx.textAlign = "center";
-  ctx.font = `46px ${RITUAL}`;
-  ctx.fillStyle = "#ece2cf";
-  ctx.fillText("…너도 점 보러 와라냥", W / 2, cy + ch + 150);
-  ctx.font = `34px ${SANS}`;
-  ctx.fillStyle = "#c9a25a";
-  ctx.fillText(window.location.host, W / 2, cy + ch + 210);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(255,220,160,0.7)";
+  ctx.stroke();
+  ctx.font = `700 50px ${SANS}`;
+  ctx.fillStyle = "#fff6e6";
+  ctx.fillText("너도 해보라냥  →", W / 2, btnY + bh / 2 + 18);
+  ctx.font = `600 38px ${SANS}`;
+  ctx.fillStyle = GOLD;
+  ctx.fillText(window.location.host, W / 2, H - STORY_SAFE - 8);
 
   // JPEG keeps it ~10x smaller than PNG, so the share sheet opens fast.
   return new Promise((res, rej) => cv.toBlob((b) => (b ? res(b) : rej(new Error("이미지 생성에 실패했어요."))), "image/jpeg", 0.92));

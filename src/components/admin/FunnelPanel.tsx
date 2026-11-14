@@ -22,6 +22,10 @@ type Funnel = {
   sources: { source: string; n: number }[];
   devices: { device: string; n: number }[];
   days: { day: string; visits: number; started: number; paid: number }[];
+  shares?: number;
+  shareBy?: { surface: string; channel: string; n: number }[];
+  shareModes?: { mode: string; n: number }[];
+  campaigns?: { source: string; medium: string | null; campaign: string | null; n: number }[];
 };
 
 const PRODUCTS: (Mode | "")[] = ["", "couple", "solo", "newyear", "saju", "daeun", "reunion", "spouse"];
@@ -36,6 +40,8 @@ const GAME: Record<string, string> = {
   contact: "할까? 말까?",
   exam: "합격 부적",
 };
+const SURFACE: Record<string, string> = { result: "결과 화면", handoff: "이어 보기", game: "미니게임", invite: "친구 초대" };
+const CHANNEL: Record<string, string> = { kakao: "카톡", story: "스토리", qr: "PC QR", copy: "링크 복사" };
 const DEVICE: Record<string, string> = { mobile: "폰 브라우저", pc: "PC", "kakao-app": "카톡 안", "in-app": "인스타·네이버 등 앱 안" };
 
 const productName = (p: string) => (p === "love" ? "상품 고르는 중" : p in GAME ? GAME[p] : (productOf(p as Mode)?.name ?? p));
@@ -248,6 +254,33 @@ export function FunnelPanel() {
                   <Bar key={g.product} label={GAME[g.product.slice(5)] ?? g.product} value={g.started} max={data.games[0]?.started ?? 1} />
                 ))}
                 {data.games.length === 0 && <li className="text-[13px] text-muted">아직 없어요.</li>}
+              </ul>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-[13px] font-bold">공유 단추 {(data.shares ?? 0).toLocaleString("ko-KR")}번</p>
+              <ul className="mt-1">
+                {(data.shareBy ?? []).map((s) => (
+                  <Bar key={`${s.surface}|${s.channel}`} label={`${SURFACE[s.surface] ?? s.surface} · ${CHANNEL[s.channel] ?? s.channel}`} value={s.n} max={data.shareBy?.[0]?.n ?? 1} />
+                ))}
+                {!data.shareBy?.length && <li className="text-[13px] text-muted">아직 없어요.</li>}
+              </ul>
+              {!!data.shareModes?.length && (
+                <p className="mt-2 text-[12px] text-muted">
+                  {data.shareModes.map((m) => `${m.mode.startsWith("game:") ? (GAME[m.mode.slice(5)] ?? m.mode) : productName(m.mode)} ${m.n}`).join(" · ")}
+                </p>
+              )}
+            </div>
+            <div>
+              <p className="text-[13px] font-bold">캠페인 (utm)</p>
+              <ul className="mt-1">
+                {(data.campaigns ?? []).map((c) => {
+                  const label = [c.source, c.medium, c.campaign].filter(Boolean).join(" / ");
+                  return <Bar key={label} label={label} value={c.n} max={data.campaigns?.[0]?.n ?? 1} note={`${pct(c.n, data.visits)}%`} />;
+                })}
+                {!data.campaigns?.length && <li className="text-[13px] text-muted">utm_medium·utm_campaign 붙은 방문이 아직 없어요.</li>}
               </ul>
             </div>
           </div>

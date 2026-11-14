@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { GIFTS_ON, INVITE_COINS, PRODUCTS, nyang } from "@/lib/config";
+import { GIFTS_ON, INVITE_COINS, PRODUCTS, inviteProgress, nyang } from "@/lib/config";
+import { trackShare } from "@/lib/track";
 import { MBTI_TYPES } from "@/lib/questions";
 import type { Gender, Mode, PersonInput } from "@/models/types";
 import { accountApi, coinApi, type CoinHistoryRow, type ReadingSummary, type Wallet } from "@/services/apiClient";
@@ -84,7 +85,10 @@ function WalletSection() {
   const invite = () =>
     shareService
       .shareKakao({ title: "냥신 점괘 초대장 🐾", description: `골목 끝 고양이 점집이다냥. 이 링크로 가입하면 복채 ${nyang(INVITE_COINS)}을 더 얹어 준다냥 🎁`, url: link })
-      .then((o) => o === "copied" && setNote("링크를 복사했다냥 📋"));
+      .then((o) => {
+        if (o !== "unsupported") trackShare("invite", o === "copied" ? "copy" : "kakao");
+        if (o === "copied") setNote("링크를 복사했다냥 📋");
+      });
   const history = wallet?.history ?? [];
   const paid = wallet?.paid ?? [];
   // 충전 냥 lapsing within 30 days
@@ -153,8 +157,22 @@ function WalletSection() {
         <div className="mt-3 rounded-2xl border border-line bg-surface p-4">
           <p className="text-[14.5px] font-bold">🤝 친구 초대하고 {nyang(INVITE_COINS)}씩 받기</p>
           <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
-            내 링크로 들어온 친구가 {social}로 처음 가입하면 둘 다 {nyang(INVITE_COINS)}씩 받는다냥. (지금까지 {wallet.invites}명 · 최대 {wallet.inviteLimit}명)
+            내 링크로 들어온 친구가 {social}로 처음 가입하면 둘 다 {nyang(INVITE_COINS)}씩 받는다냥. (최대 {wallet.inviteLimit}명)
           </p>
+          {(() => {
+            const p = inviteProgress(wallet.invites);
+            return (
+              <div className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2">
+                <p className="text-[13px] font-semibold text-peach">{p.line}</p>
+                {p.next && (
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={p.next.at} aria-valuenow={wallet.invites} aria-label="다음 배지까지">
+                    <div className="h-full rounded-full bg-peach" style={{ width: `${(wallet.invites / p.next.at) * 100}%` }} />
+                  </div>
+                )}
+                {p.earned.length > 0 && <p className="mt-1.5 text-[12px] text-muted">받은 배지 · {p.earned.join(" · ")}</p>}
+              </div>
+            );
+          })()}
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button onClick={invite} className="rounded-xl bg-[#FEE500] py-2.5 text-[13.5px] font-bold text-[#191600]">
               카카오톡으로 초대
@@ -163,7 +181,10 @@ function WalletSection() {
               onClick={() =>
                 navigator.clipboard
                   ?.writeText(link)
-                  .then(() => setNote("초대 링크를 복사했다냥 📋"))
+                  .then(() => {
+                    trackShare("invite", "copy");
+                    setNote("초대 링크를 복사했다냥 📋");
+                  })
                   .catch(() => setNote(link))
               }
               className="rounded-xl border border-line py-2.5 text-[13.5px] font-semibold"

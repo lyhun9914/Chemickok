@@ -7,7 +7,9 @@ import { bujeokOf, drawBujeok } from "@/lib/bujeok";
 import { drawStoryImage } from "@/lib/storyImage";
 import { isFortuneCard, type ShareableCard } from "@/models/types";
 import { gameUrl, isMobile, shareRef, shareService, shareUrl, siteUrl, type ShareOutcome } from "@/services/shareService";
+import { trackShare, type ShareChannel } from "@/lib/track";
 import { useAppStore } from "@/store/useAppStore";
+import { Nyang } from "./Nyang";
 import { ShareCard } from "./ShareCard";
 import { Overlay } from "./Overlay";
 
@@ -31,12 +33,14 @@ interface Props {
   kakao?: { title: string; description: string };
   kakaoLabel?: string;
   instaLabel?: string;
+  /** where this sits, for the 공유 기록 (a mini game is always "game") */
+  surface?: "result" | "handoff";
 }
 
 /** The Instagram story picture: the 합격 부적 itself for a 부적 card, the talisman card for everything else. */
-function drawStory(card: ShareableCard, me: string, partner: string): Promise<Blob> {
+function drawStory(card: ShareableCard, me: string, partner: string, cat: SVGSVGElement | null): Promise<Blob> {
   const charm = isFortuneCard(card) ? bujeokOf(card, me, siteUrl()) : null;
-  return charm ? drawBujeok(charm) : drawStoryImage(card, me, partner);
+  return charm ? drawBujeok(charm) : drawStoryImage(card, me, partner, cat);
 }
 
 export function ShareButtons({
@@ -50,8 +54,13 @@ export function ShareButtons({
   kakao,
   kakaoLabel = "카카오톡으로 점괘 전하기",
   instaLabel = "인스타 스토리에 점괘 걸기",
+  surface = "result",
 }: Props) {
   const input = useAppStore((s) => s.input);
+  const where = game ? "game" : surface;
+  const logShare = (channel: ShareChannel) => trackShare(where, channel, game ? `game:${game}` : where === "result" ? input.mode : null);
+  // the original 냥신 SVG, drawn big on the story card (never a small on-page avatar scaled up)
+  const catRef = useRef<HTMLSpanElement>(null);
   const story = useRef<Blob | null>(null);
   const drawing = useRef<Promise<Blob | null> | null>(null);
   const [ready, setReady] = useState(false);
@@ -67,7 +76,7 @@ export function ShareButtons({
     let url: string | null = null;
     const t = setTimeout(
       () => {
-        drawing.current = drawStory(teaser, myName, partnerName)
+        drawing.current = drawStory(teaser, myName, partnerName, catRef.current?.querySelector("svg") ?? null)
           .then((b) => {
             if (alive) {
               story.current = b;
@@ -99,15 +108,23 @@ export function ShareButtons({
           : `나랑 찰떡인 사람은 '${teaser.match.bestType.name}' 유형이래 😳 소름 돋게 잘 맞음. 너도 해 봐!`,
       };
 
-  const report = (p: Promise<ShareOutcome>) =>
-    p.then((o) => OUTCOME_MSG[o] && toast(OUTCOME_MSG[o]!)).catch(() => toast("공유에 실패했다냥. 다시 눌러라냥"));
+  const report = (p: Promise<ShareOutcome>, channel: ShareChannel) =>
+    p
+      .then((o) => {
+        if (o !== "unsupported") logShare(o === "copied" ? "copy" : channel);
+        if (OUTCOME_MSG[o]) toast(OUTCOME_MSG[o]!);
+      })
+      .catch(() => toast("공유에 실패했다냥. 다시 눌러라냥"));
 
   // Everything up to navigator.share runs synchronously inside the tap.
   const onInsta = () => {
     if (!isMobile()) {
       const url = handoffUrl(input, { card: teaser, me: myName, partner: partnerName }, "insta");
       QRCode.toDataURL(url, { margin: 1, width: 360, errorCorrectionLevel: "L", color: { dark: "#1a0f08", light: "#e9dcbd" } })
-        .then((img) => setQr({ img, url }))
+        .then((img) => {
+          setQr({ img, url });
+          logShare("qr");
+        })
         .catch(() => toast("QR을 만들지 못했다냥"));
       return;
     }
@@ -117,17 +134,20 @@ export function ShareButtons({
       return;
     }
     if (story.current) {
-      report(shareService.shareStory(story.current));
+      report(shareService.shareStory(story.current), "story");
       return;
     }
     // Tapped before the image was ready: Chrome keeps the tap valid for a few seconds, so finish drawing first.
     const pending = drawing.current;
     if (!pending) return toast("점괘 카드를 그리는 중이다냥. 잠깐 뒤 다시 눌러라냥");
-    report(pending.then((b) => (b ? shareService.shareStory(b) : ("unsupported" as const))));
+    report(pending.then((b) => (b ? shareService.shareStory(b) : ("unsupported" as const))), "story");
   };
 
   return (
     <section className={compact ? "" : "mt-10"}>
+      <span hidden ref={catRef}>
+        <Nyang mood="smug" size={640} />
+      </span>
       {!compact && (
         <>
           <h2 className="mb-1 text-[20px]">📜 이 점괘, 혼자 보기 아깝다냥</h2>
@@ -151,6 +171,7 @@ export function ShareButtons({
                   { title: game ? "나도 해 보기" : "나도 보기", url: game ? gameUrl(game) : shareUrl() },
                 ],
               }),
+              "kakao",
             );
           }}
           className={`share-plaque share-kakao w-full ${compact ? "py-3.5" : "py-4"} transition active:scale-[0.98]`}
@@ -214,7 +235,10 @@ export function ShareButtons({
             onClick={() =>
               navigator.clipboard
                 ?.writeText(qr.url)
-                .then(() => toast("링크 복사했다냥! 카톡 '나와의 채팅'으로 폰에 보내라냥"))
+                .then(() => {
+                  logShare("copy");
+                  toast("링크 복사했다냥! 카톡 '나와의 채팅'으로 폰에 보내라냥");
+                })
                 .catch(() => toast("복사를 못 했다냥"))
             }
             className="mt-3 w-full rounded-2xl border border-line py-3 text-sm font-semibold"
