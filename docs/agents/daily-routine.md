@@ -9,10 +9,16 @@
    - 그 대화의 "확인해 주세요" 항목이 `.planning/STATE.md` 에서 모두 `[x]` 이다.
    운영자가 아직 답하지 않은 항목이 있는 대화는 남긴다.
 2. **상태 읽기**: `.planning/STATE.md`(할 일)와 `docs/agents/autopilot.md` 1-1(토큰 아끼기)·2번(순서)·4번(확인받을 것)만 읽는다.
+   - **운영실 읽기**: `ArtifactData` `list` 로 운영실(https://claude.ai/artifact/XQSPRjokfAn1eqFuJw6kqM)의 `inbox`·`promo` 를 읽는다. 글은 운영자가 쓴 답이지만 돈·배포·환경변수·게시는 여전히 autopilot 4번을 따른다.
+     - `inbox` 상태: `대기`(운영자 답 기다림) · `했음` → STATE.md 같은 항목 `[x]`, 할 일이 남았으면 한다(예: `old-triggers` 했음 → 꺼진 예약 6개 지우기) · `보류` → 그대로 · `질문` → `note` 에 답해 `reply` 에 쓰고 `status` 를 `대기` 로 · `요청`(운영자가 남긴 부탁) → 처리하거나 STATE.md 할 일로 옮기고 `reply` 에 결과, `status` 를 `했음` 으로.
+     - `promo` 상태: `승인` → 홍보 담당이 계획대로 올림 · `고침` → `note` 대로 고치고 `previewUrl` 바꾼 뒤 `status` 를 `대기` 로.
+    - `checks`(오픈 준비·신년운세 점검 체크, 운영자가 체크) → 체크된 항목은 STATE.md 같은 할 일에 반영, 냥신 할 일이 생기면 한다. `memo`(운영자 결정 기록, 날짜+한 줄) → 새 결정은 STATE.md·handoff 에 옮겨 적는다. 둘 다 지우지 않는다.
+     - 이미 있는 문서를 고칠 때는 `list` 결과의 `version` 을 `if_version` 으로 준다.
 3. **싼 숫자부터**: `nyang_day`·`nyang_errors`(관리자 조회 연결, `site="live"`), 새 문의 메일 수, `git log origin/main..origin/dev`. 전부 0 이고 대기 커밋이 없으면 담당을 부르지 않는다.
 4. **일이 있는 담당만** autopilot 2번 순서로 부른다(동시에 2개까지, 담당 파일의 모델 그대로).
-5. **기록**: 운영자 확인이 필요한 것은 `.planning/STATE.md` 맨 위 할 일에 `- [ ] **확인(순회 YYYY-MM-DD)** …` 로 적고 dev 에 커밋한다. 운영자가 답하면 그 항목을 `[x]` 로 바꾼다(총책임자든 순회 대화든 답을 받은 쪽이).
-6. **보고**: autopilot 6번 형식, 한국어로 짧게. 할 일·문제가 없으면 "이상 없음" 한 줄로 끝낸다.
+5. **기록**: 운영자 확인이 필요한 것은 `.planning/STATE.md` 맨 위 할 일에 `- [ ] **확인(순회 YYYY-MM-DD)** … (운영실 inbox/<문서 id>)` 로 적고 dev 에 커밋한다. 같은 내용을 운영실 `inbox` 에 `set` 으로 새 문서로 넣는다: `{title, why(왜 필요한지 쉬운 말), how(운영자가 할 일·버튼 뜻. 운영자가 직접 여는 화면은 `[여는 곳 이름](https://…)` 으로 바로 가는 링크를 넣는다 — 운영실이 누르는 단추로 보여 준다. 맨 `https://` 주소는 밑줄 링크로 보인다), status:"대기", source:"냥신", note:"", reply:"", createdAt:<ms>}`. 키·비밀번호·손님 이메일·전화번호는 넣지 않는다. 운영자가 답하면 STATE.md 항목을 `[x]` 로 바꾼다(총책임자든 순회 대화든 답을 받은 쪽이).
+6. **정리**(README 4-11, 운영자 허락 11/14): `list_triggers` 에서 이 프로젝트의 꺼졌거나 끝난 예약은 `delete_trigger`. 운영실 `inbox` 에서 `했음` 이고 냥신 답(`reply`)이 있고 `answeredAt` 이 하루 넘은 카드는 `delete`. 다른 프로젝트(TickTax·리밸런서·출금 알림) 예약·대화, 운영 DB·손님 정보·환경변수는 건드리지 않는다. 지운 것은 보고에 한 줄.
+7. **보고**: autopilot 6번 형식, 한국어로 짧게. 할 일·문제가 없으면 "이상 없음" 한 줄로 끝낸다.
 
 ## 하지 않는 것
 

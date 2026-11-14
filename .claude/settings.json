@@ -118,5 +118,5 @@
       }
     }
   },
-  "autoCompactWindow": 200000
+  "autoCompactWindow": 300000
 }
