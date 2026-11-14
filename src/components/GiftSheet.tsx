@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { GIFT_MAX, GIFT_QUICK, nyang } from "@/lib/config";
+import { useLive } from "@/lib/liveSettings";
+import { costLine } from "@/lib/pricing";
 import { giftApi, type GiftView, type SentGift } from "@/services/apiClient";
 import { siteUrl } from "@/services/shareService";
 import { useAppStore } from "@/store/useAppStore";
@@ -45,6 +47,7 @@ function keepGiftDraft(d: Omit<Draft, "at">) {
  */
 export function GiftSendSheet({ open, onClose, onCharge, note }: { open: boolean; onClose: () => void; onCharge: (need: number) => void; note?: string | null }) {
   const me = useAppStore((s) => s.me);
+  const { costs } = useLive().pricing;
   const setCoins = useAppStore((s) => s.setCoins);
   const [coins, setCoinsPick] = useState(GIFT_QUICK[0]);
   const [message, setMessage] = useState("");
@@ -121,7 +124,7 @@ export function GiftSendSheet({ open, onClose, onCharge, note }: { open: boolean
       ) : (
         <div className="space-y-4">
           <p className="text-[13.5px] leading-relaxed text-muted">
-            내 복주머니의 냥을 친구에게 보낸다냥. 1냥이면 점괘 한 번, 2냥이면 궁합 한 번이다냥. 지금 <Coin /> {nyang(me.coins)} 있다냥.
+            내 복주머니의 냥을 친구에게 보낸다냥. 한 번 여는 값은 {costLine(costs)}이다냥. 지금 <Coin /> {nyang(me.coins)} 있다냥.
           </p>
           {note && <p className="fade-up rounded-xl border border-peach/40 bg-peach/10 px-3 py-2 text-center text-[13px] font-semibold text-peach">{note}</p>}
           <div className="rounded-2xl border border-line bg-black/20 p-3">

@@ -17,6 +17,7 @@ import { GiftClaimSheet } from "./GiftSheet";
 import { PairSheet } from "./PairSheet";
 import { Nyang } from "./Nyang";
 import { SoundToggle } from "./SoundToggle";
+import { costLine } from "@/lib/pricing";
 import { sound } from "@/lib/sound";
 import { Talisman } from "./Talisman";
 import { TypeCarousel } from "./TypeCarousel";
@@ -117,7 +118,6 @@ export function Landing() {
     addEventListener("hashchange", onHash);
     return () => removeEventListener("hashchange", onHash);
   }, []);
-  const minCost = Math.min(...Object.values(live.pricing.costs));
   const unit = live.pricing.packs[0].price / live.pricing.packs[0].coins;
   const maxSave = Math.max(0, ...sellPacks({ ...live, sale: null }).map((p) => Math.round((1 - p.price / p.coins / unit) * 100)));
 
@@ -251,7 +251,7 @@ export function Landing() {
       <p className="fade-up mt-6 rounded-xl border border-violet/25 bg-white/[0.03] px-3.5 py-2.5 text-center text-[12.5px] leading-relaxed text-muted">
         <Coin /> 복채는 <b className="text-peach">냥</b>(엽전)으로 낸다냥
         {/* the code defaults are not the live prices: name a price only once /api/settings has answered */}
-        {live.loaded && <> · 점괘 하나 {nyang(minCost)}부터</>}
+        {live.loaded && <> · {costLine(live.pricing.costs)}</>}
         {live.sale ? <> · 🎉 지금 충전 세일 중이다냥</> : maxSave > 0 && <> · 묶음으로 채우면 최대 {maxSave}% 싸다냥</>}
       </p>
 

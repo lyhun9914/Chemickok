@@ -1,5 +1,5 @@
 import { won } from "@/lib/config";
-import { MODES, directPriceIn, type Pricing } from "@/lib/pricing";
+import { MODES, SHORT, directPriceIn, type Pricing } from "@/lib/pricing";
 import type { Mode } from "@/models/types";
 
 /**
@@ -15,16 +15,6 @@ export interface FollowUp {
   /** 그대로 붙여 넣을 새 문구 */
   text?: string;
 }
-
-const SHORT: Record<Mode, string> = {
-  solo: "연애 팔자",
-  couple: "궁합",
-  reunion: "재회운",
-  spouse: "배우자운",
-  newyear: "신년운세",
-  saju: "사주",
-  daeun: "대운",
-};
 
 /** 은/는: by the last syllable's 받침 */
 const eunNeun = (word: string) => {
